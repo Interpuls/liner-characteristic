@@ -4,5 +4,5 @@ sqlmodel==0.0.16
 python-jose[cryptography]==3.3.0
 passlib[bcrypt]==1.7.4
 python-multipart==0.0.9
-psycopg2-binary==2.9.9  # (per Postgres in futuro; in locale useremo SQLite)
+psycopg2-binary==2.9.10
 email-validator==2.1.0.post1

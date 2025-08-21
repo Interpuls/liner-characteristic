@@ -89,3 +89,7 @@ def delete_liner(liner_id: int, session: Session = Depends(get_session)):
     session.delete(liner)
     session.commit()
     return
+
+@app.get("/healthz")
+def healthz():
+    return {"ok": True}
