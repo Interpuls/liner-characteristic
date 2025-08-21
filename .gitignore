@@ -1,0 +1,27 @@
+# Node / Next
+node_modules/
+.next/
+out/
+.npm/
+npm-debug.log*
+
+# Python / FastAPI
+backend/.venv/
+backend/__pycache__/
+backend/*.sqlite3
+backend/*.db
+backend/.pytest_cache/
+
+# Env & secrets
+*.env
+*.env.*        # non committare file env reali
+!backend/.env.example
+!frontend/.env.example
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Editors
+.vscode/
+.idea/
