@@ -9,15 +9,28 @@ from .schemas import UserCreate, UserOut, Token, LinerIn
 from .auth import hash_password, verify_password, create_access_token, get_current_user, require_role
 from .deps import apply_cors
 
+import logging
+
+from starlette.middleware.gzip import GZipMiddleware
+
 ALLOWED_EMAIL_DOMAIN = os.getenv("ALLOWED_EMAIL_DOMAIN", "milkrite.com")
 
 app = FastAPI(title="Liner Characteristic API")
+
+app.add_middleware(GZipMiddleware, minimum_size=500)
 
 apply_cors(app)
 
 @app.on_event("startup")
 def on_startup():
     init_db()
+
+# -------- Middleware --------
+@app.middleware("http")
+async def log_requests(request, call_next):
+    resp = await call_next(request)
+    logger.info("%s %s -> %s", request.method, request.url.path, resp.status_code)
+    return resp
 
 # -------- Auth --------
 @app.post("/auth/register", response_model=UserOut)
