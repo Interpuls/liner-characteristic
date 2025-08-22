@@ -1,6 +1,7 @@
 import os
 from fastapi import FastAPI, Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordRequestForm
+from fastapi.responses import JSONResponse, RedirectResponse
 from sqlmodel import Session, select
 
 from .db import init_db, get_session
@@ -27,6 +28,11 @@ apply_cors(app)
 @app.on_event("startup")
 def on_startup():
     init_db()
+
+# -------- Routes --------
+@app.get("/", include_in_schema=False)
+def root_redirect():
+    return RedirectResponse(url="/docs")
 
 # -------- Middleware --------
 @app.middleware("http")
