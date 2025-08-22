@@ -1,7 +1,9 @@
-import { useState } from "react";
-import { Box, Button, Heading, Input, Stack, useToast } from "@chakra-ui/react";
-import { login } from "../lib/api";
-import { setToken } from "../lib/auth";
+import { useEffect, useState } from "react";
+import {
+  Box, Button, Heading, Input, Stack, useToast, Text, Link,
+} from "@chakra-ui/react";
+import { loginApi, getMe } from "../lib/api";
+import { setToken, getToken, clearToken } from "../lib/auth";
 
 export default function Login() {
   const [email, setEmail] = useState("");
@@ -9,30 +11,71 @@ export default function Login() {
   const [loading, setLoading] = useState(false);
   const toast = useToast();
 
+  // se già loggato, vai alla home
+  useEffect(() => {
+    const t = getToken();
+    if (t) {
+      getMe(t)
+        .then(() => {
+          const next = new URLSearchParams(window.location.search).get("next");
+          window.location.replace(next || "/");
+        })
+        .catch(() => clearToken());
+    }
+  }, []);
+
   const onSubmit = async (e) => {
     e.preventDefault();
+    setLoading(true);
     try {
-      setLoading(true);
-      const { access_token } = await login(email, password);
+      const { access_token } = await loginApi(email, password);
       setToken(access_token);
-      window.location.replace("/products");
+      const next = new URLSearchParams(window.location.search).get("next");
+      window.location.replace(next || "/");
     } catch (err) {
-      toast({ status: "error", title: "Login fallito" });
+      toast({
+        status: "error",
+        title: "Login fallito",
+        description: "Credenziali non valide o utente non autorizzato",
+      });
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <Box maxW="sm" mx="auto" mt="20">
-      <Heading size="md" mb="4">Accedi</Heading>
-      <form onSubmit={onSubmit}>
-        <Stack gap="3">
-          <Input placeholder="email" type="email" value={email} onChange={(e)=>setEmail(e.target.value)} />
-          <Input placeholder="password" type="password" value={password} onChange={(e)=>setPw(e.target.value)} />
-          <Button type="submit" isLoading={loading} colorScheme="blue">Login</Button>
-        </Stack>
-      </form>
+    <Box minH="100vh" display="flex" alignItems="center" justifyContent="center" p="6">
+      <Box w="full" maxW="sm" p="6" borderWidth="1px" rounded="lg">
+        <Heading size="md" mb="4" textAlign="center">Accedi</Heading>
+        <form onSubmit={onSubmit}>
+          <Stack gap="3">
+            <Input
+              placeholder="email aziendale"
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              autoFocus
+            />
+            <Input
+              placeholder="password"
+              type="password"
+              value={password}
+              onChange={(e) => setPw(e.target.value)}
+            />
+            <Button type="submit" isLoading={loading} colorScheme="blue">
+              Entra
+            </Button>
+          </Stack>
+        </form>
+        <Text fontSize="sm" color="gray.500" mt="4" textAlign="center">
+          Accesso riservato ai domini autorizzati.
+        </Text>
+        <Box textAlign="center" mt="3">
+          <Link color="blue.500" onClick={() => { clearToken(); window.location.reload(); }}>
+            Svuota sessione
+          </Link>
+        </Box>
+      </Box>
     </Box>
   );
 }
