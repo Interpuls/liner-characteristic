@@ -17,6 +17,8 @@ ALLOWED_EMAIL_DOMAIN = os.getenv("ALLOWED_EMAIL_DOMAIN", "milkrite.com")
 
 app = FastAPI(title="Liner Characteristic API")
 
+logger = logging.getLogger("uvicorn.access")
+
 app.add_middleware(GZipMiddleware, minimum_size=500)
 
 apply_cors(app)
