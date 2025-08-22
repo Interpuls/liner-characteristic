@@ -17,7 +17,8 @@ ALLOWED_EMAIL_DOMAIN = os.getenv("ALLOWED_EMAIL_DOMAIN", "milkrite.com")
 
 app = FastAPI(title="Liner Characteristic API")
 
-logger = logging.getLogger("uvicorn.access")
+logger = logging.getLogger("liner-backend")
+logging.basicConfig(level=logging.INFO)
 
 app.add_middleware(GZipMiddleware, minimum_size=500)
 
