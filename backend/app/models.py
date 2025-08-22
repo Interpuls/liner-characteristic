@@ -21,7 +21,7 @@ class User(SQLModel, table=True):
     email: str = Field(index=True)
     hashed_password: str
     role: UserRole = Field(default=UserRole.user)
-    is_active: bool = Field(default=True)  # <— aggiunto per allineare auth.py
+    is_active: bool = Field(default=True)  
     created_at: datetime = Field(default_factory=datetime.utcnow, nullable=False)
 
     __table_args__ = (
@@ -45,10 +45,11 @@ class Liner(SQLModel, table=True):
 class Product(SQLModel, table=True):
     __tablename__ = "products"
 
-    id: Optional[int] = Field(default=None, primary_key=True)  # PK autoinc
+    id: Optional[int] = Field(default=None, primary_key=True)  
     code: str = Field(index=True)
     name: str
     description: Optional[str] = None
+    orifice_diameter: Optional[float] = None
     created_at: datetime = Field(default_factory=datetime.utcnow, nullable=False)
 
     __table_args__ = (

@@ -28,12 +28,6 @@ class LoginInput(BaseModel):
     email: EmailStr
     password: str
 
-class LinerIn(BaseModel):
-    name: NameStr
-    massage_intensity: Num01 = 0.0
-    smt_fluctuation: Num01 = 0.0
-    hoodcup_fluctuation: Num01 = 0.0
-
 class ProductIn(BaseModel):
     code: constr(min_length=1, max_length=50)
     name: NameStr
@@ -44,5 +38,6 @@ class ProductOut(BaseModel):
     code: str
     name: str
     description: Optional[str] = None
+    orifice_diameter: Optional[float] = None
     class Config:
         from_attributes = True

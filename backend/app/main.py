@@ -7,8 +7,8 @@ from sqlmodel import Session, select
 from starlette.middleware.gzip import GZipMiddleware
 
 from .db import init_db, get_session
-from .models import User, Liner, Product
-from .schemas import UserCreate, UserOut, Token, LinerIn, ProductIn, ProductOut
+from .models import User, Product
+from .schemas import UserCreate, UserOut, Token, ProductIn, ProductOut
 from .auth import hash_password, verify_password, create_access_token, get_current_user, require_role
 from .deps import apply_cors
 
@@ -69,51 +69,11 @@ def login(form: OAuth2PasswordRequestForm = Depends(), session: Session = Depend
 def me(user=Depends(get_current_user)):
     return UserOut(id=user.id, email=user.email, role=user.role)
 
-# -------- Liners --------
-@app.get("/liners")
-def list_liners(session: Session = Depends(get_session), user=Depends(get_current_user)):
-    return session.exec(select(Liner)).all()
-
-@app.post("/liners", dependencies=[Depends(require_role("admin"))])
-def create_liner(payload: LinerIn, session: Session = Depends(get_session)):
-    liner = Liner(**payload.dict())
-    session.add(liner)
-    session.commit()
-    session.refresh(liner)
-    return liner
-
-@app.get("/liners/{liner_id}")
-def get_liner(liner_id: int, session: Session = Depends(get_session), user=Depends(get_current_user)):
-    liner = session.get(Liner, liner_id)
-    if not liner:
-        raise HTTPException(status_code=404, detail="Not found")
-    return liner
-
-@app.put("/liners/{liner_id}", dependencies=[Depends(require_role("admin"))])
-def update_liner(liner_id: int, payload: LinerIn, session: Session = Depends(get_session)):
-    liner = session.get(Liner, liner_id)
-    if not liner:
-        raise HTTPException(status_code=404, detail="Not found")
-    for k, v in payload.dict().items():
-        setattr(liner, k, v)
-    session.add(liner)
-    session.commit()
-    session.refresh(liner)
-    return liner
-
-@app.delete("/liners/{liner_id}", dependencies=[Depends(require_role("admin"))], status_code=204)
-def delete_liner(liner_id: int, session: Session = Depends(get_session)):
-    liner = session.get(Liner, liner_id)
-    if not liner:
-        raise HTTPException(status_code=404, detail="Not found")
-    session.delete(liner)
-    session.commit()
-    return
+# -------- Health --------
 
 @app.get("/healthz")
 def healthz():
     return {"ok": True}
-
 
 
 # -------- Products --------
