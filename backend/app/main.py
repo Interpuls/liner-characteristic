@@ -92,9 +92,13 @@ def healthz():
 # 3.a META: distinct values per i dropdown
 @app.get("/products/meta", response_model=ProductMetaOut)
 def products_meta(session: Session = Depends(get_session), user=Depends(get_current_user)):
-    def distinct_list(col):
-        rows = session.exec(select(func.distinct(col)).where(col.isnot(None))).all()
-        return [r[0] if isinstance(r, tuple) else r for r in rows if r is not None]
+    def distinct_list(col, session: Session):
+        rows = session.exec(
+            select(func.distinct(func.trim(col))).where(
+                and_(col != None, col != "")
+            )
+        ).all()
+        return [r[0] for r in rws if r and r[0]]
 
     product_types = distinct_list(Product.product_type) or ["liner"]
     brands       = distinct_list(Product.brand)
