@@ -129,7 +129,7 @@ def update_product(product_id: int, payload: ProductIn, session: Session = Depen
     session.commit()
     session.refresh(obj)
     return obj
-    
+
 
 @app.delete("/products/{product_id}", status_code=204, dependencies=[Depends(require_role("admin"))])
 def delete_product(product_id: int, session: Session = Depends(get_session)):
@@ -139,3 +139,8 @@ def delete_product(product_id: int, session: Session = Depends(get_session)):
     session.delete(obj)
     session.commit()
     return
+
+
+
+# ---------------------------- Test Types --------------------------------------
+
