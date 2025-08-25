@@ -7,7 +7,7 @@ export default function Home() {
     const t = getToken();
     if (!t) { window.location.replace("/login"); return; }
     getMe(t)
-      .then(() => window.location.replace("/search")) // placeholder: manda alla prima pagina utile
+      .then(() => window.location.replace("/product")) 
       .catch(() => window.location.replace("/login"));
   }, []);
   return null;
