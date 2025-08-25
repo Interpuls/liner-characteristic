@@ -1,6 +1,7 @@
 from typing import Optional, Any, Dict, List
 from pydantic import BaseModel, EmailStr, condecimal, constr
 from enum import Enum
+import datetime from datetime
 
 NameStr = constr(min_length=2, max_length=100)
 Num01 = condecimal(ge=0, max_digits=6, decimal_places=3)
@@ -38,18 +39,12 @@ class ProductIn(BaseModel):
     code: constr(min_length=1, max_length=50)
     name: NameStr
     description: Optional[str] = None
-
-class ProductOut(BaseModel):
-    id: int
-    code: str
-    name: str
-    description: Optional[str] = None
-    product_type: Optional[str] = None
-    brand: Optional[str] = None
+    product_type: Optional[str] = "liner"
+    brand: Optional[str] = None 
     model: Optional[str] = None
     teat_size: Optional[str] = None
     # specifiche
-    teat_length: Optional[float] = None
+    teat_length: Optional[float] = None 
     mp_depth_mm: Optional[float] = None
     orifice_diameter: Optional[float] = None
     hoodcup_diameter: Optional[float] = None
@@ -60,6 +55,10 @@ class ProductOut(BaseModel):
     barrell_wall_thickness: Optional[float] = None
     barrell_conicity: Optional[float] = None
     hardness: Optional[float] = None
+
+class ProductOut(ProductIn):
+    id: int
+    created_at: datetime
 
     class Config:
         from_attributes = True
