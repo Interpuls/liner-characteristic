@@ -1,14 +1,15 @@
 import os
 import logging
-from fastapi import FastAPI, Depends, HTTPException, status
+from fastapi import FastAPI, Depends, HTTPException, status, Query
 from fastapi.security import OAuth2PasswordRequestForm
 from fastapi.responses import JSONResponse
+from sqlalchemy import func
 from sqlmodel import Session, select
 from starlette.middleware.gzip import GZipMiddleware
 
 from .db import init_db, get_session
-from .models import User, Product
-from .schemas import UserCreate, UserOut, Token, ProductIn, ProductOut
+from .models import User, Product, SearchPreference
+from .schemas import UserCreate, UserOut, Token, ProductIn, ProductOut, ProductMetaOut, ProductPreferenceIn, ProductPreferenceOut
 from .auth import hash_password, verify_password, create_access_token, get_current_user, require_role
 from .deps import apply_cors
 
@@ -87,9 +88,65 @@ def healthz():
 
 # ---------------------------- Products ----------------------------------------
 
+# 3.a META: distinct values per i dropdown
+@app.get("/products/meta", response_model=ProductMetaOut)
+def products_meta(session: Session = Depends(get_session), user=Depends(get_current_user)):
+    def distinct_list(col):
+        rows = session.exec(select(func.distinct(col)).where(col.isnot(None))).all()
+        # rows è lista di tuple o scalari a seconda del driver
+        return [r[0] if isinstance(r, tuple) else r for r in rows if r is not None]
+
+    product_types = distinct_list(Product.product_type) or ["liner"]
+    brands = distinct_list(Product.brand)
+    models = distinct_list(Product.model)
+    teat_sizes = distinct_list(Product.teat_size)
+    # kpi per ora placeholder (veri quando avremo tabella kpis)
+    kpis = ["massage_intensity", "smt_fluctuation", "hoodcup_fluctuation"]  # esempio
+    return ProductMetaOut(
+        product_types=product_types, brands=brands, models=models, teat_sizes=teat_sizes, kpis=kpis
+    )
+
+# 3.b LIST con filtri base (senza KPI per ora)
 @app.get("/products", response_model=list[ProductOut])
-def list_products(session: Session = Depends(get_session), user=Depends(get_current_user)):
-    return session.exec(select(Product)).all()
+def list_products(
+    session: Session = Depends(get_session), user=Depends(get_current_user),
+    product_type: Optional[str] = Query(None),
+    brand: Optional[str] = Query(None),
+    model: Optional[str] = Query(None),
+    teat_size: Optional[str] = Query(None),
+    limit: int = Query(20, ge=1, le=100),
+    offset: int = Query(0, ge=0),
+):
+    q = select(Product)
+    if product_type: q = q.where(Product.product_type == product_type)
+    if brand:        q = q.where(Product.brand == brand)
+    if model:        q = q.where(Product.model == model)
+    if teat_size:    q = q.where(Product.teat_size == teat_size)
+    q = q.order_by(Product.created_at.desc()).limit(limit).offset(offset)
+    return session.exec(q).all()
+
+# 3.c Preferenze (salvataggio/lettura per utente)
+@app.get("/products/preferences", response_model=list[ProductPreferenceOut])
+def list_prefs(session: Session = Depends(get_session), user=Depends(get_current_user)):
+    q = select(SearchPreference).where(SearchPreference.user_id == user.id).order_by(SearchPreference.created_at.desc())
+    return session.exec(q).all()
+
+@app.post("/products/preferences", response_model=ProductPreferenceOut)
+def save_pref(payload: ProductPreferenceIn, session: Session = Depends(get_session), user=Depends(get_current_user)):
+    # upsert per nome (univoco per utente)
+    existing = session.exec(
+        select(SearchPreference).where(
+            SearchPreference.user_id == user.id,
+            SearchPreference.name == payload.name
+        )
+    ).first()
+    if existing:
+        existing.filters = payload.filters
+        session.add(existing); session.commit(); session.refresh(existing)
+        return existing
+    pref = SearchPreference(user_id=user.id, name=payload.name, filters=payload.filters)
+    session.add(pref); session.commit(); session.refresh(pref)
+    return pref
 
 
 @app.post("/products", response_model=ProductOut, dependencies=[Depends(require_role("admin"))])
