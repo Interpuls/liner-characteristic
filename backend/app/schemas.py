@@ -79,7 +79,7 @@ class ProductMetaOut(BaseModel):
     brands: List[str]
     models: List[str]
     teat_sizes: List[str]
-    kpis: List[KpiDefOut] 
+    kpis: List["KpiDefOut"] 
 
 
 # --------------- TEST TYPE SCHEMAS ----------------------------------
