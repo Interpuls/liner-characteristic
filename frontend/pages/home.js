@@ -55,7 +55,7 @@ export default function Home() {
         <NavCard href="/help"     title="Info & Guida"     desc="Come leggere i grafici." />
         {isAdmin && (
           <>
-            <NavCard href="/admin/products" title="Gestione Prodotti" desc="CRUD prodotti / modelli." badge="Admin" />
+            <NavCard href="/admin/products" title="Gestione Prodotti" desc="Gestione prodotti / modelli." badge="Admin" />
             <NavCard href="/admin/tests"    title="Campagne di Test"  desc="Registra test e risultati." badge="Admin" />
             <NavCard href="/admin/kpis"     title="Definizione KPI"   desc="Definisci KPI e formule."  badge="Admin" />
           </>
