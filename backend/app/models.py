@@ -104,8 +104,8 @@ class KpiDef(SQLModel, table=True):
     __tablename__ = "kpi_def"
 
     id: Optional[int] = Field(default=None, primary_key=True)
-    code: str = Field(index=True)                # es. "massage_intensity"
-    name: str                                    # es. "Massage Intensity"
+    code: str = Field(index=True)                
+    name: str                                   
     description: Optional[str] = None
 
     test_type_id: int = Field(foreign_key="test_types.id", index=True)
@@ -113,8 +113,8 @@ class KpiDef(SQLModel, table=True):
     formula_type: FormulaType
     formula_text: str                            # testo SQL o Python o definizione aggregazione
 
-    # JSONB su Postgres, JSON altrove
-    inputs: dict = Field(default_factory=dict, sa_column=Column(JSON, nullable=False)) # Postgres JSONB
+    
+    inputs: dict = Field(default_factory=dict, sa_column=Column(JSON, nullable=False)) 
     weight: float = 1.0
 
     created_at: datetime = Field(default_factory=datetime.utcnow, nullable=False)
