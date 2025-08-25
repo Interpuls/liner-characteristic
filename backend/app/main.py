@@ -9,8 +9,8 @@ from starlette.middleware.gzip import GZipMiddleware
 from typing import Optional
 
 from .db import init_db, get_session
-from .models import User, Product, SearchPreference
-from .schemas import UserCreate, UserOut, Token, ProductIn, ProductOut, ProductMetaOut, ProductPreferenceIn, ProductPreferenceOut
+from .models import User, Product, SearchPreference, KpiDef, FormulaType
+from .schemas import UserCreate, UserOut, Token, ProductIn, ProductOut, ProductMetaOut, ProductPreferenceIn, ProductPreferenceOut, KpiDefIn, KpiDefOut
 from .auth import hash_password, verify_password, create_access_token, get_current_user, require_role
 from .deps import apply_cors
 
@@ -94,17 +94,20 @@ def healthz():
 def products_meta(session: Session = Depends(get_session), user=Depends(get_current_user)):
     def distinct_list(col):
         rows = session.exec(select(func.distinct(col)).where(col.isnot(None))).all()
-        # rows è lista di tuple o scalari a seconda del driver
         return [r[0] if isinstance(r, tuple) else r for r in rows if r is not None]
 
     product_types = distinct_list(Product.product_type) or ["liner"]
-    brands = distinct_list(Product.brand)
-    models = distinct_list(Product.model)
-    teat_sizes = distinct_list(Product.teat_size)
-    # kpi per ora placeholder (veri quando avremo tabella kpis)
-    kpis = ["massage_intensity", "smt_fluctuation", "hoodcup_fluctuation"]  # esempio
+    brands       = distinct_list(Product.brand)
+    models       = distinct_list(Product.model)
+    teat_sizes   = distinct_list(Product.teat_size)
+    kpis         = session.exec(select(KpiDef).order_by(KpiDef.created_at.asc())).all()
+
     return ProductMetaOut(
-        product_types=product_types, brands=brands, models=models, teat_sizes=teat_sizes, kpis=kpis
+        product_types=product_types,
+        brands=brands,
+        models=models,
+        teat_sizes=teat_sizes,
+        kpis=kpis
     )
 
 # 3.b LIST con filtri base (senza KPI per ora)
@@ -200,5 +203,29 @@ def delete_product(product_id: int, session: Session = Depends(get_session)):
 
 
 
-# ---------------------------- Test Types --------------------------------------
+# ---------------------------- KPI DEF --------------------------------------
 
+# List (tutti i ruoli)
+@app.get("/kpis", response_model=list[KpiDefOut])
+def list_kpis(session: Session = Depends(get_session), user=Depends(get_current_user)):
+    return session.exec(select(KpiDef).order_by(KpiDef.created_at.asc())).all()
+
+# Create/Upsert (solo admin)
+@app.post("/kpis", response_model=KpiDefOut, dependencies=[Depends(require_role("admin"))])
+def create_or_update_kpi(payload: KpiDefIn, session: Session = Depends(get_session)):
+    existing = session.exec(select(KpiDef).where(KpiDef.code == payload.code)).first()
+    if existing:
+        for k, v in payload.dict().items():
+            setattr(existing, k, v)
+        session.add(existing); session.commit(); session.refresh(existing)
+        return existing
+    item = KpiDef(**payload.dict())
+    session.add(item); session.commit(); session.refresh(item)
+    return item
+
+# Delete (solo admin)
+@app.delete("/kpis/{kpi_id}", status_code=204, dependencies=[Depends(require_role("admin"))])
+def delete_kpi(kpi_id: int, session: Session = Depends(get_session)):
+    item = session.get(KpiDef, kpi_id)
+    if not item: raise HTTPException(status_code=404, detail="Not found")
+    session.delete(item); session.commit()

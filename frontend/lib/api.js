@@ -30,3 +30,8 @@ export const listProductPrefs = (token) => http("/products/preferences", { token
 
 export const saveProductPref  = (token, name, filters) =>
   http("/products/preferences", { method: "POST", token, body: { name, filters } });
+
+
+
+// ---------------------------- KPIs ----------------------------
+export const listKpis = (token) => http("/kpis", { token });

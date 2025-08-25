@@ -5,7 +5,7 @@ from datetime import datetime
 from enum import Enum
 
 from sqlmodel import SQLModel, Field, UniqueConstraint, Index, Relationship
-from sqlalchemy import UniqueConstraint, Index, Column
+from sqlalchemy import UniqueConstraint, Index, Column, JSON
 from sqlalchemy.dialects.postgresql import JSONB
 
 
@@ -69,7 +69,7 @@ class SearchPreference(SQLModel, table=True):
     user_id: int = Field(index=True, foreign_key="users.id")
     name: str = Field(index=True)  # nome del preset
     # JSON di filtri: { product_type, brand, model, teat_size, kpi: [...], ... }
-    filters: dict = Field(sa_column=Column(JSONB))
+    filters: dict = Field(sa_column=Column(JSON))
     created_at: datetime = Field(default_factory=datetime.utcnow, nullable=False)
     __table_args__ = (UniqueConstraint("user_id", "name", name="uq_user_pref_name"),)
 
@@ -88,4 +88,38 @@ class TestType(SQLModel, table=True):
     __table_args__ = (
         UniqueConstraint("code", name="uq_test_types_code"),
         Index("ix_test_types_name", "name"),
+    )
+
+
+
+# --------------- KPI MODELS --------------------------
+
+class FormulaType(str, Enum):
+    SQL = "SQL"
+    PY  = "PY"
+    AGG = "AGG"
+
+
+class KpiDef(SQLModel, table=True):
+    __tablename__ = "kpi_def"
+
+    id: Optional[int] = Field(default=None, primary_key=True)
+    code: str = Field(index=True)                # es. "massage_intensity"
+    name: str                                    # es. "Massage Intensity"
+    description: Optional[str] = None
+
+    test_type_id: int = Field(foreign_key="test_types.id", index=True)
+
+    formula_type: FormulaType
+    formula_text: str                            # testo SQL o Python o definizione aggregazione
+
+    # JSONB su Postgres, JSON altrove
+    inputs: dict = Field(default_factory=dict, sa_column=Column(JSON, nullable=False)) # Postgres JSONB
+    weight: float = 1.0
+
+    created_at: datetime = Field(default_factory=datetime.utcnow, nullable=False)
+
+    __table_args__ = (
+        UniqueConstraint("code", name="uq_kpi_def_code"),
+        Index("ix_kpi_def_name", "name"),
     )

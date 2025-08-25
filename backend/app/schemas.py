@@ -79,7 +79,7 @@ class ProductMetaOut(BaseModel):
     brands: List[str]
     models: List[str]
     teat_sizes: List[str]
-    kpis: List[str]  # per ora placeholder, popoleremo più avanti
+    kpis: List[KpiDefOut] 
 
 
 # --------------- TEST TYPE SCHEMAS ----------------------------------
@@ -94,5 +94,37 @@ class TestTypeOut(BaseModel):
     code: str
     name: str
     description: Optional[str] = None
+    class Config:
+        from_attributes = True
+
+
+# --------------- KPI SCHEMAS ----------------------------------
+
+class FormulaType(str, Enum):
+    SQL = "SQL"
+    PY  = "PY"
+    AGG = "AGG"
+
+class KpiDefIn(BaseModel):
+    code: str
+    name: str
+    description: Optional[str] = None
+    test_type_id: int
+    formula_type: FormulaType
+    formula_text: str
+    inputs: Dict[str, Any] = {}   # es. {"source_table":"tests", "field":"value"}
+    weight: float = 1.0
+
+class KpiDefOut(BaseModel):
+    id: int
+    code: str
+    name: str
+    description: Optional[str] = None
+    test_type_id: int
+    formula_type: FormulaType
+    formula_text: str
+    inputs: Dict[str, Any]
+    weight: float
+
     class Config:
         from_attributes = True
