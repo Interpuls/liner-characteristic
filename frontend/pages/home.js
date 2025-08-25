@@ -49,7 +49,7 @@ export default function Home() {
       </HStack>
 
       <SimpleGrid columns={{ base: 1, sm: 2, lg: 3 }} gap={4}>
-        <NavCard href="/search"   title="Liner Search"     desc="Cerca e vedi grafici rapidi." />
+        <NavCard href="/product"   title="Liner Search"     desc="Cerca e vedi grafici rapidi." />
         <NavCard href="/id-card"  title="Liner ID Card"    desc="Scheda dettagliata del prodotto." />
         <NavCard href="/compare"  title="Setting Calculator" desc="Confronta due modelli." />
         <NavCard href="/help"     title="Info & Guida"     desc="Come leggere i grafici." />
