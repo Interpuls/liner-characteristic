@@ -50,8 +50,8 @@ def upgrade():
     )
 
     # indici extra
-    op.create_index('ix_kpi_def_code', 'kpi_def', ['code'], unique=False)
-    op.create_index('ix_kpi_def_test_type_id', 'kpi_def', ['test_type_id'], unique=False)
+    op.create_index('ix_kpi_def_code', 'kpi_def', ['code'], unique=False, if_not_exists=True)
+    op.create_index('ix_kpi_def_test_type_id', 'kpi_def', ['test_type_id'], unique=False, if_not_exists=True)
 
 
 def downgrade():
