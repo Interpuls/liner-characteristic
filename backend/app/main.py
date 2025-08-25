@@ -27,19 +27,24 @@ apply_cors(app)
 def on_startup():
     init_db()
 
-# -------- Routes --------
+# -------------------------- Routes ----------------------------------------------
+
 @app.get("/", include_in_schema=False)
 def root():
     return JSONResponse({"ok": True, "docs": "/docs", "health": "/healthz"})
 
-# -------- Middleware --------
+
+# ------------------------- Middleware -------------------------------------------
+
 @app.middleware("http")
 async def log_requests(request, call_next):
     resp = await call_next(request)
     logger.info("%s %s -> %s", request.method, request.url.path, resp.status_code)
     return resp
 
-# -------- Auth --------
+
+# --------------------------- Auth ----------------------------------------------
+
 @app.post("/auth/register", response_model=UserOut)
 def register(payload: UserCreate, session: Session = Depends(get_session)):
     # consenti solo email del dominio aziendale
@@ -56,6 +61,7 @@ def register(payload: UserCreate, session: Session = Depends(get_session)):
     session.refresh(user)
     return user
 
+
 @app.post("/auth/login", response_model=Token)
 def login(form: OAuth2PasswordRequestForm = Depends(), session: Session = Depends(get_session)):
     user = session.exec(select(User).where(User.email == form.username)).first()
@@ -64,23 +70,27 @@ def login(form: OAuth2PasswordRequestForm = Depends(), session: Session = Depend
     token = create_access_token(sub=user.email, role=user.role)
     return Token(access_token=token)
 
-# -------- Users (me) --------
+
+# --------------------------- Users (me) ---------------------------------------
+
 @app.get("/me", response_model=UserOut)
 def me(user=Depends(get_current_user)):
     return UserOut(id=user.id, email=user.email, role=user.role)
 
-# -------- Health --------
+
+# ---------------------------- Health ------------------------------------------
 
 @app.get("/healthz")
 def healthz():
     return {"ok": True}
 
 
-# -------- Products --------
+# ---------------------------- Products ----------------------------------------
 
 @app.get("/products", response_model=list[ProductOut])
 def list_products(session: Session = Depends(get_session), user=Depends(get_current_user)):
     return session.exec(select(Product)).all()
+
 
 @app.post("/products", response_model=ProductOut, dependencies=[Depends(require_role("admin"))])
 def create_product(payload: ProductIn, session: Session = Depends(get_session)):
@@ -93,12 +103,14 @@ def create_product(payload: ProductIn, session: Session = Depends(get_session)):
     session.refresh(obj)
     return obj
 
+
 @app.get("/products/{product_id}", response_model=ProductOut)
 def get_product(product_id: int, session: Session = Depends(get_session), user=Depends(get_current_user)):
     obj = session.get(Product, product_id)
     if not obj:
         raise HTTPException(status_code=404, detail="Not found")
     return obj
+
 
 @app.put("/products/{product_id}", response_model=ProductOut, dependencies=[Depends(require_role("admin"))])
 def update_product(product_id: int, payload: ProductIn, session: Session = Depends(get_session)):
@@ -117,6 +129,7 @@ def update_product(product_id: int, payload: ProductIn, session: Session = Depen
     session.commit()
     session.refresh(obj)
     return obj
+    
 
 @app.delete("/products/{product_id}", status_code=204, dependencies=[Depends(require_role("admin"))])
 def delete_product(product_id: int, session: Session = Depends(get_session)):

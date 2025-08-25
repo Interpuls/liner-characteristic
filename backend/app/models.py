@@ -30,16 +30,6 @@ class User(SQLModel, table=True):
     )
 
 
-# --------------- LINER -----------------------
-
-class Liner(SQLModel, table=True):
-    id: Optional[int] = Field(default=None, primary_key=True)
-    name: str
-    massage_intensity: float = 0.0
-    smt_fluctuation: float = 0.0
-    hoodcup_fluctuation: float = 0.0
-
-
 # --------------- PRODUCT MODELS -------------------------------
 
 class Product(SQLModel, table=True):
