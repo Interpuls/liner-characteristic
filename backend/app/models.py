@@ -39,10 +39,26 @@ class Product(SQLModel, table=True):
     code: str = Field(index=True)
     name: str
     description: Optional[str] = None
-    orifice_diameter: Optional[float] = None
     created_at: datetime = Field(default_factory=datetime.utcnow, nullable=False)
 
     __table_args__ = (
         UniqueConstraint("code", name="uq_products_code"),
         Index("ix_products_name", "name"),
+    )
+
+
+# --------------- TEST TYPE MODELS ----------------------------------
+
+class TestType(SQLModel, table=True):
+    __tablename__ = "test_types"
+
+    id: Optional[int] = Field(default=None, primary_key=True)
+    code: str = Field(index=True)
+    name: str 
+    description: Optional[str] = None
+    created_at: datetime = Field(default_factory=datetime.utcnow, nullable=False)
+
+    __table_args__ = (
+        UniqueConstraint("code", name="uq_test_types_code"),
+        Index("ix_test_types_name", "name"),
     )
