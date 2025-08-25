@@ -13,3 +13,5 @@ export const loginApi = async (email, password) => {
 };
 
 export const getMe = (token) => http("/me", { token });
+
+export const listProducts = (token) => http("/products", { token });

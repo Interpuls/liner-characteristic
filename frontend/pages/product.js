@@ -14,7 +14,14 @@ export default function Products() {
   useEffect(() => {
     const t = getToken();
     if (!t) { window.location.replace("/login"); return; }
-    getMe(t).then(me => setIsAdmin(me.role === "admin")).catch(()=>{});
+    getMe(t).then(me => setIsAdmin(me.role === "admin")).catch((err) => {
+    listProducts(t)
+      .then(setItems)
+      .catch(() => {
+        setItems([]);
+        toast({ status: "error", title: "Errore caricamento" });
+      });
+    });
     listProducts(t).then(setItems).catch(()=>toast({status:"error", title:"Errore caricamento"}));
   }, []);
 
