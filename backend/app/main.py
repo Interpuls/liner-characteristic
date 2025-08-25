@@ -6,6 +6,7 @@ from fastapi.responses import JSONResponse
 from sqlalchemy import func
 from sqlmodel import Session, select
 from starlette.middleware.gzip import GZipMiddleware
+from typing import Optional
 
 from .db import init_db, get_session
 from .models import User, Product, SearchPreference
