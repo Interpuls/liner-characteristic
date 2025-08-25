@@ -1,7 +1,7 @@
 from typing import Optional, Any, Dict, List
 from pydantic import BaseModel, EmailStr, condecimal, constr
 from enum import Enum
-import datetime from datetime
+from datetime import datetime
 
 NameStr = constr(min_length=2, max_length=100)
 Num01 = condecimal(ge=0, max_digits=6, decimal_places=3)
