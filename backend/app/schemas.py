@@ -38,6 +38,9 @@ class ProductIn(BaseModel):
     code: constr(min_length=1, max_length=50)
     name: NameStr
     description: Optional[str] = None
+    brand: Optional[str] = None
+    model: Optional[str] = None
+    teat_size: Optional[str] = None
 
 class ProductOut(BaseModel):
     id: int
