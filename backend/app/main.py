@@ -158,7 +158,13 @@ def create_product(payload: ProductIn, session: Session = Depends(get_session)):
     exists = session.exec(select(Product).where(Product.code == payload.code)).first()
     if exists:
         raise HTTPException(status_code=400, detail="Product code already exists")
-    obj = Product(code=payload.code, name=payload.name, description=payload.description)
+    obj = Product(
+        code=payload.code, 
+        name=payload.name, 
+        description=payload.description,
+        brand=payload.brand,
+        model=payload.model,
+        teat_size=payload.teat_size)
     session.add(obj)
     session.commit()
     session.refresh(obj)
