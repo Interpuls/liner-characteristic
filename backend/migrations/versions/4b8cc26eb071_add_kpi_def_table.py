@@ -11,6 +11,9 @@ from alembic import op
 import sqlmodel
 import sqlalchemy as sa
 
+import postgresql
+from sqlalchemy import Text
+
 
 # revision identifiers, used by Alembic.
 revision: str = '4b8cc26eb071'
