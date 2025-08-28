@@ -11,7 +11,7 @@ from alembic import op
 import sqlmodel
 import sqlalchemy as sa
 
-from postgresql import JSONB, ENUM, astext_type
+from sqlalchemy.dialects import postgresql
 from sqlalchemy import Text
 
 
