@@ -24,7 +24,7 @@ depends_on: Union[str, Sequence[str], None] = None
 
 def upgrade():
     bind = op.get_bind()
-
+    inspect = sa.inspect(bind)
     # Enum per formula_type
     if bind.dialect.name == "postgresql":
         formula_enum = postgresql.ENUM('SQL','PY','AGG', name='formula_type_enum', create_type=True)
@@ -35,21 +35,23 @@ def upgrade():
         inputs_type = postgresql.JSONB(astext_type=sa.Text())
     else:
         inputs_type = sa.JSON()
-
-    op.create_table(
-        'kpi_def',
-        sa.Column('id', sa.Integer(), primary_key=True),
-        sa.Column('code', sa.String(), nullable=False, index=True),
-        sa.Column('name', sa.String(), nullable=False),
-        sa.Column('description', sa.Text(), nullable=True),
-        sa.Column('test_type_id', sa.Integer(), nullable=False, index=True),
-        sa.Column('formula_type', formula_enum, nullable=False),
-        sa.Column('formula_text', sa.Text(), nullable=False),
-        sa.Column('inputs', inputs_type, nullable=False),
-        sa.Column('weight', sa.Float(), nullable=False, server_default=sa.text("1.0")),
-        sa.Column('created_at', sa.DateTime(), nullable=False),
-        sa.ForeignKeyConstraint(['test_type_id'], ['test_types.id']),
-        sa.UniqueConstraint('code', name='uq_kpi_def_code'),
+  
+    # Controllo prima che non esista già la tabella
+    if 'kpi_def' not in inspect.get_table_names():
+        op.create_table(
+            'kpi_def',
+            sa.Column('id', sa.Integer(), primary_key=True),
+            sa.Column('code', sa.String(), nullable=False, index=True),
+            sa.Column('name', sa.String(), nullable=False),
+            sa.Column('description', sa.Text(), nullable=True),
+            sa.Column('test_type_id', sa.Integer(), nullable=False, index=True),
+            sa.Column('formula_type', formula_enum, nullable=False),
+            sa.Column('formula_text', sa.Text(), nullable=False),
+            sa.Column('inputs', inputs_type, nullable=False),
+            sa.Column('weight', sa.Float(), nullable=False, server_default=sa.text("1.0")),
+            sa.Column('created_at', sa.DateTime(), nullable=False),
+            sa.ForeignKeyConstraint(['test_type_id'], ['test_types.id']),
+            sa.UniqueConstraint('code', name='uq_kpi_def_code'),
     )
 
     # indici extra
