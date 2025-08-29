@@ -12,7 +12,8 @@ import { AddIcon, SearchIcon, ArrowBackIcon, ChevronLeftIcon } from "@chakra-ui/
 import { LuShoppingCart } from "react-icons/lu";
 import { getToken } from "../../lib/auth";
 import { getMe, getProductsMeta, listProductPrefs } from "../../lib/api";
-import { listProducts } from "../../lib/api"; // <-- usa la tua funzione
+import { listProducts } from "../../lib/api"; 
+import ProductModal from "../../components/ProductModal";
 
 
 function ProductCard({ p }) {
@@ -41,6 +42,14 @@ export default function AdminProducts() {
 
   //modale crea prodotto
   const { isOpen, onOpen, onClose } = useDisclosure();
+  const [newProduct, setNewProduct] = useState({
+  name: "",
+  product_type: "",
+  brand: "",
+  model: "",
+  teat_size: "",
+});
+
 
   const [me, setMe] = useState(null);
   const [meta, setMeta] = useState({ product_types:["liner"], brands:[], models:[], teat_sizes:[], kpis:[] });
@@ -181,49 +190,14 @@ export default function AdminProducts() {
           </Center>
         )}
       </Box>
-      <Modal isOpen={isOpen} onClose={onClose} size="lg" isCentered>
-        <ModalOverlay />
-        <ModalContent>
-          <ModalHeader>Crea nuovo prodotto</ModalHeader>
-          <ModalCloseButton />
-          <ModalBody>
-            {/* Step 1: solo struttura. Nel prossimo step mettiamo i campi reali. */}
-            <Text color="gray.600" mb={4}>
-              Inserisci i dati del prodotto. (Nel prossimo step aggiungiamo i campi e la validazione.)
-            </Text>
-            <SimpleGrid columns={{ base:1, md:2 }} gap={4}>
-              <FormControl>
-                <FormLabel>Tipologia</FormLabel>
-                <Select placeholder="Seleziona" value={productType} onChange={(e)=>setProductType(e.target.value)}>
-                  {(meta.product_types || ["liner"]).map(v => <option key={v} value={v}>{v}</option>)}
-                </Select>
-              </FormControl>
-              <FormControl>
-                <FormLabel>Brand</FormLabel>
-                <Select placeholder="Seleziona" value={brand} onChange={(e)=>setBrand(e.target.value)}>
-                  {(meta.brands || []).map(v => <option key={v} value={v}>{v}</option>)}
-                </Select>
-              </FormControl>
-              <FormControl>
-                <FormLabel>Model</FormLabel>
-                <Select placeholder="Seleziona" value={model} onChange={(e)=>setModel(e.target.value)}>
-                  {(meta.models || []).map(v => <option key={v} value={v}>{v}</option>)}
-                </Select>
-              </FormControl>
-              <FormControl>
-                <FormLabel>Teat size</FormLabel>
-                <Select placeholder="Seleziona" value={teatSize} onChange={(e)=>setTeatSize(e.target.value)}>
-                  {(meta.teat_sizes || []).map(v => <option key={v} value={v}>{v}</option>)}
-                </Select>
-              </FormControl>
-            </SimpleGrid>
-          </ModalBody>
-          <ModalFooter>
-            <Button variant="ghost" mr={3} onClick={onClose}>Annulla</Button>
-            <Button colorScheme="blue" isDisabled>Salva (prossimo step)</Button>
-          </ModalFooter>
-        </ModalContent>
-      </Modal>
+      <ProductModal
+        isOpen={isOpen}
+        onClose={onClose}
+        meta={meta}
+        onSave={(prod) => {
+          console.log("Nuovo prodotto:", prod);
+        }}
+      />
     </Box>
   );
 }
