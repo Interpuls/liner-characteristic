@@ -5,6 +5,7 @@ from fastapi.security import OAuth2PasswordRequestForm
 from fastapi.responses import JSONResponse
 from sqlalchemy import func
 from sqlmodel import Session, select
+import re
 from starlette.middleware.gzip import GZipMiddleware
 from typing import Optional
 
@@ -118,16 +119,22 @@ def list_products(
     brand: Optional[str] = Query(None),
     model: Optional[str] = Query(None),
     teat_size: Optional[str] = Query(None),
+    q: Optional[str] = Query(None),
     limit: int = Query(20, ge=1, le=100),
     offset: int = Query(0, ge=0),
 ):
-    q = select(Product)
-    if product_type: q = q.where(Product.product_type == product_type)
-    if brand:        q = q.where(Product.brand == brand)
-    if model:        q = q.where(Product.model == model)
-    if teat_size:    q = q.where(Product.teat_size == teat_size)
-    q = q.order_by(Product.created_at.desc()).limit(limit).offset(offset)
-    return session.exec(q).all()
+    qy = select(Product)
+    if product_type: qy = qy.where(Product.product_type == product_type)
+    if brand:        qy = qy.where(Product.brand == brand)
+    if model:        qy = qy.where(Product.model == model)
+    if teat_size:    qy = qy.where(Product.teat_size == teat_size)  
+    if q:
+        like = f"%{q}%"
+        qy = qy.where(
+            (Product.name.ilike(like)) | (Product.brand.ilike(like)) | (Product.model.ilike(like))
+        )
+    qy = qy.order_by(Product.created_at.desc()).limit(limit).offset(offset)
+    return session.exec(qy).all()
 
 # 3.c Preferenze (salvataggio/lettura per utente)
 @app.get("/products/preferences", response_model=list[ProductPreferenceOut])
@@ -153,18 +160,52 @@ def save_pref(payload: ProductPreferenceIn, session: Session = Depends(get_sessi
     return pref
 
 
+def slugify(s: str) -> str:
+    s = s.strip().lower()
+    s = re.sub(r'[^a-z0-9]+', '-', s)
+    s = re.sub(r'-{2,}', '-', s).strip('-')
+    return s or "product"
+
 @app.post("/products", response_model=ProductOut, dependencies=[Depends(require_role("admin"))])
 def create_product(payload: ProductIn, session: Session = Depends(get_session)):
-    exists = session.exec(select(Product).where(Product.code == payload.code)).first()
-    if exists:
-        raise HTTPException(status_code=400, detail="Product code already exists")
+    # 1) vincolo (brand, model) univoco applicativo
+    exists_bm = session.exec(
+        select(Product).where(Product.brand == payload.brand, Product.model == payload.model)
+    ).first()
+    if exists_bm:
+        raise HTTPException(status_code=409, detail="Product with same brand and model already exists")
+
+    # 2) code: se non arriva, generiamo da brand+model (unico con suffisso)
+    code = payload.code or slugify(f"{payload.brand}-{payload.model}")
+    # univocità sul code
+    base_code = code
+    i = 1
+    while session.exec(select(Product).where(Product.code == code)).first():
+        i += 1
+        code = f"{base_code}-{i}"
+
+    # 3) name: se non arriva, usiamoa model 
+    name = payload.name or payload.model
+
     obj = Product(
-        code=payload.code, 
-        name=payload.name, 
+        code=code,
+        name=name,
         description=payload.description,
+        product_type="liner",  # default 
         brand=payload.brand,
         model=payload.model,
-        teat_size=payload.teat_size)
+        # specifiche tecniche
+        mp_depth_mm=payload.mp_depth_mm,
+        orifice_diameter=payload.orifice_diameter,
+        hoodcup_diameter=payload.hoodcup_diameter,
+        return_to_lockring=payload.return_to_lockring,
+        lockring_diameter=payload.lockring_diameter,
+        overall_length=payload.overall_length,
+        milk_tube_id=payload.milk_tube_id,
+        barrell_wall_thickness=payload.barrell_wall_thickness,
+        barrell_conicity=payload.barrell_conicity,
+        hardness=payload.hardness,
+    )
     session.add(obj)
     session.commit()
     session.refresh(obj)

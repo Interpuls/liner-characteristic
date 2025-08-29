@@ -1,5 +1,5 @@
 from typing import Optional, Any, Dict, List
-from pydantic import BaseModel, EmailStr, condecimal, constr
+from pydantic import BaseModel, EmailStr, condecimal, constr, Field
 from enum import Enum
 
 NameStr = constr(min_length=2, max_length=100)
@@ -35,12 +35,25 @@ class UserOut(BaseModel):
 # --------------- PRODUCT SCHEMAS -------------------------------
 
 class ProductIn(BaseModel):
-    code: constr(min_length=1, max_length=50)
-    name: NameStr
+    # li generiamo lato backend
+    code: Optional[constr(min_length=1, max_length=50)] = None
+    name:  Optional[str] = None
+
     description: Optional[str] = None
-    brand: Optional[str] = None
-    model: Optional[str] = None
+    brand: constr(min_length=1)
+    model: constr(min_length=1)
+    
     teat_size: Optional[str] = None
+    mp_depth_mm: Optional[float] = None
+    orifice_diameter: Optional[float] = None
+    hoodcup_diameter: Optional[float] = None
+    return_to_lockring: Optional[float] = None
+    lockring_diameter: Optional[float] = None
+    overall_length: Optional[float] = None
+    milk_tube_id: Optional[float] = None
+    barrell_wall_thickness: Optional[float] = None
+    barrell_conicity: Optional[float] = None
+    hardness: Optional[float] = None
 
 class ProductOut(BaseModel):
     id: int
