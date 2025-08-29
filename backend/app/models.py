@@ -63,6 +63,10 @@ class Product(SQLModel, table=True):
         Index("ix_products_name", "name"),
     )
 
+
+
+# --------------- SEARCH MODELS ---------------------
+
 class SearchPreference(SQLModel, table=True):
     __tablename__ = "search_preferences"
     id: Optional[int] = Field(default=None, primary_key=True)
