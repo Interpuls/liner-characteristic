@@ -7,6 +7,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy import func
 from sqlmodel import Session, select
 import re
+from starlette.middleware.cors import CORSMiddleware
 from starlette.middleware.gzip import GZipMiddleware
 from typing import Optional
 from sqlalchemy.exc import IntegrityError
@@ -40,28 +41,25 @@ def root():
 # ------------------------- Middleware -------------------------------------------
 
 def apply_cors(app):
-    import os
     raw = os.getenv("CORS_ORIGINS", "")
-    defaults = {"http://localhost:3000", "http://127.0.0.1:3000"}
-    env_origins = {o.strip() for o in raw.split(",") if o.strip()}
-    origins = list(defaults | env_origins)
+    origins = [o.strip() for o in raw.split(",") if o.strip()]
+    if not origins:
+        # Fallback sicuro per dev; in prod dovresti valorizzare l'env
+        origins = ["*"]
+    print(f"[CORS] allow_origins={origins}")  
 
     app.add_middleware(
         CORSMiddleware,
-        allow_origins=origins or ["*"],
-        allow_credentials=True,
-        allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
-        allow_headers=["*"],  
+        allow_origins=origins,
+        allow_methods=["*"],
+        allow_headers=["*"],      
+        allow_credentials=False,  
         expose_headers=["*"],
     )
 
-# 1) CORS per primo
+app.add_middleware(GZipMiddleware, minimum_size=500)
 apply_cors(app)
 
-# 2) poi GZip
-app.add_middleware(GZipMiddleware, minimum_size=500)
-
-# 3) poi il tuo middleware custom
 @app.middleware("http")
 async def log_requests(request, call_next):
     resp = await call_next(request)
