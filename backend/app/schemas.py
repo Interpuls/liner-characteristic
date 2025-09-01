@@ -1,5 +1,5 @@
 from typing import Optional, Any, Dict, List
-from pydantic import BaseModel, EmailStr, condecimal, constr
+from pydantic import BaseModel, EmailStr, condecimal, constr, Field
 from enum import Enum
 
 NameStr = constr(min_length=2, max_length=100)
@@ -35,12 +35,24 @@ class UserOut(BaseModel):
 # --------------- PRODUCT SCHEMAS -------------------------------
 
 class ProductIn(BaseModel):
-    code: constr(min_length=1, max_length=50)
-    name: NameStr
+    # li generiamo lato backend
+    code: Optional[constr(min_length=1, max_length=50)] = None
+    name:  Optional[str] = None
+
     description: Optional[str] = None
-    brand: Optional[str] = None
-    model: Optional[str] = None
-    teat_size: Optional[str] = None
+    brand: constr(min_length=1)
+    model: constr(min_length=1)
+    
+    mp_depth_mm: Optional[float] = None
+    orifice_diameter: Optional[float] = None
+    hoodcup_diameter: Optional[float] = None
+    return_to_lockring: Optional[float] = None
+    lockring_diameter: Optional[float] = None
+    overall_length: Optional[float] = None
+    milk_tube_id: Optional[float] = None
+    barrell_wall_thickness: Optional[float] = None
+    barrell_conicity: Optional[float] = None
+    hardness: Optional[float] = None
 
 class ProductOut(BaseModel):
     id: int
@@ -50,9 +62,7 @@ class ProductOut(BaseModel):
     product_type: Optional[str] = None
     brand: Optional[str] = None
     model: Optional[str] = None
-    teat_size: Optional[str] = None
     # specifiche
-    teat_length: Optional[float] = None
     mp_depth_mm: Optional[float] = None
     orifice_diameter: Optional[float] = None
     hoodcup_diameter: Optional[float] = None
@@ -82,9 +92,38 @@ class ProductMetaOut(BaseModel):
     product_types: List[str]
     brands: List[str]
     models: List[str]
-    teat_sizes: List[str]
+    teat_sizes: List[int]
     kpis: List["KpiDefOut"] 
 
+# --------------- PRODUCT APPLICATION SCHEMAS (Teat Size) -------------------------------
+ALLOWED_SIZES = {40, 50, 60, 70}
+SIZE_LABELS = {
+    40: "Short",
+    50: "Medium",
+    60: "Long",
+    70: "Extra Long"
+}
+
+class ProductApplicationIn(BaseModel):
+    size_mm: int = Field(..., description="One of 40, 50, 60, 70")
+    @classmethod
+    def validate_size(cls, v: int) -> int:
+        if v not in SIZE_LABELS:
+            raise ValueError("size_mm must be one of 40, 50, 60, 70")
+        return v
+
+    def model_post_init(self, _ctx) -> None:
+        self.size_mm = self.validate_size(self.size_mm)
+
+
+class ProductApplicationOut(BaseModel):
+    id: int
+    product_id: int
+    size_mm: int
+    label: str
+
+    class Config:
+        from_attributes = True
 
 # --------------- TEST TYPE SCHEMAS ----------------------------------
 

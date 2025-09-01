@@ -1,16 +1,19 @@
 import os
 import logging
-from fastapi import FastAPI, Depends, HTTPException, status, Query
+from fastapi import FastAPI, Depends, HTTPException, status, Query, Path
 from fastapi.security import OAuth2PasswordRequestForm
 from fastapi.responses import JSONResponse
+from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy import func
 from sqlmodel import Session, select
+import re
 from starlette.middleware.gzip import GZipMiddleware
 from typing import Optional
+from sqlalchemy.exc import IntegrityError
 
 from .db import init_db, get_session
-from .models import User, Product, SearchPreference, KpiDef, FormulaType
-from .schemas import UserCreate, UserOut, Token, ProductIn, ProductOut, ProductMetaOut, ProductPreferenceIn, ProductPreferenceOut, KpiDefIn, KpiDefOut
+from .models import User, Product, SearchPreference, KpiDef, FormulaType, ProductApplication
+from .schemas import UserCreate, UserOut, Token, ProductIn, ProductOut, ProductMetaOut, ProductPreferenceIn, ProductPreferenceOut, KpiDefIn, KpiDefOut, ProductApplicationIn, ProductApplicationOut, SIZE_LABELS
 from .auth import hash_password, verify_password, create_access_token, get_current_user, require_role
 from .deps import apply_cors
 
@@ -21,9 +24,7 @@ app = FastAPI(title="Liner Characteristic API")
 logger = logging.getLogger("liner-backend")
 logging.basicConfig(level=logging.INFO)
 
-app.add_middleware(GZipMiddleware, minimum_size=500)
 
-apply_cors(app)
 
 @app.on_event("startup")
 def on_startup():
@@ -38,6 +39,29 @@ def root():
 
 # ------------------------- Middleware -------------------------------------------
 
+def apply_cors(app):
+    import os
+    raw = os.getenv("CORS_ORIGINS", "")
+    # aggiungo sempre i due classici in dev
+    defaults = {"http://localhost:3000", "http://127.0.0.1:3000"}
+    env_origins = {o.strip() for o in raw.split(",") if o.strip()}
+    origins = list(defaults | env_origins)
+
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=origins,
+        allow_credentials=True,
+        allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+        allow_headers=["*"],  # Authorization, Content-Type, ecc.
+    )
+
+# 1) CORS per primo
+apply_cors(app)
+
+# 2) poi GZip
+app.add_middleware(GZipMiddleware, minimum_size=500)
+
+# 3) poi il tuo middleware custom
 @app.middleware("http")
 async def log_requests(request, call_next):
     resp = await call_next(request)
@@ -99,14 +123,23 @@ def products_meta(session: Session = Depends(get_session), user=Depends(get_curr
     product_types = distinct_list(Product.product_type) or ["liner"]
     brands       = distinct_list(Product.brand)
     models       = distinct_list(Product.model)
-    teat_sizes   = distinct_list(Product.teat_size)
-    kpis         = session.exec(select(KpiDef).order_by(KpiDef.created_at.asc())).all()
+
+    # se vuoi ancora esporre le misure disponibili:
+    sizes = session.exec(
+        select(func.distinct(ProductApplication.size_mm))
+    ).all()
+    teat_sizes = [
+        int(s[0]) if isinstance(s, (tuple, list)) else int(s)
+        for s in sizes if s is not None
+    ]
+
+    kpis = session.exec(select(KpiDef).order_by(KpiDef.created_at.asc())).all()
 
     return ProductMetaOut(
         product_types=product_types,
         brands=brands,
         models=models,
-        teat_sizes=teat_sizes,
+        teat_sizes=teat_sizes,  
         kpis=kpis
     )
 
@@ -117,17 +150,21 @@ def list_products(
     product_type: Optional[str] = Query(None),
     brand: Optional[str] = Query(None),
     model: Optional[str] = Query(None),
-    teat_size: Optional[str] = Query(None),
+    q: Optional[str] = Query(None),
     limit: int = Query(20, ge=1, le=100),
     offset: int = Query(0, ge=0),
 ):
-    q = select(Product)
-    if product_type: q = q.where(Product.product_type == product_type)
-    if brand:        q = q.where(Product.brand == brand)
-    if model:        q = q.where(Product.model == model)
-    if teat_size:    q = q.where(Product.teat_size == teat_size)
-    q = q.order_by(Product.created_at.desc()).limit(limit).offset(offset)
-    return session.exec(q).all()
+    qy = select(Product)
+    if product_type: qy = qy.where(Product.product_type == product_type)
+    if brand:        qy = qy.where(Product.brand == brand)
+    if model:        qy = qy.where(Product.model == model)
+    if q:
+        like = f"%{q}%"
+        qy = qy.where(
+            (Product.name.ilike(like)) | (Product.brand.ilike(like)) | (Product.model.ilike(like))
+        )
+    qy = qy.order_by(Product.created_at.desc()).limit(limit).offset(offset)
+    return session.exec(qy).all()
 
 # 3.c Preferenze (salvataggio/lettura per utente)
 @app.get("/products/preferences", response_model=list[ProductPreferenceOut])
@@ -153,20 +190,68 @@ def save_pref(payload: ProductPreferenceIn, session: Session = Depends(get_sessi
     return pref
 
 
+def slugify(s: str) -> str:
+    s = s.strip().lower()
+    s = re.sub(r'[^a-z0-9]+', '-', s)
+    s = re.sub(r'-{2,}', '-', s).strip('-')
+    return s or "product"
+
 @app.post("/products", response_model=ProductOut, dependencies=[Depends(require_role("admin"))])
 def create_product(payload: ProductIn, session: Session = Depends(get_session)):
-    exists = session.exec(select(Product).where(Product.code == payload.code)).first()
-    if exists:
-        raise HTTPException(status_code=400, detail="Product code already exists")
+    # 1) check duplicato (brand, model)
+    exists_bm = session.exec(
+        select(Product).where(Product.brand == payload.brand, Product.model == payload.model)
+    ).first()
+    if exists_bm:
+        raise HTTPException(status_code=409, detail="Product with same brand and model already exists")
+
+    # 2) genera code + name come prima
+    code = payload.code or slugify(f"{payload.brand}-{payload.model}")
+    base_code = code; i = 1
+    while session.exec(select(Product).where(Product.code == code)).first():
+        i += 1
+        code = f"{base_code}-{i}"
+    name = payload.name or payload.model
+
+    # 3) crea prodotto + applications in un'unica transazione
     obj = Product(
-        code=payload.code, 
-        name=payload.name, 
+        code=code,
+        name=name,
         description=payload.description,
+        product_type="liner",
         brand=payload.brand,
         model=payload.model,
-        teat_size=payload.teat_size)
+        # specifiche tecniche
+        mp_depth_mm=payload.mp_depth_mm,
+        orifice_diameter=payload.orifice_diameter,
+        hoodcup_diameter=payload.hoodcup_diameter,
+        return_to_lockring=payload.return_to_lockring,
+        lockring_diameter=payload.lockring_diameter,
+        overall_length=payload.overall_length,
+        milk_tube_id=payload.milk_tube_id,
+        barrell_wall_thickness=payload.barrell_wall_thickness,
+        barrell_conicity=payload.barrell_conicity,
+        hardness=payload.hardness,
+    )
     session.add(obj)
-    session.commit()
+    try:
+        # flush per avere obj.id senza chiudere la transazione
+        session.flush()
+
+        # 4) crea le 4 applications standard
+        for size in (40, 50, 60, 70):
+            session.add(ProductApplication(
+                product_id=obj.id,
+                size_mm=size,
+                label=SIZE_LABELS[size],
+            ))
+
+        session.commit()         # unico commit per prodotto + applications
+    except IntegrityError:
+        session.rollback()
+        # se è scattato il vincolo (brand,model) o (product_id,size_mm)
+        # ritorna errore coerente
+        raise HTTPException(status_code=409, detail="Product or applications already exist")
     session.refresh(obj)
     return obj
 
@@ -184,16 +269,54 @@ def update_product(product_id: int, payload: ProductIn, session: Session = Depen
     obj = session.get(Product, product_id)
     if not obj:
         raise HTTPException(status_code=404, detail="Not found")
-    # se cambia il code, verifica unicità
-    if obj.code != payload.code:
+
+    # Se cambiano brand+model, controlla il duplicato
+    if (payload.brand is not None and payload.model is not None) and \
+       (payload.brand != obj.brand or payload.model != obj.model):
+        dup = session.exec(
+            select(Product).where(
+                Product.brand == payload.brand,
+                Product.model == payload.model,
+                Product.id != product_id,
+            )
+        ).first()
+        if dup:
+            raise HTTPException(status_code=409, detail="Product with same brand and model already exists")
+
+    # --- NON sovrascrivere code/name con None ---
+    # Cambia code SOLO se viene passato (e diverso) e rimane unico
+    if payload.code is not None and payload.code != obj.code:
         exists = session.exec(select(Product).where(Product.code == payload.code)).first()
         if exists:
             raise HTTPException(status_code=400, detail="Product code already exists")
-    obj.code = payload.code
-    obj.name = payload.name
+        obj.code = payload.code
+
+    # Cambia name SOLO se viene passato; se non arriva, lo lasci com’è
+    if payload.name is not None:
+        obj.name = payload.name
+
+    # Aggiorna gli altri campi (accettiamo anche None per azzerarli)
+    if payload.brand is not None:  obj.brand = payload.brand
+    if payload.model is not None:  obj.model = payload.model
     obj.description = payload.description
-    session.add(obj)
-    session.commit()
+
+    obj.mp_depth_mm = payload.mp_depth_mm
+    obj.orifice_diameter = payload.orifice_diameter
+    obj.hoodcup_diameter = payload.hoodcup_diameter
+    obj.return_to_lockring = payload.return_to_lockring
+    obj.lockring_diameter = payload.lockring_diameter
+    obj.overall_length = payload.overall_length
+    obj.milk_tube_id = payload.milk_tube_id
+    obj.barrell_wall_thickness = payload.barrell_wall_thickness
+    obj.barrell_conicity = payload.barrell_conicity
+    obj.hardness = payload.hardness
+
+    try:
+        session.add(obj)
+        session.commit()
+    except IntegrityError:
+        session.rollback()
+        raise HTTPException(status_code=409, detail="Update violates unique constraints")
     session.refresh(obj)
     return obj
 
@@ -207,7 +330,69 @@ def delete_product(product_id: int, session: Session = Depends(get_session)):
     session.commit()
     return
 
+# ------------------------ Product Applications -------------------------------
+@app.get("/products/{product_id}/applications",
+         response_model=list[ProductApplicationOut])
+def list_product_applications(
+    product_id: int = Path(..., ge=1),
+    session: Session = Depends(get_session),
+    user=Depends(get_current_user),
+):
+    prod = session.get(Product, product_id)
+    if not prod:
+        raise HTTPException(status_code=404, detail="Product not found")
 
+    q = select(ProductApplication).where(ProductApplication.product_id == product_id) \
+                                  .order_by(ProductApplication.size_mm.asc(),
+                                            ProductApplication.created_at.asc())
+    return session.exec(q).all()
+
+
+# POST: crea una application per un prodotto
+@app.post("/products/{product_id}/applications",
+          response_model=ProductApplicationOut,
+          dependencies=[Depends(require_role("admin"))])
+def create_product_application(
+    product_id: int,
+    payload: ProductApplicationIn,
+    session: Session = Depends(get_session),
+):
+    prod = session.get(Product, product_id)
+    if not prod:
+        raise HTTPException(status_code=404, detail="Product not found")
+
+    app_obj = ProductApplication(
+        product_id=product_id,
+        size_mm=payload.size_mm,
+        label=SIZE_LABELS[payload.size_mm] 
+    )
+    session.add(app_obj)
+    try:
+        session.commit()
+    except IntegrityError:
+        session.rollback()
+        # violazione dell'unicità (product_id, size_mm)
+        raise HTTPException(status_code=409, detail="Application for this size already exists")
+    session.refresh(app_obj)
+    return app_obj
+
+
+# DELETE: rimuove una application
+@app.delete("/products/{product_id}/applications/{app_id}",
+            status_code=204,
+            dependencies=[Depends(require_role("admin"))])
+def delete_product_application(
+    product_id: int,
+    app_id: int,
+    session: Session = Depends(get_session),
+):
+    app_obj = session.get(ProductApplication, app_id)
+    if not app_obj or app_obj.product_id != product_id:
+        raise HTTPException(status_code=404, detail="Application not found")
+
+    session.delete(app_obj)
+    session.commit()
+    return
 
 # ---------------------------- KPI DEF --------------------------------------
 

@@ -115,7 +115,7 @@ export default function Products() {
           </SimpleGrid>
 
           <Divider my={4} />
-
+          
           {/* KPI multipli compatti */}
           <Stack gap={3}>
             <HStack justify="space-between">

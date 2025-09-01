@@ -32,6 +32,14 @@ export const saveProductPref  = (token, name, filters) =>
   http("/products/preferences", { method: "POST", token, body: { name, filters } });
 
 
+export const createProduct = (token, body) =>
+  http("/products", { method: "POST", token, body });
+
+export const updateProduct = (token, id, body) =>
+  http(`/products/${id}`, { method: "PUT", token, body });
+
+export const deleteProduct = (token, id) =>
+  http(`/products/${id}`, { method: "DELETE", token });
 
 // ---------------------------- KPIs ----------------------------
 export const listKpis = (token) => http("/kpis", { token });

@@ -6,6 +6,7 @@ from enum import Enum
 
 from sqlmodel import SQLModel, Field, UniqueConstraint, Index, Relationship
 from sqlalchemy import UniqueConstraint, Index, Column, JSON
+import sqlalchemy as sa 
 from sqlalchemy.dialects.postgresql import JSONB
 
 
@@ -17,7 +18,6 @@ class UserRole(str, Enum):
 
 class User(SQLModel, table=True):
     __tablename__ = "users"
-
     id: Optional[int] = Field(default=None, primary_key=True)
     email: str = Field(index=True)
     hashed_password: str
@@ -35,7 +35,14 @@ class User(SQLModel, table=True):
 
 class Product(SQLModel, table=True):
     __tablename__ = "products"
-    id: Optional[int] = Field(default=None, primary_key=True)
+        # AUTOINCREMENT vero in SQLite (evita riuso ID)
+    __table_args__ = (
+        sa.UniqueConstraint("brand", "model", name="ux_products_brand_model"),
+        sa.UniqueConstraint("code", name="ux_products_code"),
+        sa.Index("ix_products_name", "name"),
+        {"sqlite_autoincrement": True},   # <— importante
+    )
+    id: int | None = Field(default=None, primary_key=True)
     code: str = Field(index=True)
     name: str
     description: Optional[str] = None
@@ -43,9 +50,7 @@ class Product(SQLModel, table=True):
     product_type: Optional[str] = Field(default="liner", index=True)
     brand: Optional[str] = Field(default=None, index=True)
     model: Optional[str] = Field(default=None, index=True)
-    teat_size: Optional[str] = Field(default=None, index=True)
     # specifiche tecniche
-    teat_length: Optional[float] = None
     mp_depth_mm: Optional[float] = None
     orifice_diameter: Optional[float] = None
     hoodcup_diameter: Optional[float] = None
@@ -62,6 +67,28 @@ class Product(SQLModel, table=True):
         UniqueConstraint("code", name="uq_products_code"),
         Index("ix_products_name", "name"),
     )
+
+    # applications: list["ProductApplication"] = Relationship(back_populates="product")
+
+
+class ProductApplication(SQLModel, table=True):
+    __tablename__ = "product_applications"
+    id: int | None = Field(default=None, primary_key=True)
+    # FK con cascade (verrà applicata in migration)
+    product_id: int = Field(
+        sa_column=sa.Column(
+            sa.Integer,
+            sa.ForeignKey("products.id", ondelete="CASCADE"),
+            nullable=False,
+            index=True,
+        )
+    )
+    size_mm: int = Field(index=True)
+    label: str | None = None
+    created_at: datetime = Field(default_factory=datetime.utcnow, nullable=False)
+
+
+# --------------- SEARCH MODELS ---------------------
 
 class SearchPreference(SQLModel, table=True):
     __tablename__ = "search_preferences"

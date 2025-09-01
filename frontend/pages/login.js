@@ -33,6 +33,8 @@ export default function Login() {
       const next = new URLSearchParams(window.location.search).get("next");
       window.location.replace(next || "/");
     } catch (err) {
+      console.error(err);
+      console.log(err.response);
       toast({
         status: "error",
         title: "Login fallito",
