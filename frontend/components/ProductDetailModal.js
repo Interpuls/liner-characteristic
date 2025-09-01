@@ -2,14 +2,54 @@ import {
   Modal, ModalOverlay, ModalContent, ModalHeader, ModalBody,
   ModalCloseButton, SimpleGrid, FormControl, FormLabel, Input,
   Text, Divider, HStack, Button, AlertDialog, AlertDialogOverlay,
-  AlertDialogContent, AlertDialogHeader, AlertDialogBody, AlertDialogFooter
+  AlertDialogContent, AlertDialogHeader, AlertDialogBody, AlertDialogFooter,
+  useDisclosure
 } from "@chakra-ui/react";
 import { EditIcon, DeleteIcon } from "@chakra-ui/icons";
-import { useRef, useState } from "react";
+import { useRef, useState, useEffect } from "react";
 
 export default function ProductDetailModal({ isOpen, onClose, product, onEdit, onDelete }) {
   const cancelRef = useRef();
   const [confirmOpen, setConfirmOpen] = useState(false);
+  const [form, setForm] = useState(null);
+  const { isOpen: isConfirmOpen, onOpen: onConfirmOpen, onClose: onConfirmClose } = useDisclosure();
+
+  const [deleting, setDeleting] = useState(false);
+
+    useEffect(() => {
+      if (product) {
+        setForm({
+          brand: product.brand || "",
+          model: product.model || "",
+          mp_depth_mm: product.mp_depth_mm ?? null,
+          orifice_diameter: product.orifice_diameter ?? null,
+          hoodcup_diameter: product.hoodcup_diameter ?? null,
+          return_to_lockring: product.return_to_lockring ?? null,
+          lockring_diameter: product.lockring_diameter ?? null,
+          overall_length: product.overall_length ?? null,
+          milk_tube_id: product.milk_tube_id ?? null,
+          barrell_wall_thickness: product.barrell_wall_thickness ?? null,
+          barrell_conicity: product.barrell_conicity ?? null,
+          hardness: product.hardness ?? null,
+        });
+      }
+    }, [product, isOpen]);
+
+    const handleNumber = (field, value) => {
+      setForm((prev) => ({ ...prev, [field]: value === "" ? null : parseFloat(value) }));
+    };
+
+  const handleDelete = async () => {
+    if (deleting || !product?.id) return;
+    setDeleting(true);
+    try {
+      await onDelete(product.id);
+      onConfirmClose();
+      onClose();
+    } finally {
+      setDeleting(false);
+    }
+  };
 
   if (!product) return null;
 
@@ -100,11 +140,8 @@ export default function ProductDetailModal({ isOpen, onClose, product, onEdit, o
               <Button
                 colorScheme="red"
                 ml={3}
-                onClick={() => {
-                  setConfirmOpen(false);
-                  onDelete?.(product.id);
-                  onClose();
-                }}
+                onClick={() => { void handleDelete(); }} 
+                isLoading={deleting}
               >
                 Delete
               </Button>

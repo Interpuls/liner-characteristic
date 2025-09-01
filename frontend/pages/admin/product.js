@@ -318,6 +318,17 @@ export default function AdminProducts() {
           onDetailClose();
           openEdit(p);   
         }}
+        onDelete={async (id) => {
+          const t = getToken();
+          try {
+            await deleteProduct(t, id);
+            toast({ title: "Product deleted", status: "success" });
+            fetchProducts();
+          } catch (e) {
+            toast({ title: "Delete failed", description: e?.message || "Error", status: "error" });
+            throw e;
+          }
+        }}
       />
     </Box>
   );
