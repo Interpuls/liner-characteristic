@@ -6,7 +6,8 @@ import {
   Box, Heading, Text, Button, Select, Input, HStack, Stack, IconButton,
   FormControl, FormLabel, SimpleGrid, useToast, Divider, Card, CardBody, CardHeader,
   Tag, TagLabel, Show, Hide, VStack, InputGroup, InputLeftElement, CloseButton,
-  Spinner, Icon, Center, useDisclosure, Modal, ModalOverlay, ModalContent, ModalHeader, ModalBody, ModalFooter, ModalCloseButton
+  Spinner, Icon, Center, useDisclosure, Modal, ModalOverlay, ModalContent, ModalHeader, ModalBody,
+  ModalFooter, ModalCloseButton
 } from "@chakra-ui/react";
 import { AddIcon, SearchIcon, ArrowBackIcon, ChevronLeftIcon, EditIcon } from "@chakra-ui/icons";
 import { LuShoppingCart } from "react-icons/lu";
@@ -15,37 +16,11 @@ import { getMe, getProductsMeta, listProductPrefs, createProduct  } from "../../
 import { listProducts, deleteProduct, updateProduct  } from "../../lib/api"; 
 import ProductModal from "../../components/ProductModal";
 import ProductEditModal from "../../components/ProductEditModal";
+import ProductCard from "../../components/ProductCard";
+import ProductDetailModal from "../../components/ProductDetailModal";
 
 
-function ProductCard({ p, onEdit }) {
-  return (
-    <Card variant="outline">
-     <IconButton
-       aria-label="Edit product"
-       icon={<EditIcon />}
-       size="sm"
-       variant="ghost"
-       position="absolute"
-       top={2}
-       right={2}
-       onClick={() => onEdit?.(p)}
-     />
-      <Heading size="sm">
-        {(p.name ?? `${p.brand ?? ""} ${p.model ?? ""}`.trim()) || "Product"}
-      </Heading>
 
-      <CardBody pt="0">
-        <VStack align="start" spacing="1">
-          {p.product_type && <Tag size="sm" variant="subtle"><TagLabel>{p.product_type}</TagLabel></Tag>}
-          {p.brand && <Text fontSize="sm" color="gray.600">Brand: {p.brand}</Text>}
-          {p.model && <Text fontSize="sm" color="gray.600">Model: {p.model}</Text>}
-          {p.teat_size && <Text fontSize="sm" color="gray.600">Teat size: {p.teat_size}</Text>}
-          {p.kpis?.length > 0 && <Text fontSize="sm" color="gray.600">KPIs: {p.kpis.length}</Text>}
-        </VStack>
-      </CardBody>
-    </Card>
-  );
-}
 
 export default function AdminProducts() {
   const toast = useToast();
@@ -66,6 +41,12 @@ export default function AdminProducts() {
   const [editing, setEditing] = useState(null);
 
   const openEdit = (prod) => { setEditing(prod); onEditOpen(); };
+
+  // modale dettaglio prodotto
+  const { isOpen: isDetailOpen, onOpen: onDetailOpen, onClose: onDetailClose } = useDisclosure();
+  const [detailProd, setDetailProd] = useState(null);
+
+  const openDetail = (p) => { setDetailProd(p); onDetailOpen(); };
 
 
   const [me, setMe] = useState(null);
@@ -196,7 +177,14 @@ export default function AdminProducts() {
           <HStack justify="center" py={12}><Spinner /></HStack>
         ) : products?.length ? (
           <SimpleGrid columns={{ base:1, sm:2, md:3 }} gap={4}>
-            {products.map((p) => <ProductCard key={p.id ?? `${p.brand}-${p.model}-${Math.random()}`} p={p} onEdit={(prod) => openEdit(prod)}/>)}
+            {products.map((p) => (
+              <ProductCard
+                key={p.id ?? `${p.brand}-${p.model}`}
+                p={p}
+                onEdit={openEdit}
+                onDetail={openDetail}
+              />
+            ))}
           </SimpleGrid>
         ) : (
           <Center py={12}>
@@ -254,6 +242,16 @@ export default function AdminProducts() {
             toast({ title: "Delete failed", description: e?.message || "Error", status: "error" });
             throw e;
           }
+        }}
+      />
+
+      <ProductDetailModal
+        isOpen={isDetailOpen}
+        onClose={() => { onDetailClose(); setDetailProd(null); }}
+        product={detailProd}
+        onEdit={(p) => {
+          onDetailClose();
+          openEdit(p);   
         }}
       />
     </Box>

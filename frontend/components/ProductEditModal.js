@@ -158,7 +158,7 @@ export default function ProductEditModal({ isOpen, onClose, meta, product, onSav
             </SimpleGrid>
           </ModalBody>
           <ModalFooter justifyContent="space-between">
-            <Button variant="outline" colorScheme="red" onClick={onConfirmOpen} isDisabled={saving || deleting}>
+            <Button colorScheme="red" onClick={onConfirmOpen} isDisabled={saving || deleting}>
               Delete product
             </Button>
             <div>
