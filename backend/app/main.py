@@ -3,6 +3,7 @@ import logging
 from fastapi import FastAPI, Depends, HTTPException, status, Query, Path
 from fastapi.security import OAuth2PasswordRequestForm
 from fastapi.responses import JSONResponse
+from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy import func
 from sqlmodel import Session, select
 import re
@@ -23,9 +24,7 @@ app = FastAPI(title="Liner Characteristic API")
 logger = logging.getLogger("liner-backend")
 logging.basicConfig(level=logging.INFO)
 
-app.add_middleware(GZipMiddleware, minimum_size=500)
 
-apply_cors(app)
 
 @app.on_event("startup")
 def on_startup():
@@ -40,6 +39,29 @@ def root():
 
 # ------------------------- Middleware -------------------------------------------
 
+def apply_cors(app):
+    import os
+    raw = os.getenv("CORS_ORIGINS", "")
+    # aggiungo sempre i due classici in dev
+    defaults = {"http://localhost:3000", "http://127.0.0.1:3000"}
+    env_origins = {o.strip() for o in raw.split(",") if o.strip()}
+    origins = list(defaults | env_origins)
+
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=origins,
+        allow_credentials=True,
+        allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+        allow_headers=["*"],  # Authorization, Content-Type, ecc.
+    )
+
+# 1) CORS per primo
+apply_cors(app)
+
+# 2) poi GZip
+app.add_middleware(GZipMiddleware, minimum_size=500)
+
+# 3) poi il tuo middleware custom
 @app.middleware("http")
 async def log_requests(request, call_next):
     resp = await call_next(request)
@@ -244,16 +266,54 @@ def update_product(product_id: int, payload: ProductIn, session: Session = Depen
     obj = session.get(Product, product_id)
     if not obj:
         raise HTTPException(status_code=404, detail="Not found")
-    # se cambia il code, verifica unicità
-    if obj.code != payload.code:
+
+    # Se cambiano brand+model, controlla il duplicato
+    if (payload.brand is not None and payload.model is not None) and \
+       (payload.brand != obj.brand or payload.model != obj.model):
+        dup = session.exec(
+            select(Product).where(
+                Product.brand == payload.brand,
+                Product.model == payload.model,
+                Product.id != product_id,
+            )
+        ).first()
+        if dup:
+            raise HTTPException(status_code=409, detail="Product with same brand and model already exists")
+
+    # --- NON sovrascrivere code/name con None ---
+    # Cambia code SOLO se viene passato (e diverso) e rimane unico
+    if payload.code is not None and payload.code != obj.code:
         exists = session.exec(select(Product).where(Product.code == payload.code)).first()
         if exists:
             raise HTTPException(status_code=400, detail="Product code already exists")
-    obj.code = payload.code
-    obj.name = payload.name
+        obj.code = payload.code
+
+    # Cambia name SOLO se viene passato; se non arriva, lo lasci com’è
+    if payload.name is not None:
+        obj.name = payload.name
+
+    # Aggiorna gli altri campi (accettiamo anche None per azzerarli)
+    if payload.brand is not None:  obj.brand = payload.brand
+    if payload.model is not None:  obj.model = payload.model
     obj.description = payload.description
-    session.add(obj)
-    session.commit()
+
+    obj.mp_depth_mm = payload.mp_depth_mm
+    obj.orifice_diameter = payload.orifice_diameter
+    obj.hoodcup_diameter = payload.hoodcup_diameter
+    obj.return_to_lockring = payload.return_to_lockring
+    obj.lockring_diameter = payload.lockring_diameter
+    obj.overall_length = payload.overall_length
+    obj.milk_tube_id = payload.milk_tube_id
+    obj.barrell_wall_thickness = payload.barrell_wall_thickness
+    obj.barrell_conicity = payload.barrell_conicity
+    obj.hardness = payload.hardness
+
+    try:
+        session.add(obj)
+        session.commit()
+    except IntegrityError:
+        session.rollback()
+        raise HTTPException(status_code=409, detail="Update violates unique constraints")
     session.refresh(obj)
     return obj
 

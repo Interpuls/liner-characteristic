@@ -8,17 +8,28 @@ import {
   Tag, TagLabel, Show, Hide, VStack, InputGroup, InputLeftElement, CloseButton,
   Spinner, Icon, Center, useDisclosure, Modal, ModalOverlay, ModalContent, ModalHeader, ModalBody, ModalFooter, ModalCloseButton
 } from "@chakra-ui/react";
-import { AddIcon, SearchIcon, ArrowBackIcon, ChevronLeftIcon } from "@chakra-ui/icons";
+import { AddIcon, SearchIcon, ArrowBackIcon, ChevronLeftIcon, EditIcon } from "@chakra-ui/icons";
 import { LuShoppingCart } from "react-icons/lu";
 import { getToken } from "../../lib/auth";
 import { getMe, getProductsMeta, listProductPrefs, createProduct  } from "../../lib/api";
-import { listProducts } from "../../lib/api"; 
+import { listProducts, deleteProduct, updateProduct  } from "../../lib/api"; 
 import ProductModal from "../../components/ProductModal";
+import ProductEditModal from "../../components/ProductEditModal";
 
 
-function ProductCard({ p }) {
+function ProductCard({ p, onEdit }) {
   return (
     <Card variant="outline">
+     <IconButton
+       aria-label="Edit product"
+       icon={<EditIcon />}
+       size="sm"
+       variant="ghost"
+       position="absolute"
+       top={2}
+       right={2}
+       onClick={() => onEdit?.(p)}
+     />
       <Heading size="sm">
         {(p.name ?? `${p.brand ?? ""} ${p.model ?? ""}`.trim()) || "Product"}
       </Heading>
@@ -49,6 +60,12 @@ export default function AdminProducts() {
   model: "",
   teat_size: "",
 });
+
+  // modale edit prodotto
+  const { isOpen: isEditOpen, onOpen: onEditOpen, onClose: onEditClose } = useDisclosure();
+  const [editing, setEditing] = useState(null);
+
+  const openEdit = (prod) => { setEditing(prod); onEditOpen(); };
 
 
   const [me, setMe] = useState(null);
@@ -179,7 +196,7 @@ export default function AdminProducts() {
           <HStack justify="center" py={12}><Spinner /></HStack>
         ) : products?.length ? (
           <SimpleGrid columns={{ base:1, sm:2, md:3 }} gap={4}>
-            {products.map((p) => <ProductCard key={p.id ?? `${p.brand}-${p.model}-${Math.random()}`} p={p} />)}
+            {products.map((p) => <ProductCard key={p.id ?? `${p.brand}-${p.model}-${Math.random()}`} p={p} onEdit={(prod) => openEdit(prod)}/>)}
           </SimpleGrid>
         ) : (
           <Center py={12}>
@@ -206,6 +223,36 @@ export default function AdminProducts() {
           } catch (e) {
             const msg = e?.message || "Create failed";
             toast({ title: "Create failed", description: msg, status: "error" });
+          }
+        }}
+      />
+      <ProductEditModal
+        isOpen={isEditOpen}
+        onClose={() => { onEditClose(); setEditing(null); }}
+        meta={meta}
+        product={editing}
+        onSave={async (id, patch) => {
+          const t = getToken();
+          try {
+            await updateProduct(t, id, patch);
+            toast({ title: "Product updated", status: "success" });
+            fetchProducts();
+          } catch (e) {
+            const msg = e?.message || "Update failed";
+            // 409 → conflitto brand+model
+            toast({ title: "Update failed", description: msg, status: "error" });
+            throw e;
+          }
+        }}
+        onDelete={async (id) => {
+          const t = getToken();
+          try {
+            await deleteProduct(t, id);
+            toast({ title: "Product deleted", status: "success" });
+            fetchProducts();
+          } catch (e) {
+            toast({ title: "Delete failed", description: e?.message || "Error", status: "error" });
+            throw e;
           }
         }}
       />
