@@ -37,10 +37,10 @@ def upgrade():
         # 2) Crea la nuova FK con ON DELETE CASCADE
         op.create_foreign_key(
             "product_applications_product_id_fkey",
-            source="product_applications",
-            referent="products",
-            local_cols=["product_id"],
-            remote_cols=["id"],
+            "product_applications",
+            "products",
+            ["product_id"],
+            ["id"],
             ondelete="CASCADE",
         )
 
