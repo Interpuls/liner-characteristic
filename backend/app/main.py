@@ -123,18 +123,23 @@ def products_meta(session: Session = Depends(get_session), user=Depends(get_curr
     product_types = distinct_list(Product.product_type) or ["liner"]
     brands       = distinct_list(Product.brand)
     models       = distinct_list(Product.model)
-    teat_sizes = session.exec(
-        select(func.distinct(ProductApplication.size_mm)).order_by(ProductApplication.size_mm.asc())
-    ).all()
-    teat_sizes = [t[0] if isinstance(t, tuple) else t for t in teat_sizes]  # [40, 50, 60, 70]
 
-    kpis         = session.exec(select(KpiDef).order_by(KpiDef.created_at.asc())).all()
+    # se vuoi ancora esporre le misure disponibili:
+    sizes = session.exec(
+        select(func.distinct(ProductApplication.size_mm))
+    ).all()
+    teat_sizes = [
+        int(s[0]) if isinstance(s, (tuple, list)) else int(s)
+        for s in sizes if s is not None
+    ]
+
+    kpis = session.exec(select(KpiDef).order_by(KpiDef.created_at.asc())).all()
 
     return ProductMetaOut(
         product_types=product_types,
         brands=brands,
         models=models,
-        teat_sizes=teat_sizes,
+        teat_sizes=teat_sizes,  
         kpis=kpis
     )
 
@@ -145,7 +150,6 @@ def list_products(
     product_type: Optional[str] = Query(None),
     brand: Optional[str] = Query(None),
     model: Optional[str] = Query(None),
-    teat_size: Optional[str] = Query(None),
     q: Optional[str] = Query(None),
     limit: int = Query(20, ge=1, le=100),
     offset: int = Query(0, ge=0),
@@ -154,7 +158,6 @@ def list_products(
     if product_type: qy = qy.where(Product.product_type == product_type)
     if brand:        qy = qy.where(Product.brand == brand)
     if model:        qy = qy.where(Product.model == model)
-    if teat_size:    qy = qy.where(Product.teat_size == teat_size)  
     if q:
         like = f"%{q}%"
         qy = qy.where(

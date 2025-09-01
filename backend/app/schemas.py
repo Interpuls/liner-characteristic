@@ -43,7 +43,6 @@ class ProductIn(BaseModel):
     brand: constr(min_length=1)
     model: constr(min_length=1)
     
-    teat_size: Optional[str] = None
     mp_depth_mm: Optional[float] = None
     orifice_diameter: Optional[float] = None
     hoodcup_diameter: Optional[float] = None
@@ -63,9 +62,7 @@ class ProductOut(BaseModel):
     product_type: Optional[str] = None
     brand: Optional[str] = None
     model: Optional[str] = None
-    teat_size: Optional[str] = None
     # specifiche
-    teat_length: Optional[float] = None
     mp_depth_mm: Optional[float] = None
     orifice_diameter: Optional[float] = None
     hoodcup_diameter: Optional[float] = None
@@ -95,7 +92,7 @@ class ProductMetaOut(BaseModel):
     product_types: List[str]
     brands: List[str]
     models: List[str]
-    teat_sizes: List[str]
+    teat_sizes: List[int]
     kpis: List["KpiDefOut"] 
 
 # --------------- PRODUCT APPLICATION SCHEMAS (Teat Size) -------------------------------
@@ -114,7 +111,7 @@ class ProductApplicationIn(BaseModel):
         if v not in SIZE_LABELS:
             raise ValueError("size_mm must be one of 40, 50, 60, 70")
         return v
-    
+
     def model_post_init(self, _ctx) -> None:
         self.size_mm = self.validate_size(self.size_mm)
 
