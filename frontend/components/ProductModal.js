@@ -5,7 +5,11 @@ import {
   Button, FormControl, FormLabel, Input, SimpleGrid, Text, Divider
 } from "@chakra-ui/react";
 
+
+
+
 export default function ProductModal({ isOpen, onClose, meta, onSave }) {
+  const [saving, setSaving] = useState(false);
   const [newProduct, setNewProduct] = useState({
     brand: "",
     model: "",
@@ -30,24 +34,21 @@ export default function ProductModal({ isOpen, onClose, meta, onSave }) {
     setNewProduct((prev) => ({ ...prev, [field]: parsed }));
   };
 
-  const handleSave = () => {
-    onSave(newProduct);        // product_type sarà assegnato dal backend a 'liner'
-    onClose();
+  const handleSave = async () => {
+    if (saving) return;        // <--- guard
+    setSaving(true);
     // reset
-    setNewProduct({
-      brand: "",
-      model: "",
-      mp_depth_mm: null,
-      orifice_diameter: null,
-      hoodcup_diameter: null,
-      return_to_lockring: null,
-      lockring_diameter: null,
-      overall_length: null,
-      milk_tube_id: null,
-      barrell_wall_thickness: null,
-      barrell_conicity: null,
-      hardness: null,
-    });
+    try {
+      await onSave(newProduct); 
+      onClose();
+      // reset
+      setNewProduct({ brand:"", model:"", mp_depth_mm:null, orifice_diameter:null,
+        hoodcup_diameter:null, return_to_lockring:null, lockring_diameter:null,
+        overall_length:null, milk_tube_id:null, barrell_wall_thickness:null,
+        barrell_conicity:null, hardness:null });
+    } finally {
+      setSaving(false);
+    }
   };
 
   const isDisabled = !newProduct.brand || !newProduct.model;
@@ -137,7 +138,7 @@ export default function ProductModal({ isOpen, onClose, meta, onSave }) {
 
         <ModalFooter>
           <Button variant="ghost" mr={3} onClick={onClose}>Cancel</Button>
-          <Button colorScheme="blue" onClick={handleSave} isDisabled={isDisabled}>
+          <Button colorScheme="blue" onClick={handleSave} isDisabled={isDisabled} isLoading={saving}>
             Save
           </Button>
         </ModalFooter>

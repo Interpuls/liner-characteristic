@@ -207,7 +207,12 @@ def create_product(payload: ProductIn, session: Session = Depends(get_session)):
         hardness=payload.hardness,
     )
     session.add(obj)
-    session.commit()
+    try:
+        session.commit()
+    except IntegrityError:
+        session.rollback()
+        # se due richieste parallele arrivano insieme, la seconda finisce qui:
+        raise HTTPException(status_code=409, detail="Product with same brand and model already exists")
     session.refresh(obj)
     return obj
 

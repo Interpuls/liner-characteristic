@@ -11,7 +11,7 @@ import {
 import { AddIcon, SearchIcon, ArrowBackIcon, ChevronLeftIcon } from "@chakra-ui/icons";
 import { LuShoppingCart } from "react-icons/lu";
 import { getToken } from "../../lib/auth";
-import { getMe, getProductsMeta, listProductPrefs } from "../../lib/api";
+import { getMe, getProductsMeta, listProductPrefs, createProduct  } from "../../lib/api";
 import { listProducts } from "../../lib/api"; 
 import ProductModal from "../../components/ProductModal";
 
@@ -65,6 +65,9 @@ export default function AdminProducts() {
   const [search, setSearch] = useState("");
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(false);
+  // stato di saving
+
+  const [saving, setSaving] = useState(false);
 
   // build params per API
   const params = useMemo(() => {
@@ -194,8 +197,16 @@ export default function AdminProducts() {
         isOpen={isOpen}
         onClose={onClose}
         meta={meta}
-        onSave={(prod) => {
-          console.log("Nuovo prodotto:", prod);
+        onSave={async (prod) => {
+          const t = getToken();
+          try {
+            await createProduct(t, prod);
+            toast({ title: "Product created", status: "success" });
+            fetchProducts(); // ricarica la lista
+          } catch (e) {
+            const msg = e?.message || "Create failed";
+            toast({ title: "Create failed", description: msg, status: "error" });
+          }
         }}
       />
     </Box>
