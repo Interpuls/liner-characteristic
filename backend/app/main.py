@@ -42,17 +42,17 @@ def root():
 def apply_cors(app):
     import os
     raw = os.getenv("CORS_ORIGINS", "")
-    # aggiungo sempre i due classici in dev
     defaults = {"http://localhost:3000", "http://127.0.0.1:3000"}
     env_origins = {o.strip() for o in raw.split(",") if o.strip()}
     origins = list(defaults | env_origins)
 
     app.add_middleware(
         CORSMiddleware,
-        allow_origins=origins,
+        allow_origins=origins or ["*"],
         allow_credentials=True,
         allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
-        allow_headers=["*"],  # Authorization, Content-Type, ecc.
+        allow_headers=["*"],  
+        expose_headers=["*"],
     )
 
 # 1) CORS per primo
