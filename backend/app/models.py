@@ -63,7 +63,21 @@ class Product(SQLModel, table=True):
         Index("ix_products_name", "name"),
     )
 
+    # applications: list["ProductApplication"] = Relationship(back_populates="product")
 
+
+class ProductApplication(SQLModel, table=True):
+    __tablename__ = "product_applications"
+
+    id: Optional[int] = Field(default=None, primary_key=True)
+    product_id: int = Field(foreign_key="products.id", index=True)
+    size_mm: int = Field(index=True)                 # 40, 50, 60, 70
+    label: Optional[str] = None                      # es. "Short" (facoltativa)
+    created_at: datetime = Field(default_factory=datetime.utcnow, nullable=False)
+
+    # NB: relazione opzionale, aggiungila solo se usata Relationship anche in Product (comm. sopra)
+    # product: "Product" = Relationship(back_populates="applications")
+    
 
 # --------------- SEARCH MODELS ---------------------
 

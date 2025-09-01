@@ -1,6 +1,6 @@
 import os
 import logging
-from fastapi import FastAPI, Depends, HTTPException, status, Query
+from fastapi import FastAPI, Depends, HTTPException, status, Query, Path
 from fastapi.security import OAuth2PasswordRequestForm
 from fastapi.responses import JSONResponse
 from sqlalchemy import func
@@ -8,10 +8,11 @@ from sqlmodel import Session, select
 import re
 from starlette.middleware.gzip import GZipMiddleware
 from typing import Optional
+from sqlalchemy.exc import IntegrityError
 
 from .db import init_db, get_session
-from .models import User, Product, SearchPreference, KpiDef, FormulaType
-from .schemas import UserCreate, UserOut, Token, ProductIn, ProductOut, ProductMetaOut, ProductPreferenceIn, ProductPreferenceOut, KpiDefIn, KpiDefOut
+from .models import User, Product, SearchPreference, KpiDef, FormulaType, ProductApplication
+from .schemas import UserCreate, UserOut, Token, ProductIn, ProductOut, ProductMetaOut, ProductPreferenceIn, ProductPreferenceOut, KpiDefIn, KpiDefOut, ProductApplicationIn, ProductApplicationOut, SIZE_LABELS
 from .auth import hash_password, verify_password, create_access_token, get_current_user, require_role
 from .deps import apply_cors
 
@@ -100,7 +101,11 @@ def products_meta(session: Session = Depends(get_session), user=Depends(get_curr
     product_types = distinct_list(Product.product_type) or ["liner"]
     brands       = distinct_list(Product.brand)
     models       = distinct_list(Product.model)
-    teat_sizes   = distinct_list(Product.teat_size)
+    teat_sizes = session.exec(
+        select(func.distinct(ProductApplication.size_mm)).order_by(ProductApplication.size_mm.asc())
+    ).all()
+    teat_sizes = [t[0] if isinstance(t, tuple) else t for t in teat_sizes]  # [40, 50, 60, 70]
+
     kpis         = session.exec(select(KpiDef).order_by(KpiDef.created_at.asc())).all()
 
     return ProductMetaOut(
@@ -168,30 +173,27 @@ def slugify(s: str) -> str:
 
 @app.post("/products", response_model=ProductOut, dependencies=[Depends(require_role("admin"))])
 def create_product(payload: ProductIn, session: Session = Depends(get_session)):
-    # 1) vincolo (brand, model) univoco applicativo
+    # 1) check duplicato (brand, model)
     exists_bm = session.exec(
         select(Product).where(Product.brand == payload.brand, Product.model == payload.model)
     ).first()
     if exists_bm:
         raise HTTPException(status_code=409, detail="Product with same brand and model already exists")
 
-    # 2) code: se non arriva, generiamo da brand+model (unico con suffisso)
+    # 2) genera code + name come prima
     code = payload.code or slugify(f"{payload.brand}-{payload.model}")
-    # univocità sul code
-    base_code = code
-    i = 1
+    base_code = code; i = 1
     while session.exec(select(Product).where(Product.code == code)).first():
         i += 1
         code = f"{base_code}-{i}"
-
-    # 3) name: se non arriva, usiamoa model 
     name = payload.name or payload.model
 
+    # 3) crea prodotto + applications in un'unica transazione
     obj = Product(
         code=code,
         name=name,
         description=payload.description,
-        product_type="liner",  # default 
+        product_type="liner",
         brand=payload.brand,
         model=payload.model,
         # specifiche tecniche
@@ -208,11 +210,23 @@ def create_product(payload: ProductIn, session: Session = Depends(get_session)):
     )
     session.add(obj)
     try:
-        session.commit()
+        # flush per avere obj.id senza chiudere la transazione
+        session.flush()
+
+        # 4) crea le 4 applications standard
+        for size in (40, 50, 60, 70):
+            session.add(ProductApplication(
+                product_id=obj.id,
+                size_mm=size,
+                label=SIZE_LABELS[size],
+            ))
+
+        session.commit()         # unico commit per prodotto + applications
     except IntegrityError:
         session.rollback()
-        # se due richieste parallele arrivano insieme, la seconda finisce qui:
-        raise HTTPException(status_code=409, detail="Product with same brand and model already exists")
+        # se è scattato il vincolo (brand,model) o (product_id,size_mm)
+        # ritorna errore coerente
+        raise HTTPException(status_code=409, detail="Product or applications already exist")
     session.refresh(obj)
     return obj
 
@@ -253,7 +267,69 @@ def delete_product(product_id: int, session: Session = Depends(get_session)):
     session.commit()
     return
 
+# ------------------------ Product Applications -------------------------------
+@app.get("/products/{product_id}/applications",
+         response_model=list[ProductApplicationOut])
+def list_product_applications(
+    product_id: int = Path(..., ge=1),
+    session: Session = Depends(get_session),
+    user=Depends(get_current_user),
+):
+    prod = session.get(Product, product_id)
+    if not prod:
+        raise HTTPException(status_code=404, detail="Product not found")
 
+    q = select(ProductApplication).where(ProductApplication.product_id == product_id) \
+                                  .order_by(ProductApplication.size_mm.asc(),
+                                            ProductApplication.created_at.asc())
+    return session.exec(q).all()
+
+
+# POST: crea una application per un prodotto
+@app.post("/products/{product_id}/applications",
+          response_model=ProductApplicationOut,
+          dependencies=[Depends(require_role("admin"))])
+def create_product_application(
+    product_id: int,
+    payload: ProductApplicationIn,
+    session: Session = Depends(get_session),
+):
+    prod = session.get(Product, product_id)
+    if not prod:
+        raise HTTPException(status_code=404, detail="Product not found")
+
+    app_obj = ProductApplication(
+        product_id=product_id,
+        size_mm=payload.size_mm,
+        label=SIZE_LABELS[payload.size_mm] 
+    )
+    session.add(app_obj)
+    try:
+        session.commit()
+    except IntegrityError:
+        session.rollback()
+        # violazione dell'unicità (product_id, size_mm)
+        raise HTTPException(status_code=409, detail="Application for this size already exists")
+    session.refresh(app_obj)
+    return app_obj
+
+
+# DELETE: rimuove una application
+@app.delete("/products/{product_id}/applications/{app_id}",
+            status_code=204,
+            dependencies=[Depends(require_role("admin"))])
+def delete_product_application(
+    product_id: int,
+    app_id: int,
+    session: Session = Depends(get_session),
+):
+    app_obj = session.get(ProductApplication, app_id)
+    if not app_obj or app_obj.product_id != product_id:
+        raise HTTPException(status_code=404, detail="Application not found")
+
+    session.delete(app_obj)
+    session.commit()
+    return
 
 # ---------------------------- KPI DEF --------------------------------------
 

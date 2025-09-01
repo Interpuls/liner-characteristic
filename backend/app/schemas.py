@@ -98,6 +98,35 @@ class ProductMetaOut(BaseModel):
     teat_sizes: List[str]
     kpis: List["KpiDefOut"] 
 
+# --------------- PRODUCT APPLICATION SCHEMAS (Teat Size) -------------------------------
+ALLOWED_SIZES = {40, 50, 60, 70}
+SIZE_LABELS = {
+    40: "Short",
+    50: "Medium",
+    60: "Long",
+    70: "Extra Long"
+}
+
+class ProductApplicationIn(BaseModel):
+    size_mm: int = Field(..., description="One of 40, 50, 60, 70")
+    @classmethod
+    def validate_size(cls, v: int) -> int:
+        if v not in SIZE_LABELS:
+            raise ValueError("size_mm must be one of 40, 50, 60, 70")
+        return v
+    
+    def model_post_init(self, _ctx) -> None:
+        self.size_mm = self.validate_size(self.size_mm)
+
+
+class ProductApplicationOut(BaseModel):
+    id: int
+    product_id: int
+    size_mm: int
+    label: str
+
+    class Config:
+        from_attributes = True
 
 # --------------- TEST TYPE SCHEMAS ----------------------------------
 
