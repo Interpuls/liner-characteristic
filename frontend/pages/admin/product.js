@@ -7,9 +7,9 @@ import {
   FormControl, FormLabel, SimpleGrid, useToast, Divider, Card, CardBody, CardHeader,
   Tag, TagLabel, Show, Hide, VStack, InputGroup, InputLeftElement, CloseButton,
   Spinner, Icon, Center, useDisclosure, Modal, ModalOverlay, ModalContent, ModalHeader, ModalBody,
-  ModalFooter, ModalCloseButton
+  ModalFooter, ModalCloseButton, Tooltip, Menu, MenuButton, MenuList, MenuItem
 } from "@chakra-ui/react";
-import { AddIcon, SearchIcon, ArrowBackIcon, ChevronLeftIcon, EditIcon } from "@chakra-ui/icons";
+import { AddIcon, SearchIcon, ChevronLeftIcon, ArrowUpDownIcon, CheckIcon  } from "@chakra-ui/icons";
 import { LuShoppingCart } from "react-icons/lu";
 import { getToken } from "../../lib/auth";
 import { getMe, getProductsMeta, listProductPrefs, createProduct  } from "../../lib/api";
@@ -61,9 +61,30 @@ export default function AdminProducts() {
 
   // ricerca + risultati
   const [search, setSearch] = useState("");
-  const [products, setProducts] = useState([]);
+
+// products === null => primo loading; poi array
+  const [products, setProducts] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [sortBy, setSortBy] = useState("newest"); // newest | brand_asc | brand_desc | model_asc | model_desc
   // stato di saving
+
+  // filtro per prodotti (search + filtri base)
+  const sortedProducts = useMemo(() => {
+    if (!Array.isArray(products)) return [];
+    const arr = [...products];
+    const safeStr = (v) => (v ?? "").toString().toLowerCase();
+    switch (sortBy) {
+      case "brand_asc":  arr.sort((a,b)=>safeStr(a.brand).localeCompare(safeStr(b.brand))); break;
+      case "brand_desc": arr.sort((a,b)=>safeStr(b.brand).localeCompare(safeStr(a.brand))); break;
+      case "model_asc":  arr.sort((a,b)=>safeStr(a.model||a.name).localeCompare(safeStr(b.model||b.name))); break;
+      case "model_desc": arr.sort((a,b)=>safeStr(b.model||b.name).localeCompare(safeStr(a.model||a.name))); break;
+      case "newest":
+      default:
+        // proxy “più recente”: id più alto prima (fallback se manca created_at)
+        arr.sort((a,b)=>(b.id??0)-(a.id??0));
+    }
+    return arr;
+  }, [products, sortBy]);
 
   const [saving, setSaving] = useState(false);
 
@@ -140,46 +161,89 @@ export default function AdminProducts() {
         </HStack>
       </Stack>
 
-      {/* Search bar */}
-      <HStack align="center" spacing={3}>
-+        <InputGroup flex="1">
+
+      {/* Search + Sort + New Product */}
+      <Stack direction={{ base:"column", md:"row" }} align="stretch" gap={3}>
+        {/* Search */}
+        <InputGroup flex="1">
           <InputLeftElement pointerEvents="none">
             <SearchIcon color="gray.400" />
           </InputLeftElement>
           <Input
-            placeholder="Cerca per nome, brand, modello…"
+            placeholder="Search by brand or model…"
             value={search}
             onChange={(e)=>setSearch(e.target.value)}
             variant="filled"
           />
-          {search && (
-            <CloseButton ml={2} onClick={()=>setSearch("")} alignSelf="center" />
-          )}
+          {search && <CloseButton ml={2} onClick={()=>setSearch("")} alignSelf="center" />}
         </InputGroup>
-        <Hide below="md">
-          <Button colorScheme="green" onClick={onOpen} leftIcon={<AddIcon />}>
-            New Product
+
+        {/* Sort control */}
+        <Menu>
+          <Tooltip label={`Sort: ${
+            sortBy === "newest" ? "Newest" :
+            sortBy === "brand_asc" ? "Brand A → Z" :
+            sortBy === "brand_desc" ? "Brand Z → A" :
+            sortBy === "model_asc" ? "Model A → Z" : "Model Z → A"
+          }`} openDelay={400}>
+            <MenuButton
+              as={IconButton}
+              aria-label="Sort"
+              icon={<ArrowUpDownIcon />}
+              variant="ghost"
+              size="md"
+            />
+          </Tooltip>
+          <MenuList>
+            <MenuItem onClick={() => setSortBy("newest")}>
+              Newest
+              {sortBy === "newest" && <CheckIcon ml="auto" />}
+            </MenuItem>
+            <MenuItem onClick={() => setSortBy("brand_asc")}>
+              Brand A → Z
+              {sortBy === "brand_asc" && <CheckIcon ml="auto" />}
+            </MenuItem>
+            <MenuItem onClick={() => setSortBy("brand_desc")}>
+              Brand Z → A
+              {sortBy === "brand_desc" && <CheckIcon ml="auto" />}
+            </MenuItem>
+            <MenuItem onClick={() => setSortBy("model_asc")}>
+              Model A → Z
+              {sortBy === "model_asc" && <CheckIcon ml="auto" />}
+            </MenuItem>
+            <MenuItem onClick={() => setSortBy("model_desc")}>
+              Model Z → A
+              {sortBy === "model_desc" && <CheckIcon ml="auto" />}
+            </MenuItem>
+          </MenuList>
+        </Menu>
+
+        {/* New Product button (sempre allineato a destra su desktop) */}
+        <HStack justify={{ base:"flex-start", md:"flex-end" }}>
+          <Button colorScheme="green" onClick={onOpen}>
+            <AddIcon mr={1} /> <Hide below="sm">New Product</Hide>
           </Button>
-        </Hide>
-        <Show below="md">
-          <IconButton
-            colorScheme="green"
-            onClick={onOpen}
-            aria-label="New Product"
-            icon={<AddIcon />}
-          />
-        </Show>
-      </HStack>
+        </HStack>
+      </Stack>
 
       {/* Risultati */}
       <Box mt={8} minH="200px">
-        {loading ? (
-          <HStack justify="center" py={12}><Spinner /></HStack>
-        ) : products?.length ? (
+        {/* Primo caricamento */}
+        {products === null ? (
+          <Center py={16}>
+            <VStack spacing={3}>
+              <Spinner size="xl" />
+              <Text color="gray.600">Loading products…</Text>
+            </VStack>
+          </Center>
+        ) : loading ? (
+          // ricarichi con filtri/ricerca → spinner semplice
+          <Center py={12}><Spinner /></Center>
+        ) : sortedProducts.length > 0 ? (
           <SimpleGrid columns={{ base:1, sm:2, md:3 }} gap={4}>
-            {products.map((p) => (
+            {sortedProducts.map((p) => (
               <ProductCard
-                key={p.id ?? `${p.brand}-${p.model}`}
+                key={p.id ?? `${p.brand}-${p.model}-${Math.random()}`}
                 p={p}
                 onEdit={openEdit}
                 onDetail={openDetail}
@@ -190,14 +254,15 @@ export default function AdminProducts() {
           <Center py={12}>
             <Box textAlign="center">
               <Icon as={LuShoppingCart} boxSize={10} mb={3} />
-              <Heading size="md" mb={1}>Nessun prodotto trovato</Heading>
+              <Heading size="md" mb={1}>No products found</Heading>
               <Text color="gray.600">
-                Modifica la ricerca o crea un nuovo prodotto.
+                Try adjusting your search or create a new product.
               </Text>
             </Box>
           </Center>
         )}
       </Box>
+
       <ProductModal
         isOpen={isOpen}
         onClose={onClose}
