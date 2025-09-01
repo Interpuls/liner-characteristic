@@ -20,13 +20,70 @@ depends_on: Union[str, Sequence[str], None] = None
 
 def upgrade():
     bind = op.get_bind()
+    dialect = bind.dialect.name
+    insp = sa.inspect(bind)
+
+    if dialect == "postgresql":
+        # --- POSTGRES: niente rebuild, solo FK CASCADE + indici ---
+        # 1) Drop la FK esistente (qualunque nome abbia)
+        fks = insp.get_foreign_keys("product_applications")
+        for fk in fks:
+            if fk.get("referred_table") == "products" and fk.get("constrained_columns") == ["product_id"]:
+                op.drop_constraint(
+                    fk["name"], "product_applications", type_="foreignkey"
+                )
+                break
+
+        # 2) Crea la nuova FK con ON DELETE CASCADE
+        op.create_foreign_key(
+            "product_applications_product_id_fkey",
+            source="product_applications",
+            referent="products",
+            local_cols=["product_id"],
+            remote_cols=["id"],
+            ondelete="CASCADE",
+        )
+
+        # 3) Indici/unique (creali solo se mancanti)
+        def idx_names(table):
+            try:
+                return {ix["name"] for ix in sa.inspect(bind).get_indexes(table)}
+            except sa_exc.NoSuchTableError:
+                return set()
+
+        # products: unique su code, unique su (brand,model), index su name
+        pidx = idx_names("products")
+        if "ix_products_name" not in pidx:
+            op.create_index("ix_products_name", "products", ["name"], unique=False)
+        if "ux_products_code" not in pidx:
+            op.create_index("ux_products_code", "products", ["code"], unique=True)
+        if "ux_products_brand_model" not in pidx:
+            op.create_index("ux_products_brand_model", "products", ["brand", "model"], unique=True)
+
+        # product_applications: unique su (product_id,size_mm), index su size_mm
+        paidx = idx_names("product_applications")
+        if "ux_product_applications_product_size" not in paidx:
+            op.create_index(
+                "ux_product_applications_product_size",
+                "product_applications",
+                ["product_id", "size_mm"],
+                unique=True,
+            )
+        if "ix_product_applications_size_mm" not in paidx:
+            op.create_index(
+                "ix_product_applications_size_mm",
+                "product_applications",
+                ["size_mm"],
+                unique=False,
+            )
+        return  # fine percorso Postgres
+
+    # --------- SQLITE: percorso “copy & rename” (come in dev) ---------
     def reinspect():
         return sa.inspect(bind)
 
-    insp = reinspect()
-
-    # ---------- PRODUCTS: rebuild senza indici/unique ----------
-    if insp.has_table("products_new"):
+    # PRODUCTS rebuild senza indici/unique finché non droppiamo la vecchia
+    if reinspect().has_table("products_new"):
         op.drop_table("products_new")
 
     op.create_table(
@@ -53,8 +110,7 @@ def upgrade():
         sqlite_autoincrement=True,
     )
 
-    insp = reinspect()
-    if insp.has_table("products"):
+    if reinspect().has_table("products"):
         op.execute("""
             INSERT INTO products_new(
                 id, code, name, description, product_type, brand, model,
@@ -71,29 +127,26 @@ def upgrade():
         """)
         op.drop_table("products")
 
-    # rename -> poi re-inspect!
-    insp = reinspect()
-    if insp.has_table("products_new"):
+    if reinspect().has_table("products_new"):
         op.rename_table("products_new", "products")
 
-    # helper per leggere indici senza crash
+    # indici/unique dopo il rename
     def safe_indexes(table):
         try:
             return {ix["name"] for ix in reinspect().get_indexes(table)}
         except sa_exc.NoSuchTableError:
             return set()
 
-    existing_idx = safe_indexes("products")
-    if "ix_products_name" not in existing_idx:
+    pidx = safe_indexes("products")
+    if "ix_products_name" not in pidx:
         op.create_index("ix_products_name", "products", ["name"], unique=False)
-    if "ux_products_code" not in existing_idx:
+    if "ux_products_code" not in pidx:
         op.create_index("ux_products_code", "products", ["code"], unique=True)
-    if "ux_products_brand_model" not in existing_idx:
+    if "ux_products_brand_model" not in pidx:
         op.create_index("ux_products_brand_model", "products", ["brand", "model"], unique=True)
 
-    # ---------- PRODUCT_APPLICATIONS: rebuild con ON DELETE CASCADE ----------
-    insp = reinspect()
-    if insp.has_table("product_applications_new"):
+    # PRODUCT_APPLICATIONS rebuild con FK CASCADE
+    if reinspect().has_table("product_applications_new"):
         op.drop_table("product_applications_new")
 
     op.create_table(
@@ -106,8 +159,7 @@ def upgrade():
         sa.ForeignKeyConstraint(["product_id"], ["products.id"], ondelete="CASCADE"),
     )
 
-    insp = reinspect()
-    if insp.has_table("product_applications"):
+    if reinspect().has_table("product_applications"):
         op.execute("""
             INSERT INTO product_applications_new (id, product_id, size_mm, label, created_at)
             SELECT pa.id, pa.product_id, pa.size_mm, pa.label, pa.created_at
@@ -116,20 +168,18 @@ def upgrade():
         """)
         op.drop_table("product_applications")
 
-    # rename -> poi indici
-    insp = reinspect()
-    if insp.has_table("product_applications_new"):
+    if reinspect().has_table("product_applications_new"):
         op.rename_table("product_applications_new", "product_applications")
 
-    existing_idx = safe_indexes("product_applications")
-    if "ux_product_applications_product_size" not in existing_idx:
+    paidx = safe_indexes("product_applications")
+    if "ux_product_applications_product_size" not in paidx:
         op.create_index(
             "ux_product_applications_product_size",
             "product_applications",
             ["product_id", "size_mm"],
             unique=True
         )
-    if "ix_product_applications_size_mm" not in existing_idx:
+    if "ix_product_applications_size_mm" not in paidx:
         op.create_index(
             "ix_product_applications_size_mm",
             "product_applications",
