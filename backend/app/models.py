@@ -150,3 +150,62 @@ class KpiDef(SQLModel, table=True):
         UniqueConstraint("code", name="uq_kpi_def_code"),
         Index("ix_kpi_def_name", "name"),
     )
+
+
+    # ---------- KPI base ----------
+class KpiScale(SQLModel, table=True):
+    __tablename__ = "kpi_scales"
+    id: Optional[int] = Field(default=None, primary_key=True)
+    kpi_code: str = Field(index=True)  # no FK hard per evitare attriti cross-dialect
+    band_min: float
+    band_max: float
+    score: int = Field(index=True)     # 1..4
+    label: Optional[str] = None
+    created_at: datetime = Field(default_factory=datetime.utcnow, nullable=False)
+
+# ---------- Metriche derivate generiche ----------
+class TestMetric(SQLModel, table=True):
+    __tablename__ = "test_metrics"
+    id: Optional[int] = Field(default=None, primary_key=True)
+    run_type: str = Field(index=True)  # "TPP" | "MASSAGE" | "SPEED" | "SMT"
+    run_id: int = Field(index=True)
+    product_application_id: int = Field(foreign_key="product_applications.id", index=True)
+    metric_code: str = Field(index=True)  # es: "REAL_TPP", "AVG_OVERMILK", ...
+    value_num: float
+    unit: Optional[str] = None
+    context_json: Optional[str] = None  # JSON string (usiamo TEXT per compatibilità)
+    computed_at: datetime = Field(default_factory=datetime.utcnow, nullable=False)
+
+    __table_args__ = (
+        sa.UniqueConstraint("run_type", "run_id", "metric_code", "context_json",
+                            name="ux_test_metrics_unique"),
+    )
+
+# ---------- Valori KPI generici ----------
+class KpiValue(SQLModel, table=True):
+    __tablename__ = "kpi_values"
+    id: Optional[int] = Field(default=None, primary_key=True)
+    run_type: str = Field(index=True)
+    run_id: int = Field(index=True)
+    product_application_id: int = Field(foreign_key="product_applications.id", index=True)
+    kpi_code: str = Field(index=True)          # es: "CLOSURE", "SPEED", ...
+    value_num: float                           # il valore usato per la scala
+    score: int                                 # 1..4
+    unit: Optional[str] = None
+    context_json: Optional[str] = None         # es: {"agg":"final"} oppure {"flow":0.5}
+    computed_at: datetime = Field(default_factory=datetime.utcnow, nullable=False)
+
+    __table_args__ = (
+        sa.UniqueConstraint("run_type", "run_id", "kpi_code", "context_json",
+                            name="ux_kpi_values_unique"),
+    )
+
+# ---------- TPP run ----------
+class TppRun(SQLModel, table=True):
+    __tablename__ = "tpp_runs"
+    id: Optional[int] = Field(default=None, primary_key=True)
+    product_application_id: int = Field(foreign_key="product_applications.id", index=True)
+    performed_at: Optional[datetime] = None
+    real_tpp: Optional[float] = None
+    notes: Optional[str] = None
+    created_at: datetime = Field(default_factory=datetime.utcnow, nullable=False)
