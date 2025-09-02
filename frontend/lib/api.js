@@ -43,3 +43,27 @@ export const deleteProduct = (token, id) =>
 
 // ---------------------------- KPIs ----------------------------
 export const listKpis = (token) => http("/kpis", { token });
+
+// product applications (per prodotto)
+export const listProductApplications = (token, productId) =>
+  http(`/products/${productId}/applications`, { token });
+
+// singolo prodotto (per mostrare info tecniche, se servono)
+export const getProduct = (token, id) =>
+  http(`/products/${id}`, { token });
+
+// TPP
+export const createTppRun = (token, body) =>
+  http(`/tpp/runs`, { method: "POST", token, body });
+
+export const computeTppRun = (token, runId) =>
+  http(`/tpp/runs/${runId}/compute`, { method: "POST", token });
+
+export const listTppRuns = (token, { product_application_id } = {}) =>
+  http(`/tpp/runs${product_application_id ? `?product_application_id=${product_application_id}` : ""}`, { token });
+
+export const getTppRunKpis = (token, runId) =>
+  http(`/tpp/runs/${runId}/kpis`, { token });
+
+export const getLastTppRunForApplication = (token, productApplicationId) =>
+  http(`/tpp/last-run-by-application/${productApplicationId}`, { token });

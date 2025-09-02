@@ -1,6 +1,7 @@
 from typing import Optional, Any, Dict, List
 from pydantic import BaseModel, EmailStr, condecimal, constr, Field
 from enum import Enum
+from datetime import datetime
 
 NameStr = constr(min_length=2, max_length=100)
 Num01 = condecimal(ge=0, max_digits=6, decimal_places=3)
@@ -171,3 +172,38 @@ class KpiDefOut(BaseModel):
 
     class Config:
         from_attributes = True
+
+# ------- KPI (scale) -------
+class KpiScaleBandIn(BaseModel):
+    band_min: float
+    band_max: float
+    score: int
+    label: Optional[str] = None
+
+class KpiScaleUpsertIn(BaseModel):
+    bands: List[KpiScaleBandIn]
+
+# ------- TPP runs -------
+class TppRunIn(BaseModel):
+    product_application_id: int
+    real_tpp: float
+    performed_at: Optional[datetime] = None
+    notes: Optional[str] = None
+
+class TppRunOut(BaseModel):
+    id: int
+    product_application_id: int
+    real_tpp: Optional[float]
+    performed_at: Optional[datetime]
+    notes: Optional[str]
+    created_at: datetime
+    class Config:
+        from_attributes = True
+
+class KpiValueOut(BaseModel):
+    kpi_code: str
+    value_num: float
+    score: int
+    unit: Optional[str] = None
+    context_json: Optional[str] = None
+    computed_at: datetime

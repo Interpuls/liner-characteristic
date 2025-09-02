@@ -11,12 +11,17 @@ from starlette.middleware.cors import CORSMiddleware
 from starlette.middleware.gzip import GZipMiddleware
 from typing import Optional
 from sqlalchemy.exc import IntegrityError
+import json
+
+#chiamiamo sa sqlalchemy per i vincoli  
+import sqlalchemy as sa
 
 from .db import init_db, get_session
-from .models import User, Product, SearchPreference, KpiDef, FormulaType, ProductApplication
-from .schemas import UserCreate, UserOut, Token, ProductIn, ProductOut, ProductMetaOut, ProductPreferenceIn, ProductPreferenceOut, KpiDefIn, KpiDefOut, ProductApplicationIn, ProductApplicationOut, SIZE_LABELS
+from .models import User, Product, SearchPreference, KpiDef, FormulaType, ProductApplication, TppRun, TestMetric, KpiValue, KpiScale
+from .schemas import UserCreate, UserOut, Token, ProductIn, ProductOut, ProductMetaOut, ProductPreferenceIn, ProductPreferenceOut, KpiDefIn, KpiDefOut, ProductApplicationIn, ProductApplicationOut, SIZE_LABELS, TppRunIn, TppRunOut, KpiScaleUpsertIn, KpiScaleBandIn, KpiValueOut
 from .auth import hash_password, verify_password, create_access_token, get_current_user, require_role
 from .deps import apply_cors
+from .services.kpi_engine import score_from_scales
 
 ALLOWED_EMAIL_DOMAIN = os.getenv("ALLOWED_EMAIL_DOMAIN", "milkrite.com")
 
@@ -418,3 +423,129 @@ def delete_kpi(kpi_id: int, session: Session = Depends(get_session)):
     item = session.get(KpiDef, kpi_id)
     if not item: raise HTTPException(status_code=404, detail="Not found")
     session.delete(item); session.commit()
+
+
+# Upsert KPI Scales (solo admin)
+@app.put("/kpis/{kpi_code}/scales")
+def upsert_kpi_scales(kpi_code: str, payload: KpiScaleUpsertIn, session: Session = Depends(get_session), user=Depends(require_role("admin"))):
+    # pulizia e reinserimento (semplice e idempotente)
+    session.exec(sa.delete(KpiScale).where(KpiScale.kpi_code == kpi_code))
+    for band in payload.bands:
+        obj = KpiScale(
+            kpi_code=kpi_code,
+            band_min=band.band_min,
+            band_max=band.band_max,
+            score=band.score,
+            label=band.label
+        )
+        session.add(obj)
+    session.commit()
+    return {"ok": True}
+
+
+# ---------------------------- TPP Runs --------------------------------------
+@app.post("/tpp/runs", response_model=TppRunOut)
+def create_tpp_run(payload: TppRunIn, session: Session = Depends(get_session), user=Depends(require_role("admin"))):
+    run = TppRun(
+        product_application_id=payload.product_application_id,
+        real_tpp=payload.real_tpp,
+        performed_at=payload.performed_at,
+        notes=payload.notes
+    )
+    session.add(run); session.commit(); session.refresh(run)
+    return run
+
+@app.post("/tpp/runs/{run_id}/compute", response_model=list[KpiValueOut])
+def compute_tpp_kpis(run_id: int, session: Session = Depends(get_session), user=Depends(require_role("admin"))):
+    run = session.get(TppRun, run_id)
+    if not run:
+        raise HTTPException(status_code=404, detail="Run not found")
+    if run.real_tpp is None:
+        raise HTTPException(status_code=400, detail="Missing real_tpp")
+
+    # 1) salva la metrica derivata (REAL_TPP) su test_metrics (upsert semplice: delete->insert)
+    context = json.dumps({"agg":"final"})
+    session.exec(sa.delete(TestMetric).where(
+        (TestMetric.run_type=="TPP") & (TestMetric.run_id==run.id) &
+        (TestMetric.metric_code=="REAL_TPP") & (TestMetric.context_json==context)
+    ))
+    session.add(TestMetric(
+        run_type="TPP",
+        run_id=run.id,
+        product_application_id=run.product_application_id,
+        metric_code="REAL_TPP",
+        value_num=run.real_tpp,
+        unit=None,
+        context_json=context
+    ))
+
+    # 2) calcola KPI CLOSURE
+    score = score_from_scales(session, "CLOSURE", run.real_tpp)
+
+    session.exec(sa.delete(KpiValue).where(
+        (KpiValue.run_type=="TPP") & (KpiValue.run_id==run.id) &
+        (KpiValue.kpi_code=="CLOSURE") & (KpiValue.context_json==context)
+    ))
+    kv = KpiValue(
+        run_type="TPP",
+        run_id=run.id,
+        product_application_id=run.product_application_id,
+        kpi_code="CLOSURE",
+        value_num=run.real_tpp,
+        score=score,
+        unit=None,
+        context_json=context
+    )
+    session.add(kv)
+    session.commit()
+
+    return [KpiValueOut(
+        kpi_code=kv.kpi_code, value_num=kv.value_num, score=kv.score,
+        unit=kv.unit, context_json=kv.context_json, computed_at=kv.computed_at
+    )]
+
+
+@app.get("/tpp/runs", response_model=list[TppRunOut])
+def list_tpp_runs(
+    product_application_id: Optional[int] = None,
+    limit: int = Query(50, ge=1, le=200),
+    offset: int = Query(0, ge=0),
+    session: Session = Depends(get_session),
+    user=Depends(get_current_user)
+):
+    q = select(TppRun)
+    if product_application_id:
+        q = q.where(TppRun.product_application_id == product_application_id)
+    q = q.order_by(TppRun.created_at.desc()).limit(limit).offset(offset)
+    return session.exec(q).all()
+
+
+@app.get("/tpp/runs/{run_id}/kpis", response_model=list[KpiValueOut])
+def get_tpp_run_kpis(
+    run_id: int,
+    session: Session = Depends(get_session),
+    user=Depends(get_current_user)
+):
+    run = session.get(TppRun, run_id)
+    if not run:
+        raise HTTPException(status_code=404, detail="Run not found")
+    rows = session.exec(
+        select(KpiValue)
+        .where((KpiValue.run_type == "TPP") & (KpiValue.run_id == run_id))
+        .order_by(KpiValue.computed_at.desc())
+    ).all()
+    return rows
+
+
+@app.get("/tpp/last-run-by-application/{product_application_id}", response_model=Optional[TppRunOut])
+def get_last_tpp_run_for_application(
+    product_application_id: int,
+    session: Session = Depends(get_session),
+    user=Depends(get_current_user)
+):
+    run = session.exec(
+        select(TppRun)
+        .where(TppRun.product_application_id == product_application_id)
+        .order_by(TppRun.created_at.desc())
+    ).first()
+    return run
