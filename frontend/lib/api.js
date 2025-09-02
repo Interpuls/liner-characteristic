@@ -41,9 +41,6 @@ export const updateProduct = (token, id, body) =>
 export const deleteProduct = (token, id) =>
   http(`/products/${id}`, { method: "DELETE", token });
 
-// ---------------------------- KPIs ----------------------------
-export const listKpis = (token) => http("/kpis", { token });
-
 // product applications (per prodotto)
 export const listProductApplications = (token, productId) =>
   http(`/products/${productId}/applications`, { token });
@@ -52,7 +49,19 @@ export const listProductApplications = (token, productId) =>
 export const getProduct = (token, id) =>
   http(`/products/${id}`, { token });
 
-// TPP
+// ---------------------------- KPIs ----------------------------
+export const listKpis = (token) => http("/kpis", { token });
+
+// lib/api.js
+export const putKpiScales = (token, code, body) =>
+  http(`/kpis/${code}/scales`, { method: "PUT", token, body });
+
+// se hai un GET scales:
+export const getKpiScales = (token, code) =>
+  http(`/kpis/${code}/scales`, { token });
+
+
+// ---------------------------- TPP TESTS ----------------------------
 export const createTppRun = (token, body) =>
   http(`/tpp/runs`, { method: "POST", token, body });
 
@@ -67,3 +76,4 @@ export const getTppRunKpis = (token, runId) =>
 
 export const getLastTppRunForApplication = (token, productApplicationId) =>
   http(`/tpp/last-run-by-application/${productApplicationId}`, { token });
+

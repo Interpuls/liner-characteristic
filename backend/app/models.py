@@ -127,21 +127,26 @@ class FormulaType(str, Enum):
     AGG = "AGG"
 
 
+class TestKind(str, Enum):
+    TPP = "TPP"
+    MASSAGE = "MASSAGE"
+    SPEED = "SPEED"
+    SMT = "SMT"
+
 class KpiDef(SQLModel, table=True):
     __tablename__ = "kpi_def"
 
     id: Optional[int] = Field(default=None, primary_key=True)
-    code: str = Field(index=True)                
-    name: str                                   
+    code: str = Field(index=True)                 # es. "CLOSURE"
+    name: str
     description: Optional[str] = None
 
-    test_type_id: int = Field(foreign_key="test_types.id", index=True)
+    # PRIMA c'era: test_type_id: int = Field(foreign_key="test_types.id", index=True)
+    test_type_code: TestKind = Field(index=True)  # "TPP" | "MASSAGE" | "SPEED" | "SMT"
 
     formula_type: FormulaType
-    formula_text: str                            # testo SQL o Python o definizione aggregazione
-
-    
-    inputs: dict = Field(default_factory=dict, sa_column=Column(JSON, nullable=False)) 
+    formula_text: str
+    inputs: dict = Field(default_factory=dict, sa_column=Column(JSON, nullable=False))
     weight: float = 1.0
 
     created_at: datetime = Field(default_factory=datetime.utcnow, nullable=False)
@@ -149,8 +154,8 @@ class KpiDef(SQLModel, table=True):
     __table_args__ = (
         UniqueConstraint("code", name="uq_kpi_def_code"),
         Index("ix_kpi_def_name", "name"),
+        Index("ix_kpi_def_test_type_code", "test_type_code"),
     )
-
 
     # ---------- KPI base ----------
 class KpiScale(SQLModel, table=True):
@@ -209,3 +214,27 @@ class TppRun(SQLModel, table=True):
     real_tpp: Optional[float] = None
     notes: Optional[str] = None
     created_at: datetime = Field(default_factory=datetime.utcnow, nullable=False)
+
+
+
+# ---------- MASSAGE runs & points ----------
+class MassageRun(SQLModel, table=True):
+    __tablename__ = "massage_runs"
+    id: Optional[int] = Field(default=None, primary_key=True)
+    product_application_id: int = Field(foreign_key="product_applications.id", index=True)
+    performed_at: Optional[datetime] = None
+    notes: Optional[str] = None
+    created_at: datetime = Field(default_factory=datetime.utcnow, nullable=False)
+
+class MassagePoint(SQLModel, table=True):
+    __tablename__ = "massage_points"
+    id: Optional[int] = Field(default=None, primary_key=True)
+    run_id: int = Field(foreign_key="massage_runs.id", index=True)
+    pressure_kpa: int = Field(index=True)  # 45, 40, 35
+    min_val: float
+    max_val: float
+    created_at: datetime = Field(default_factory=datetime.utcnow, nullable=False)
+
+    __table_args__ = (
+        sa.UniqueConstraint("run_id", "pressure_kpa", name="ux_massage_point_run_pressure"),
+    )
