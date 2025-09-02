@@ -148,7 +148,7 @@ export default function AdminKpis() {
 
   const headerKpi = useMemo(() => {
     const row = kpis.find((k) => k.code === code);
-    return row ? `${row.name} (${row.code})` : code || "Select KPI";
+    return row ? `${row.test_type_code} Test` : code || "Select KPI";
   }, [kpis, code]);
 
   return (
@@ -172,12 +172,12 @@ export default function AdminKpis() {
               >
                 {kpis.map((k) => (
                   <option key={k.code} value={k.code}>
-                    {k.name} ({k.code})
+                    {k.name} 
                   </option>
                 ))}
               </Select>
             </Box>
-            <Badge colorScheme="blue" ml={2}>{headerKpi}</Badge>
+            <Badge colorScheme="blue" ml={2} borderRadius={4}>{headerKpi}</Badge>
             <Spacer />
             <Tooltip label="Reset 4 bands template">
               <IconButton

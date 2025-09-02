@@ -1,10 +1,10 @@
 import os
 import logging
-from fastapi import FastAPI, Depends, HTTPException, status, Query, Path
+from fastapi import FastAPI, Depends, HTTPException, status, Query, Path, Body
 from fastapi.security import OAuth2PasswordRequestForm
 from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
-from sqlalchemy import func
+from sqlalchemy import func, delete
 from sqlmodel import Session, select
 import re
 from starlette.middleware.cors import CORSMiddleware
@@ -12,6 +12,8 @@ from starlette.middleware.gzip import GZipMiddleware
 from typing import Optional
 from sqlalchemy.exc import IntegrityError
 import json
+
+from datetime import datetime
 
 #chiamiamo sa sqlalchemy per i vincoli  
 import sqlalchemy as sa
@@ -154,7 +156,7 @@ def list_products(
     brand: Optional[str] = Query(None),
     model: Optional[str] = Query(None),
     q: Optional[str] = Query(None),
-    limit: int = Query(20, ge=1, le=100),
+    limit: int = Query(20, ge=1, le=500),
     offset: int = Query(0, ge=0),
 ):
     qy = select(Product)
@@ -406,6 +408,33 @@ def list_kpis(session: Session = Depends(get_session), user=Depends(get_current_
     ).all()
     return rows
 
+# GET /kpis?product_application_id=26
+@app.get("/kpis/values", response_model=list[dict])
+def list_kpis_for_application(
+    product_application_id: int = Query(..., ge=1),
+    session: Session = Depends(get_session),
+    user = Depends(get_current_user),
+):
+    rows = session.exec(
+        select(KpiValue)
+        .where(KpiValue.product_application_id == product_application_id)
+        .order_by(KpiValue.kpi_code.asc(), KpiValue.computed_at.desc())
+    ).all()
+
+    return [
+        {
+            "kpi_code": r.kpi_code,
+            "value_num": r.value_num,
+            "score": r.score,
+            "run_type": r.run_type,
+            "run_id": r.run_id,
+            "unit": r.unit,
+            "context": r.context_json,  # è una stringa JSON; se vuoi, parse lato FE
+            "computed_at": r.computed_at,
+        }
+        for r in rows
+    ]
+
 # Create/Upsert (solo admin)
 @app.post("/kpis", response_model=KpiDefOut, dependencies=[Depends(require_role("admin"))])
 def create_or_update_kpi(payload: KpiDefIn, session: Session = Depends(get_session)):
@@ -573,112 +602,207 @@ def get_last_tpp_run_for_application(
 
 
 # ---------------------------- MASSAGE Runs --------------------------------------
-@app.post("/massage/runs", response_model=MassageRunOut)
-def create_massage_run(
-    payload: MassageRunIn, session: Session = Depends(get_session), user=Depends(require_role("admin"))
-):
-    run = MassageRun(
-        product_application_id=payload.product_application_id,
-        performed_at=payload.performed_at,
-        notes=payload.notes
+def _score_from_scales(session: Session, kpi_code: str, value: float) -> int | None:
+    # prende la band dove band_min <= value <= band_max (adiacenze incluse)
+    bands = session.exec(
+        select(KpiScale)
+        .where(KpiScale.kpi_code == kpi_code)
+        .order_by(KpiScale.band_min.asc(), KpiScale.band_max.asc())
+    ).all()
+    for b in bands:
+        if value >= b.band_min and value <= b.band_max:
+            return int(b.score)
+    return None
+
+def _score_or_422(session: Session, kpi_code: str, value: float) -> int:
+    bands = session.exec(
+        select(KpiScale)
+        .where(KpiScale.kpi_code == kpi_code)
+        .order_by(KpiScale.band_min.asc(), KpiScale.band_max.asc())
+    ).all()
+    for b in bands:
+        if value >= b.band_min and value <= b.band_max:
+            return int(b.score)
+    raise HTTPException(
+        status_code=422,
+        detail=f"No scale band for KPI {kpi_code} covering value {value}"
     )
-    session.add(run); session.commit(); session.refresh(run)
 
-    existing = session.exec(select(MassagePoint).where(MassagePoint.run_id == run.id)).all()
-    by_pressure = {p.pressure_kpa: p for p in existing}
+@app.post("/massage/runs", response_model=dict)
+def create_massage_run(
+    payload: dict = Body(...),  # { product_application_id, points:[{pressure_kpa,min_val,max_val}x3], notes? }
+    session: Session = Depends(get_session),
+    user = Depends(require_role("admin")),
+):
+    pa_id = payload.get("product_application_id")
+    if not pa_id:
+        raise HTTPException(status_code=400, detail="product_application_id required")
 
-    for p in payload.points:
-        row = by_pressure.get(p.pressure_kpa)
-        if row:
-            row.min_val = p.min_val
-            row.max_val = p.max_val
-            session.add(row)
-        else:
-            session.add(MassagePoint(
-                run_id=run.id,
-                pressure_kpa=p.pressure_kpa,
-                min_val=p.min_val,
-                max_val=p.max_val
-            ))
-    session.commit(); session.refresh(run)        
-    return run
+    pa = session.get(ProductApplication, pa_id)
+    if not pa:
+        raise HTTPException(status_code=404, detail="Product application not found")
 
-@app.post("/massage/runs/{run_id}/compute", response_model=list[KpiValueOut])
+    run = MassageRun(product_application_id=pa_id,
+                     performed_at=datetime.utcnow(),
+                     notes=payload.get("notes"))
+    session.add(run)
+    session.commit(); session.refresh(run)
+
+    pts = payload.get("points") or []
+    # ci aspettiamo 3 pressioni: 45, 40, 35 (in qualsiasi ordine)
+    by_p = {int(p["pressure_kpa"]): p for p in pts if "pressure_kpa" in p and "min_val" in p and "max_val" in p}
+    for kpa in [45, 40, 35]:
+        p = by_p.get(kpa)
+        if not p:
+            continue
+        mp = MassagePoint(
+            run_id=run.id,
+            pressure_kpa=kpa,
+            min_val=float(p["min_val"]),
+            max_val=float(p["max_val"])
+        )
+        session.add(mp)
+
+    session.commit()
+
+    # ritorno run_id e i points salvati
+    saved = session.exec(select(MassagePoint).where(MassagePoint.run_id == run.id).order_by(MassagePoint.pressure_kpa.desc())).all()
+    return {
+        "id": run.id,
+        "product_application_id": pa_id,
+        "points": [
+            {"pressure_kpa": r.pressure_kpa, "min_val": r.min_val, "max_val": r.max_val}
+            for r in saved
+        ],
+    }
+
+@app.post("/massage/runs/{run_id}/compute", response_model=dict)
 def compute_massage_kpis(
     run_id: int,
     session: Session = Depends(get_session),
-    user=Depends(require_role("admin"))
+    user = Depends(require_role("admin")),
 ):
     run = session.get(MassageRun, run_id)
     if not run:
         raise HTTPException(status_code=404, detail="Run not found")
 
-    pts = session.exec(select(MassagePoint).where(MassagePoint.run_id == run_id)).all()
-    if not pts:
-        raise HTTPException(status_code=400, detail="No points for this run")
+    pts = session.exec(
+        select(MassagePoint).where(MassagePoint.run_id == run_id)
+    ).all()
+    by = {p.pressure_kpa: p for p in pts}
+    if not all(k in by for k in (45, 40, 35)):
+        raise HTTPException(status_code=400, detail="Run requires 3 points at 45/40/35 kPa")
 
-    points = {p.pressure_kpa: (p.min_val, p.max_val) for p in pts}
-    deriv = massage_compute_derivatives(points)
+    # intensità per pressione = max-min
+    I45 = by[45].max_val - by[45].min_val
+    I40 = by[40].max_val - by[40].min_val
+    I35 = by[35].max_val - by[35].min_val
 
-    # salva derivati in test_metrics
-    ctx = json.dumps({"agg": "final"})
-    # pulizia minima delle metriche di questo run
-    session.exec(sa.delete(TestMetric).where(
-        (TestMetric.run_type == "MASSAGE") & (TestMetric.run_id == run_id)
-    ))
-    for code, val in deriv.items():
-        if val is None: 
-            continue
+    # derivati
+    avg_overmilk = (I45 + I40) / 2.0              # per CONGESTION_RISK
+    avg_pf       = (I40 + I35) / 2.0              # per HYPERKERATOSIS_RISK
+    diff_from_max = 45.0 - by[45].max_val
+    diff_pct      = (diff_from_max / 45.0) if 45.0 != 0 else 0.0   # per FITTING
+    drop_45_to_40 = (I40 - I45) / I45 if I45 else 0.0
+    drop_40_to_35 = (I35 - I40) / I40 if I40 else 0.0
+
+    # KPI score da scale
+    k_cong = _score_or_422(session, "CONGESTION_RISK",     avg_overmilk)
+    k_hk   = _score_or_422(session, "HYPERKERATOSIS_RISK", avg_pf)
+    k_fit  = _score_or_422(session, "FITTING",             diff_pct)
+
+    # ----- PULIZIA METRICHE ESISTENTI PER QUESTO RUN (idempotente) -----
+    session.exec(
+        delete(TestMetric).where(
+            TestMetric.run_type == "MASSAGE",
+            TestMetric.run_id == run.id
+        )
+    )
+    session.commit()
+
+    # ----- SALVA DERIVATI in test_metrics (una riga per metrica) -----
+    def _save_metric(code: str, value: float, unit: str | None = None, ctx: dict | None = None):
         session.add(TestMetric(
             run_type="MASSAGE",
-            run_id=run_id,
+            run_id=run.id,
             product_application_id=run.product_application_id,
             metric_code=code,
-            value_num=float(val),
-            unit=None,
-            context_json=ctx
-        ))
-
-    # KPI:
-    # - CONGESTION_RISK da AVG_OVERMILK
-    # - HYPERKERATOSIS_RISK da AVG_MASSAGE_PF
-    # - FITTING da VAC45_DIFF_PCT
-    results = []
-    def upsert_kpi(code: str, value: float, unit: str | None = None):
-        score = score_from_scales(session, code, value)
-        session.exec(sa.delete(KpiValue).where(
-            (KpiValue.run_type=="MASSAGE") & (KpiValue.run_id==run_id) &
-            (KpiValue.kpi_code==code) & (KpiValue.context_json==ctx)
-        ))
-        kv = KpiValue(
-            run_type="MASSAGE",
-            run_id=run_id,
-            product_application_id=run.product_application_id,
-            kpi_code=code,
             value_num=float(value),
-            score=score,
             unit=unit,
-            context_json=ctx
-        )
-        session.add(kv); results.append(kv)
+            # se su SQLite la colonna non è JSON vero, salviamo come stringa
+            context_json=json.dumps(ctx or {}),
+        ))
 
-    if deriv.get("AVG_OVERMILK") is not None:
-        upsert_kpi("CONGESTION_RISK", deriv["AVG_OVERMILK"])
-
-    if deriv.get("AVG_MASSAGE_PF") is not None:
-        upsert_kpi("HYPERKERATOSIS_RISK", deriv["AVG_MASSAGE_PF"])
-
-    if deriv.get("VAC45_DIFF_PCT") is not None:
-        upsert_kpi("FITTING", deriv["VAC45_DIFF_PCT"])
+    _save_metric("I45", I45)
+    _save_metric("I40", I40)
+    _save_metric("I35", I35)
+    _save_metric("AVG_OVERMILK", avg_overmilk)
+    _save_metric("AVG_PF",       avg_pf)
+    _save_metric("DIFF_FROM_MAX", diff_from_max, unit="kPa")
+    _save_metric("DIFF_PCT",      diff_pct,      unit="%")
+    _save_metric("DROP_45_40", drop_45_to_40, unit="%")
+    _save_metric("DROP_40_35", drop_40_to_35, unit="%")
 
     session.commit()
 
-    return [
-        KpiValueOut(
-            kpi_code=kv.kpi_code, value_num=kv.value_num, score=kv.score,
-            unit=kv.unit, context_json=kv.context_json, computed_at=kv.computed_at
-        ) for kv in results
-    ]
+    # ----- UPSERT KPI per la coppia product_application -----
+    def upsert_kpi(code: str, value: float, score: int | None):
+        vnum = float(value) if value is not None else 0.0
+        kv = session.exec(
+            select(KpiValue).where(
+                KpiValue.product_application_id == run.product_application_id,
+                KpiValue.kpi_code == code
+            )
+        ).first()
+    
+        ctx_payload = {"pressures": [45, 40, 35]}
+        ctx_str = json.dumps(ctx_payload)   # <-- serializza SEMPRE per SQLite
+    
+        if kv:
+            kv.value_num = vnum
+            kv.score     = int(score) if score is not None else None
+            kv.run_type  = "MASSAGE"
+            kv.run_id    = run.id
+            kv.unit      = None
+            kv.context_json = ctx_str
+            session.add(kv)
+        else:
+            obj = KpiValue(
+                product_application_id=run.product_application_id,
+                kpi_code=code,
+                value_num=vnum,
+                score=int(score) if score is not None else None,
+                run_type="MASSAGE",
+                run_id=run.id,
+                unit=None,
+                context_json=ctx_str,       
+            )
+            session.add(obj)
+
+    upsert_kpi("CONGESTION_RISK",     avg_overmilk, k_cong)
+    upsert_kpi("HYPERKERATOSIS_RISK", avg_pf,       k_hk)
+    upsert_kpi("FITTING",             diff_pct,     k_fit)
+
+    session.commit()
+
+    return {
+        "run_id": run.id,
+        "product_application_id": run.product_application_id,
+        "metrics": {
+            "I45": I45, "I40": I40, "I35": I35,
+            "avg_overmilk": avg_overmilk,
+            "avg_pf": avg_pf,
+            "diff_from_max": diff_from_max,
+            "diff_pct": diff_pct,
+            "drop_45_to_40": drop_45_to_40,
+            "drop_40_to_35": drop_40_to_35,
+        },
+        "kpis": {
+            "CONGESTION_RISK": k_cong,
+            "HYPERKERATOSIS_RISK": k_hk,
+            "FITTING": k_fit,
+        }
+    }
 
 @app.get("/massage/runs", response_model=list[MassageRunOut])
 def list_massage_runs(
@@ -693,3 +817,39 @@ def list_massage_runs(
         q = q.where(MassageRun.product_application_id == product_application_id)
     q = q.order_by(MassageRun.created_at.desc()).limit(limit).offset(offset)
     return session.exec(q).all()
+
+# GET /massage/runs/latest?product_application_id=26
+@app.get("/massage/runs/latest", response_model=dict)
+def get_latest_massage_run(
+    product_application_id: int = Query(..., ge=1),
+    session: Session = Depends(get_session),
+    user = Depends(get_current_user),
+):
+    run = session.exec(
+        select(MassageRun)
+        .where(MassageRun.product_application_id == product_application_id)
+        .order_by(MassageRun.created_at.desc())
+        .limit(1)
+    ).first()
+    if not run:
+        return {"run": None}
+
+    pts = session.exec(
+        select(MassagePoint)
+        .where(MassagePoint.run_id == run.id)
+        .order_by(MassagePoint.pressure_kpa.desc())
+    ).all()
+
+    return {
+        "run": {
+            "id": run.id,
+            "product_application_id": run.product_application_id,
+            "performed_at": run.performed_at,
+            "notes": run.notes,
+            "created_at": run.created_at,
+            "points": [
+                {"pressure_kpa": p.pressure_kpa, "min_val": p.min_val, "max_val": p.max_val}
+                for p in pts
+            ],
+        }
+    }

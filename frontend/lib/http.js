@@ -1,50 +1,60 @@
-// lib/http.js
 export async function http(path, { method = "GET", token, body } = {}) {
-  const base = (process.env.NEXT_PUBLIC_API_URL || "").replace(/\/$/, "");
-  const url = `${base}${path.startsWith("/") ? path : `/${path}`}`;
+  const base = process.env.NEXT_PUBLIC_API_URL;
+  const res = await fetch(`${base}${path}`, {
+    method,
+    headers: {
+      "Content-Type": "application/json",
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    },
+    body: body != null ? JSON.stringify(body) : undefined,
+  });
 
-  const headers = {
-    "Content-Type": "application/json",
-    ...(token ? { Authorization: `Bearer ${token}` } : {}),
-  };
-
-  let res;
-  try {
-    res = await fetch(url, {
-      method,
-      headers,
-      body: body != null ? JSON.stringify(body) : undefined,
-      mode: "cors",
-      credentials: "omit", // non usi cookie
-    });
-  } catch (err) {
-    throw new Error(`Network error calling ${url}: ${err.message}`);
-  }
-
-  if (res.status === 401) {
-    if (typeof window !== "undefined") {
-      localStorage.removeItem("token");
-      document.cookie = "token=; Path=/; Max-Age=0; SameSite=Lax";
-      window.location.href = "/login";
+  // helper: leggi il body UNA sola volta
+  async function readBody() {
+    const ct = res.headers.get("content-type") || "";
+    const raw = await res.text().catch(() => "");
+    if (!raw) return { raw: "", json: null };
+    if (ct.includes("application/json")) {
+      try { return { raw, json: JSON.parse(raw) }; }
+      catch { /* non JSON valido */ }
     }
-    throw new Error("Unauthorized");
+    return { raw, json: null };
   }
 
   if (!res.ok) {
-    let msg = await res.text().catch(() => "");
-    try {
-      const j = JSON.parse(msg);
-      msg = j?.detail || j?.message || msg;
-    } catch {}
-    throw new Error(msg || `HTTP ${res.status} ${res.statusText}`);
+    const { raw, json } = await readBody();
+    // costruisci messaggio umano
+    let msg = "";
+    if (json) {
+      // FastAPI spesso usa { detail: "..."} o { detail: [{loc:.., msg:..}] }
+      if (typeof json.detail === "string") msg = json.detail;
+      else if (Array.isArray(json.detail)) {
+        msg = json.detail.map(d => d.msg || JSON.stringify(d)).join("; ");
+      } else if (json.message) {
+        msg = typeof json.message === "string" ? json.message : JSON.stringify(json.message);
+      } else {
+        msg = JSON.stringify(json);
+      }
+    } else {
+      msg = raw || `HTTP ${res.status} ${res.statusText}`;
+    }
+
+    const err = new Error(msg);
+    err.status = res.status;
+    err.payload = json ?? raw ?? null;
+    err.url = `${base}${path}`;
+    throw err;
   }
 
-  // alcune PUT/DELETE e perfino certe POST possono ritornare body vuoto
-  const text = await res.text().catch(() => "");
-  if (!text) return null;
-  try {
-    return JSON.parse(text);
-  } catch {
-    return text;
+  // success: 204/205 senza body
+  if (res.status === 204 || res.status === 205) return null;
+
+  // prova JSON, altrimenti restituisci testo
+  const ct = res.headers.get("content-type") || "";
+  if (ct.includes("application/json")) {
+    return res.json();
+  } else {
+    const text = await res.text().catch(() => "");
+    return text || null;
   }
 }
