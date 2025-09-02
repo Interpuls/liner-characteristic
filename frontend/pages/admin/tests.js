@@ -6,13 +6,15 @@ import {
   InputGroup, InputLeftAddon, Spinner, Tooltip, Stat, StatLabel, StatNumber, Icon
 } from "@chakra-ui/react";
 import { ChevronLeftIcon, AddIcon } from "@chakra-ui/icons";
-import { FiCalculator } from "react-icons/fi";
+import { LuCalculator } from "react-icons/lu";
 import { getToken } from "../../lib/auth";
 import { listProducts,  getTppRunKpis } from "../../lib/api";
 import {
   listProductApplications, getProduct,
   createTppRun, computeTppRun, listTppRuns
 } from "../../lib/api";
+
+import AdminMassageTest from "./tests/massage";
 
 const scoreColor = (s) =>
   s >= 4 ? "green.500" :
@@ -141,7 +143,7 @@ useEffect(() => {
             </Box>
           </SimpleGrid>
           <HStack justify="flex-end">
-            <Button onClick={onSaveCompute} colorScheme="blue" isLoading={saving} leftIcon={<Icon as={FiCalculator} />}>
+            <Button onClick={onSaveCompute} colorScheme="blue" isLoading={saving} leftIcon={<LuCalculator />}>
               Save & Compute
             </Button>
           </HStack>
@@ -235,13 +237,13 @@ export default function AdminTests() {
         <Button as={NextLink} href="/home" variant="outline" size="sm">
           <ChevronLeftIcon mr={1} /> Home
         </Button>
-        <Heading size="lg">Tests</Heading>
+        <Heading size="lg">Tests Campaign</Heading>
       </HStack>
 
       <Tabs colorScheme="blue">
         <TabList overflowX="auto">
           <Tab>TPP</Tab>
-          <Tab isDisabled>Massage</Tab>
+          <Tab>Massage</Tab>
           <Tab isDisabled>Speed</Tab>
           <Tab isDisabled>SMT / Hood</Tab>
         </TabList>
@@ -249,7 +251,7 @@ export default function AdminTests() {
           <TabPanel px={0} pt={4}>
             <TabTPP />
           </TabPanel>
-          <TabPanel><Box p={4} color="gray.500">Coming next…</Box></TabPanel>
+          <TabPanel><AdminMassageTest></AdminMassageTest></TabPanel>
           <TabPanel><Box p={4} color="gray.500">Coming next…</Box></TabPanel>
           <TabPanel><Box p={4} color="gray.500">Coming next…</Box></TabPanel>
         </TabPanels>

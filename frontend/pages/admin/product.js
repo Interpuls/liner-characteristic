@@ -7,7 +7,7 @@ import {
   FormControl, FormLabel, SimpleGrid, useToast, Divider, Card, CardBody, CardHeader,
   Tag, TagLabel, Show, Hide, VStack, InputGroup, InputLeftElement, CloseButton,
   Spinner, Icon, Center, useDisclosure, Modal, ModalOverlay, ModalContent, ModalHeader, ModalBody,
-  ModalFooter, ModalCloseButton, Tooltip, Menu, MenuButton, MenuList, MenuItem
+  ModalFooter, ModalCloseButton, Tooltip, Menu, MenuButton, MenuList, MenuItem, Grid
 } from "@chakra-ui/react";
 import { AddIcon, SearchIcon, ChevronLeftIcon, ArrowUpDownIcon, CheckIcon  } from "@chakra-ui/icons";
 import { LuShoppingCart } from "react-icons/lu";
@@ -163,68 +163,89 @@ export default function AdminProducts() {
 
 
       {/* Search + Sort + New Product */}
-      <Stack direction={{ base:"column", md:"row" }} align="stretch" gap={3}>
-        {/* Search */}
-        <InputGroup flex="1">
-          <InputLeftElement pointerEvents="none">
-            <SearchIcon color="gray.400" />
-          </InputLeftElement>
-          <Input
-            placeholder="Search by brand or model…"
-            value={search}
-            onChange={(e)=>setSearch(e.target.value)}
-            variant="filled"
-          />
-          {search && <CloseButton ml={2} onClick={()=>setSearch("")} alignSelf="center" />}
-        </InputGroup>
+      <Grid
+  templateColumns="1fr auto auto"
+  gap={2}
+  alignItems="center"
+>
+  {/* Search */}
+  <InputGroup minW={0}>
+    <InputLeftElement pointerEvents="none">
+      <SearchIcon color="gray.400" />
+    </InputLeftElement>
 
-        {/* Sort control */}
-        <Menu>
-          <Tooltip label={`Sort: ${
-            sortBy === "newest" ? "Newest" :
-            sortBy === "brand_asc" ? "Brand A → Z" :
-            sortBy === "brand_desc" ? "Brand Z → A" :
-            sortBy === "model_asc" ? "Model A → Z" : "Model Z → A"
-          }`} openDelay={400}>
-            <MenuButton
-              as={IconButton}
-              aria-label="Sort"
-              icon={<ArrowUpDownIcon />}
-              variant="ghost"
-              size="md"
-            />
-          </Tooltip>
-          <MenuList>
-            <MenuItem onClick={() => setSortBy("newest")}>
-              Newest
-              {sortBy === "newest" && <CheckIcon ml="auto" />}
-            </MenuItem>
-            <MenuItem onClick={() => setSortBy("brand_asc")}>
-              Brand A → Z
-              {sortBy === "brand_asc" && <CheckIcon ml="auto" />}
-            </MenuItem>
-            <MenuItem onClick={() => setSortBy("brand_desc")}>
-              Brand Z → A
-              {sortBy === "brand_desc" && <CheckIcon ml="auto" />}
-            </MenuItem>
-            <MenuItem onClick={() => setSortBy("model_asc")}>
-              Model A → Z
-              {sortBy === "model_asc" && <CheckIcon ml="auto" />}
-            </MenuItem>
-            <MenuItem onClick={() => setSortBy("model_desc")}>
-              Model Z → A
-              {sortBy === "model_desc" && <CheckIcon ml="auto" />}
-            </MenuItem>
-          </MenuList>
-        </Menu>
+    <Input
+      placeholder="Search by brand or model…"
+      value={search}
+      onChange={(e)=>setSearch(e.target.value)}
+      variant="filled"
+      w="100%"
+      minW={0}           // evita overflow su mobile
+    />
 
-        {/* New Product button (sempre allineato a destra su desktop) */}
-        <HStack justify={{ base:"flex-start", md:"flex-end" }}>
-          <Button colorScheme="green" onClick={onOpen}>
-            <AddIcon mr={1} /> <Hide below="sm">New Product</Hide>
-          </Button>
-        </HStack>
-      </Stack>
+    {search && (
+      <InputRightElement width="auto">
+        <IconButton
+          aria-label="Clear search"
+          size="sm"
+          variant="ghost"
+          icon={<CloseIcon boxSize={3} />}
+          onClick={()=>setSearch("")}
+        />
+      </InputRightElement>
+    )}
+  </InputGroup>
+
+  {/* Sort control */}
+  <Menu>
+    <Tooltip
+      label={`Sort: ${
+        sortBy === "newest" ? "Newest" :
+        sortBy === "brand_asc" ? "Brand A → Z" :
+        sortBy === "brand_desc" ? "Brand Z → A" :
+        sortBy === "model_asc" ? "Model A → Z" : "Model Z → A"
+      }`}
+      openDelay={400}
+    >
+      <MenuButton
+        as={IconButton}
+        aria-label="Sort"
+        icon={<ArrowUpDownIcon />}
+        variant="ghost"
+        size="md"
+      />
+    </Tooltip>
+    <MenuList>
+      <MenuItem onClick={() => setSortBy("newest")}>
+        Newest {sortBy === "newest" && <CheckIcon ml="auto" />}
+      </MenuItem>
+      <MenuItem onClick={() => setSortBy("brand_asc")}>
+        Brand A → Z {sortBy === "brand_asc" && <CheckIcon ml="auto" />}
+      </MenuItem>
+      <MenuItem onClick={() => setSortBy("brand_desc")}>
+        Brand Z → A {sortBy === "brand_desc" && <CheckIcon ml="auto" />}
+      </MenuItem>
+      <MenuItem onClick={() => setSortBy("model_asc")}>
+        Model A → Z {sortBy === "model_asc" && <CheckIcon ml="auto" />}
+      </MenuItem>
+      <MenuItem onClick={() => setSortBy("model_desc")}>
+        Model Z → A {sortBy === "model_desc" && <CheckIcon ml="auto" />}
+      </MenuItem>
+    </MenuList>
+  </Menu>
+
+  {/* New Product */}
+  <Button
+    colorScheme="green"
+    onClick={onOpen}
+    leftIcon={<AddIcon />}
+    size="sm"
+    justifySelf="end"
+    px={{ base: 2, md: 4 }}
+  >
+    <Box display={{ base: "none", sm: "inline" }}>New Product</Box>
+  </Button>
+</Grid>
 
       {/* Risultati */}
       <Box mt={8} minH="200px">

@@ -60,6 +60,14 @@ export const putKpiScales = (token, code, body) =>
 export const getKpiScales = (token, code) =>
   http(`/kpis/${code}/scales`, { token });
 
+// --- KPI (valori calcolati) ---
+export async function getKpiValuesByPA(token, productApplicationId) {
+  return http(`/kpis/values?product_application_id=${productApplicationId}`, {
+    method: "GET",
+    token,
+  });
+}
+
 
 // ---------------------------- TPP TESTS ----------------------------
 export const createTppRun = (token, body) =>
@@ -77,3 +85,21 @@ export const getTppRunKpis = (token, runId) =>
 export const getLastTppRunForApplication = (token, productApplicationId) =>
   http(`/tpp/last-run-by-application/${productApplicationId}`, { token });
 
+
+// ---------------------------- MASSAGE TESTS ----------------------------
+export const createMassageRun = (token, body) => {
+  // body = { product_application_id, points: [{pressure_kpa,min_val,max_val}...], notes? }
+  return http(`/massage/runs`, { method: "POST", token, body });
+};
+
+export const computeMassageRun = (token, runId) => {
+  return http(`/massage/runs/${runId}/compute`, { method: "POST", token });
+};
+
+export async function listMassageRuns(token, { productApplicationId, limit = 10, offset = 0 } = {}) {
+  const qs = new URLSearchParams();
+  if (productApplicationId) qs.set("product_application_id", productApplicationId);
+  if (limit) qs.set("limit", String(limit));
+  if (offset) qs.set("offset", String(offset));
+  return http(`/massage/runs?${qs.toString()}`, { method: "GET", token });
+}
