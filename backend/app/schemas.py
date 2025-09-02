@@ -149,14 +149,20 @@ class FormulaType(str, Enum):
     PY  = "PY"
     AGG = "AGG"
 
+class TestKind(str, Enum):
+    TPP = "TPP"
+    MASSAGE = "MASSAGE"
+    SPEED = "SPEED"
+    SMT = "SMT"
+
 class KpiDefIn(BaseModel):
     code: str
     name: str
     description: Optional[str] = None
-    test_type_id: int
+    test_type_code: TestKind            # <-- qui
     formula_type: FormulaType
     formula_text: str
-    inputs: Dict[str, Any] = {}   # es. {"source_table":"tests", "field":"value"}
+    inputs: Dict[str, Any] = {}
     weight: float = 1.0
 
 class KpiDefOut(BaseModel):
@@ -164,7 +170,7 @@ class KpiDefOut(BaseModel):
     code: str
     name: str
     description: Optional[str] = None
-    test_type_id: int
+    test_type_code: TestKind            # <-- qui
     formula_type: FormulaType
     formula_text: str
     inputs: Dict[str, Any]
@@ -207,3 +213,25 @@ class KpiValueOut(BaseModel):
     unit: Optional[str] = None
     context_json: Optional[str] = None
     computed_at: datetime
+
+
+# MASSAGE schemas
+class MassagePointIn(BaseModel):
+    pressure_kpa: int  # 45, 40, 35
+    min_val: float
+    max_val: float
+
+class MassageRunIn(BaseModel):
+    product_application_id: int
+    points: List[MassagePointIn]         # almeno 1, idealmente 3
+    performed_at: Optional[datetime] = None
+    notes: Optional[str] = None
+
+class MassageRunOut(BaseModel):
+    id: int
+    product_application_id: int
+    performed_at: Optional[datetime]
+    notes: Optional[str]
+    created_at: datetime
+    class Config:
+        from_attributes = True

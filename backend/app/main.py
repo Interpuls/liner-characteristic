@@ -17,11 +17,11 @@ import json
 import sqlalchemy as sa
 
 from .db import init_db, get_session
-from .models import User, Product, SearchPreference, KpiDef, FormulaType, ProductApplication, TppRun, TestMetric, KpiValue, KpiScale
-from .schemas import UserCreate, UserOut, Token, ProductIn, ProductOut, ProductMetaOut, ProductPreferenceIn, ProductPreferenceOut, KpiDefIn, KpiDefOut, ProductApplicationIn, ProductApplicationOut, SIZE_LABELS, TppRunIn, TppRunOut, KpiScaleUpsertIn, KpiScaleBandIn, KpiValueOut
+from .models import User, Product, SearchPreference, KpiDef, FormulaType, ProductApplication, TppRun, TestMetric, KpiValue, KpiScale, MassageRun, MassagePoint, TestMetric, KpiValue
+from .schemas import UserCreate, UserOut, Token, ProductIn, ProductOut, ProductMetaOut, ProductPreferenceIn, ProductPreferenceOut, KpiDefIn, KpiDefOut, ProductApplicationIn, ProductApplicationOut, SIZE_LABELS, TppRunIn, TppRunOut, KpiScaleUpsertIn, KpiScaleBandIn, KpiValueOut, MassageRunIn, MassageRunOut, KpiValueOut
 from .auth import hash_password, verify_password, create_access_token, get_current_user, require_role
 from .deps import apply_cors
-from .services.kpi_engine import score_from_scales
+from .services.kpi_engine import score_from_scales, massage_compute_derivatives
 
 ALLOWED_EMAIL_DOMAIN = os.getenv("ALLOWED_EMAIL_DOMAIN", "milkrite.com")
 
@@ -399,10 +399,12 @@ def delete_product_application(
 
 # ---------------------------- KPI DEF --------------------------------------
 
-# List (tutti i ruoli)
 @app.get("/kpis", response_model=list[KpiDefOut])
 def list_kpis(session: Session = Depends(get_session), user=Depends(get_current_user)):
-    return session.exec(select(KpiDef).order_by(KpiDef.created_at.asc())).all()
+    rows = session.exec(
+        select(KpiDef).order_by(KpiDef.created_at.asc())
+    ).all()
+    return rows
 
 # Create/Upsert (solo admin)
 @app.post("/kpis", response_model=KpiDefOut, dependencies=[Depends(require_role("admin"))])
@@ -441,6 +443,25 @@ def upsert_kpi_scales(kpi_code: str, payload: KpiScaleUpsertIn, session: Session
         session.add(obj)
     session.commit()
     return {"ok": True}
+
+@app.get("/kpis/{code}/scales")
+def get_kpi_scales(code: str, session: Session = Depends(get_session), user=Depends(get_current_user)):
+    bands = session.exec(
+        select(KpiScale)
+        .where(KpiScale.kpi_code == code)
+        .order_by(KpiScale.band_min.asc(), KpiScale.band_max.asc())
+    ).all()
+    # normalizza output come quello che si aspetta il FE
+    return {
+        "bands": [
+            {
+                "band_min": float(b.band_min),
+                "band_max": float(b.band_max),
+                "score": int(b.score),
+                "label": b.label or "",
+            } for b in bands
+        ]
+    }
 
 
 # ---------------------------- TPP Runs --------------------------------------
@@ -549,3 +570,126 @@ def get_last_tpp_run_for_application(
         .order_by(TppRun.created_at.desc())
     ).first()
     return run
+
+
+# ---------------------------- MASSAGE Runs --------------------------------------
+@app.post("/massage/runs", response_model=MassageRunOut)
+def create_massage_run(
+    payload: MassageRunIn, session: Session = Depends(get_session), user=Depends(require_role("admin"))
+):
+    run = MassageRun(
+        product_application_id=payload.product_application_id,
+        performed_at=payload.performed_at,
+        notes=payload.notes
+    )
+    session.add(run); session.commit(); session.refresh(run)
+
+    existing = session.exec(select(MassagePoint).where(MassagePoint.run_id == run.id)).all()
+    by_pressure = {p.pressure_kpa: p for p in existing}
+
+    for p in payload.points:
+        row = by_pressure.get(p.pressure_kpa)
+        if row:
+            row.min_val = p.min_val
+            row.max_val = p.max_val
+            session.add(row)
+        else:
+            session.add(MassagePoint(
+                run_id=run.id,
+                pressure_kpa=p.pressure_kpa,
+                min_val=p.min_val,
+                max_val=p.max_val
+            ))
+    session.commit(); session.refresh(run)        
+    return run
+
+@app.post("/massage/runs/{run_id}/compute", response_model=list[KpiValueOut])
+def compute_massage_kpis(
+    run_id: int,
+    session: Session = Depends(get_session),
+    user=Depends(require_role("admin"))
+):
+    run = session.get(MassageRun, run_id)
+    if not run:
+        raise HTTPException(status_code=404, detail="Run not found")
+
+    pts = session.exec(select(MassagePoint).where(MassagePoint.run_id == run_id)).all()
+    if not pts:
+        raise HTTPException(status_code=400, detail="No points for this run")
+
+    points = {p.pressure_kpa: (p.min_val, p.max_val) for p in pts}
+    deriv = massage_compute_derivatives(points)
+
+    # salva derivati in test_metrics
+    ctx = json.dumps({"agg": "final"})
+    # pulizia minima delle metriche di questo run
+    session.exec(sa.delete(TestMetric).where(
+        (TestMetric.run_type == "MASSAGE") & (TestMetric.run_id == run_id)
+    ))
+    for code, val in deriv.items():
+        if val is None: 
+            continue
+        session.add(TestMetric(
+            run_type="MASSAGE",
+            run_id=run_id,
+            product_application_id=run.product_application_id,
+            metric_code=code,
+            value_num=float(val),
+            unit=None,
+            context_json=ctx
+        ))
+
+    # KPI:
+    # - CONGESTION_RISK da AVG_OVERMILK
+    # - HYPERKERATOSIS_RISK da AVG_MASSAGE_PF
+    # - FITTING da VAC45_DIFF_PCT
+    results = []
+    def upsert_kpi(code: str, value: float, unit: str | None = None):
+        score = score_from_scales(session, code, value)
+        session.exec(sa.delete(KpiValue).where(
+            (KpiValue.run_type=="MASSAGE") & (KpiValue.run_id==run_id) &
+            (KpiValue.kpi_code==code) & (KpiValue.context_json==ctx)
+        ))
+        kv = KpiValue(
+            run_type="MASSAGE",
+            run_id=run_id,
+            product_application_id=run.product_application_id,
+            kpi_code=code,
+            value_num=float(value),
+            score=score,
+            unit=unit,
+            context_json=ctx
+        )
+        session.add(kv); results.append(kv)
+
+    if deriv.get("AVG_OVERMILK") is not None:
+        upsert_kpi("CONGESTION_RISK", deriv["AVG_OVERMILK"])
+
+    if deriv.get("AVG_MASSAGE_PF") is not None:
+        upsert_kpi("HYPERKERATOSIS_RISK", deriv["AVG_MASSAGE_PF"])
+
+    if deriv.get("VAC45_DIFF_PCT") is not None:
+        upsert_kpi("FITTING", deriv["VAC45_DIFF_PCT"])
+
+    session.commit()
+
+    return [
+        KpiValueOut(
+            kpi_code=kv.kpi_code, value_num=kv.value_num, score=kv.score,
+            unit=kv.unit, context_json=kv.context_json, computed_at=kv.computed_at
+        ) for kv in results
+    ]
+
+@app.get("/massage/runs", response_model=list[MassageRunOut])
+def list_massage_runs(
+    product_application_id: Optional[int] = None,
+    limit: int = Query(50, ge=1, le=200),
+    offset: int = Query(0, ge=0),
+    session: Session = Depends(get_session),
+    user=Depends(get_current_user)
+):
+    q = select(MassageRun)
+    if product_application_id:
+        q = q.where(MassageRun.product_application_id == product_application_id)
+    q = q.order_by(MassageRun.created_at.desc()).limit(limit).offset(offset)
+    return session.exec(q).all()
