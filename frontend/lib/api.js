@@ -87,10 +87,10 @@ export const getLastTppRunForApplication = (token, productApplicationId) =>
 
 
 // ---------------------------- MASSAGE TESTS ----------------------------
-export const createMassageRun = (token, body) => {
-  // body = { product_application_id, points: [{pressure_kpa,min_val,max_val}...], notes? }
-  return http(`/massage/runs`, { method: "POST", token, body });
-};
+export async function createMassageRun(token, payload) {
+  // payload = { product_application_id, points:[{pressure_kpa,min_val,max_val}], notes? }
+  return http(`/massage/runs`, { method: "POST", token, body: payload });
+}
 
 export const computeMassageRun = (token, runId) => {
   return http(`/massage/runs/${runId}/compute`, { method: "POST", token });
@@ -103,3 +103,20 @@ export async function listMassageRuns(token, { productApplicationId, limit = 10,
   if (offset) qs.set("offset", String(offset));
   return http(`/massage/runs?${qs.toString()}`, { method: "GET", token });
 }
+
+export async function getLatestMassageRun(token, productApplicationId) {
+  const qs = new URLSearchParams({ product_application_id: String(productApplicationId) }).toString();
+  return http(`/massage/runs/latest?${qs}`, { token });
+}
+
+export async function upsertMassagePoints(token, runId, points) {
+  // points = [{pressure_kpa,min_val,max_val}, ...]
+  return http(`/massage/runs/${runId}/points`, { method: "PUT", token, body: points });
+}
+
+export const updateMassagePoints = (token, runId, points) =>
+  http(`/massage/runs/${runId}/points`, {
+    method: "PUT",
+    token,
+    body: points, // array: [{pressure_kpa, min_val, max_val}, ...]
+  });

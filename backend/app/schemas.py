@@ -235,3 +235,13 @@ class MassageRunOut(BaseModel):
     created_at: datetime
     class Config:
         from_attributes = True
+
+class MassagePointOut(BaseModel):
+    id: int
+    run_id: int
+    pressure_kpa: int
+    min_val: float
+    max_val: float
+    created_at: datetime
+    class Config:
+        from_attributes = True

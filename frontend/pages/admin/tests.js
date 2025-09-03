@@ -244,8 +244,8 @@ export default function AdminTests() {
         <TabList overflowX="auto">
           <Tab>TPP</Tab>
           <Tab>Massage</Tab>
-          <Tab isDisabled>Speed</Tab>
-          <Tab isDisabled>SMT / Hood</Tab>
+          <Tab>Speed</Tab>
+          <Tab>SMT / Hood</Tab>
         </TabList>
         <TabPanels>
           <TabPanel px={0} pt={4}>
