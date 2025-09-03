@@ -11,6 +11,10 @@ backend/__pycache__/
 backend/*.sqlite3
 backend/*.db
 backend/.pytest_cache/
+backend/*.py[cod]
+backend/*.pyo
+backend/*.pyd
+backend/app.db
 
 # Env & secrets
 *.env
