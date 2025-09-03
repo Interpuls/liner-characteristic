@@ -3,13 +3,13 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/router";
 import NextLink from "next/link";
 import {
-  Box, Heading, Text, Button, Select, Input, HStack, Stack, IconButton,
+  Box, Heading, Text, Button, Select, Input, HStack, Stack, 
   FormControl, FormLabel, SimpleGrid, useToast, Divider, Card, CardBody, CardHeader,
   Tag, TagLabel, Show, Hide, VStack, InputGroup, InputLeftElement, CloseButton,
   Spinner, Icon, Center, useDisclosure, Modal, ModalOverlay, ModalContent, ModalHeader, ModalBody,
-  ModalFooter, ModalCloseButton, Tooltip, Menu, MenuButton, MenuList, MenuItem, Grid
+  ModalFooter, ModalCloseButton, Tooltip, Menu, MenuButton, MenuList, MenuItem, Grid, InputRightElement
 } from "@chakra-ui/react";
-import { AddIcon, SearchIcon, ChevronLeftIcon, ArrowUpDownIcon, CheckIcon  } from "@chakra-ui/icons";
+import { AddIcon, SearchIcon, ChevronLeftIcon, ArrowUpDownIcon, CheckIcon, IconButton, CloseIcon  } from "@chakra-ui/icons";
 import { LuShoppingCart } from "react-icons/lu";
 import { getToken } from "../../lib/auth";
 import { getMe, getProductsMeta, listProductPrefs, createProduct  } from "../../lib/api";
@@ -164,88 +164,88 @@ export default function AdminProducts() {
 
       {/* Search + Sort + New Product */}
       <Grid
-  templateColumns="1fr auto auto"
-  gap={2}
-  alignItems="center"
->
-  {/* Search */}
-  <InputGroup minW={0}>
-    <InputLeftElement pointerEvents="none">
-      <SearchIcon color="gray.400" />
-    </InputLeftElement>
+        templateColumns="1fr auto auto"
+        gap={2}
+        alignItems="center"
+      >
+        {/* Search */}
+        <InputGroup minW={0}>
+          <InputLeftElement pointerEvents="none">
+            <SearchIcon color="gray.400" />
+          </InputLeftElement>
 
-    <Input
-      placeholder="Search by brand or model…"
-      value={search}
-      onChange={(e)=>setSearch(e.target.value)}
-      variant="filled"
-      w="100%"
-      minW={0}           // evita overflow su mobile
-    />
+          <Input
+            placeholder="Search by brand or model…"
+            value={search}
+            onChange={(e)=>setSearch(e.target.value)}
+            variant="filled"
+            w="100%"
+            minW={0}           // evita overflow su mobile
+          />
 
-    {search && (
-      <InputRightElement width="auto">
-        <IconButton
-          aria-label="Clear search"
+          {search && (
+            <InputRightElement width="auto">
+              <IconButton
+                aria-label="Clear search"
+                size="sm"
+                variant="ghost"
+                icon={<CloseIcon boxSize={3} />}
+                onClick={()=>setSearch("")}
+              />
+            </InputRightElement>
+          )}
+        </InputGroup>
+        
+        {/* Sort control */}
+        <Menu>
+          <Tooltip
+            label={`Sort: ${
+              sortBy === "newest" ? "Newest" :
+              sortBy === "brand_asc" ? "Brand A → Z" :
+              sortBy === "brand_desc" ? "Brand Z → A" :
+              sortBy === "model_asc" ? "Model A → Z" : "Model Z → A"
+            }`}
+            openDelay={400}
+          >
+            <MenuButton
+              as={IconButton}
+              aria-label="Sort"
+              icon={<ArrowUpDownIcon />}
+              variant="ghost"
+              size="md"
+            />
+          </Tooltip>
+          <MenuList>
+            <MenuItem onClick={() => setSortBy("newest")}>
+              Newest {sortBy === "newest" && <CheckIcon ml="auto" />}
+            </MenuItem>
+            <MenuItem onClick={() => setSortBy("brand_asc")}>
+              Brand A → Z {sortBy === "brand_asc" && <CheckIcon ml="auto" />}
+            </MenuItem>
+            <MenuItem onClick={() => setSortBy("brand_desc")}>
+              Brand Z → A {sortBy === "brand_desc" && <CheckIcon ml="auto" />}
+            </MenuItem>
+            <MenuItem onClick={() => setSortBy("model_asc")}>
+              Model A → Z {sortBy === "model_asc" && <CheckIcon ml="auto" />}
+            </MenuItem>
+            <MenuItem onClick={() => setSortBy("model_desc")}>
+              Model Z → A {sortBy === "model_desc" && <CheckIcon ml="auto" />}
+            </MenuItem>
+          </MenuList>
+        </Menu>
+          
+        {/* New Product */}
+        <Button
+          colorScheme="green"
+          onClick={onOpen}
+          leftIcon={<AddIcon />}
           size="sm"
-          variant="ghost"
-          icon={<CloseIcon boxSize={3} />}
-          onClick={()=>setSearch("")}
-        />
-      </InputRightElement>
-    )}
-  </InputGroup>
-
-  {/* Sort control */}
-  <Menu>
-    <Tooltip
-      label={`Sort: ${
-        sortBy === "newest" ? "Newest" :
-        sortBy === "brand_asc" ? "Brand A → Z" :
-        sortBy === "brand_desc" ? "Brand Z → A" :
-        sortBy === "model_asc" ? "Model A → Z" : "Model Z → A"
-      }`}
-      openDelay={400}
-    >
-      <MenuButton
-        as={IconButton}
-        aria-label="Sort"
-        icon={<ArrowUpDownIcon />}
-        variant="ghost"
-        size="md"
-      />
-    </Tooltip>
-    <MenuList>
-      <MenuItem onClick={() => setSortBy("newest")}>
-        Newest {sortBy === "newest" && <CheckIcon ml="auto" />}
-      </MenuItem>
-      <MenuItem onClick={() => setSortBy("brand_asc")}>
-        Brand A → Z {sortBy === "brand_asc" && <CheckIcon ml="auto" />}
-      </MenuItem>
-      <MenuItem onClick={() => setSortBy("brand_desc")}>
-        Brand Z → A {sortBy === "brand_desc" && <CheckIcon ml="auto" />}
-      </MenuItem>
-      <MenuItem onClick={() => setSortBy("model_asc")}>
-        Model A → Z {sortBy === "model_asc" && <CheckIcon ml="auto" />}
-      </MenuItem>
-      <MenuItem onClick={() => setSortBy("model_desc")}>
-        Model Z → A {sortBy === "model_desc" && <CheckIcon ml="auto" />}
-      </MenuItem>
-    </MenuList>
-  </Menu>
-
-  {/* New Product */}
-  <Button
-    colorScheme="green"
-    onClick={onOpen}
-    leftIcon={<AddIcon />}
-    size="sm"
-    justifySelf="end"
-    px={{ base: 2, md: 4 }}
-  >
-    <Box display={{ base: "none", sm: "inline" }}>New Product</Box>
-  </Button>
-</Grid>
+          justifySelf="end"
+          px={{ base: 2, md: 4 }}
+        >
+          <Box display={{ base: "none", sm: "inline" }}>New Product</Box>
+        </Button>
+      </Grid>
 
       {/* Risultati */}
       <Box mt={8} minH="200px">

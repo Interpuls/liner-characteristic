@@ -5,7 +5,7 @@ import {
 } from "@chakra-ui/react";
 import { getToken } from "@/lib/auth";
 import { listProducts, listProductApplications } from "@/lib/api"; // già esistenti
-import { listMassageRuns, createMassageRun, computeMassageRun, getKpiValuesByPA } from "@/lib/api";
+import { listMassageRuns, createMassageRun, computeMassageRun, getKpiValuesByPA, getLatestMassageRun, upsertMassagePoints, updateMassagePoints } from "@/lib/api";
 import { FaCalculator } from "react-icons/fa";
 
 const PRESSURES = [45, 40, 35];
@@ -108,6 +108,7 @@ function MassageCard({ token, application }) {
   const [metrics, setMetrics] = useState(null);
   const [kpis, setKpis] = useState(null);
   const [busy, setBusy] = useState(true);
+  const [runId, setRunId] = useState(null);
 
   // prefill: prendi ultimo run + kpi values
   useEffect(() => {
@@ -120,14 +121,21 @@ function MassageCard({ token, application }) {
         const map = Object.fromEntries((values || []).map(v => [v.kpi_code, v]));
         setKpis(map);
 
-        // 2) ultimo run per precompilare
-        const runs = await listMassageRuns(token, { productApplicationId: application.id, limit: 1, offset: 0 });
-        if (runs && runs.length > 0) {
-          // opzionalmente puoi prevedere /massage/runs/{id}/points, ma non serve:
-          // i punti li hai salvati nel POST di create_massage_run nella risposta?
-          // In questa implementazione lato BE la lista runs non include i punti,
-          // quindi qui non possiamo precompilare senza un endpoint aggiuntivo.
-          // -> Workaround: lascia vuoto se manca endpoint; i KPI però si vedono comunque.
+        // 2) ultimo run per precompilare i min/max
+        const latest = await getLatestMassageRun(token, application.id);
+        if (latest?.run?.id) {
+          setRunId(latest.run.id);
+          // prefill inputs dai punti salvati
+          const next = { 45:{min_val:"",max_val:""}, 40:{min_val:"",max_val:""}, 35:{min_val:"",max_val:""} };
+          for (const p of latest.run.points || []) {
+            const k = Number(p.pressure_kpa);
+            if (k === 45 || k === 40 || k === 35) {
+              next[k] = { min_val: String(p.min_val), max_val: String(p.max_val) };
+            }
+          }
+          setInputs(next);
+        } else {
+          setRunId(null);
         }
       } finally {
         setBusy(false);
@@ -151,23 +159,33 @@ function MassageCard({ token, application }) {
     if (!token || !canCompute) return;
     setSaving(true);
     try {
-      // 1) create run
       const points = PRESSURES.map(k => ({
         pressure_kpa: k,
         min_val: Number(inputs[k].min_val),
         max_val: Number(inputs[k].max_val),
       }));
-      const run = await createMassageRun(token, {
-        product_application_id: application.id,
-        points,
-        notes: "from UI",
-      });
-
-      // 2) compute
-      const res = await computeMassageRun(token, run.id);
+  
+      let currentRunId = runId;
+  
+      if (currentRunId) {
+        // aggiorna punti su run esistente
+        await updateMassagePoints(token, currentRunId, points);
+      } else {
+        // crea nuovo run se non esiste ancora
+        const run = await createMassageRun(token, {
+          product_application_id: application.id,
+          points,
+          notes: "from UI",
+        });
+        currentRunId = run.id;
+        setRunId(run.id);
+      }
+  
+      // compute
+      const res = await computeMassageRun(token, currentRunId);
       setMetrics(res.metrics || null);
-
-      // 3) refresh KPI values appena calcolati
+  
+      // refresh KPI values
       const values = await getKpiValuesByPA(token, application.id);
       const map = Object.fromEntries((values || []).map(v => [v.kpi_code, v]));
       setKpis(map);

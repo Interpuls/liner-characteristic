@@ -9,7 +9,7 @@ from sqlmodel import Session, select
 import re
 from starlette.middleware.cors import CORSMiddleware
 from starlette.middleware.gzip import GZipMiddleware
-from typing import Optional
+from typing import Optional, List
 from sqlalchemy.exc import IntegrityError
 import json
 
@@ -20,7 +20,7 @@ import sqlalchemy as sa
 
 from .db import init_db, get_session
 from .models import User, Product, SearchPreference, KpiDef, FormulaType, ProductApplication, TppRun, TestMetric, KpiValue, KpiScale, MassageRun, MassagePoint, TestMetric, KpiValue
-from .schemas import UserCreate, UserOut, Token, ProductIn, ProductOut, ProductMetaOut, ProductPreferenceIn, ProductPreferenceOut, KpiDefIn, KpiDefOut, ProductApplicationIn, ProductApplicationOut, SIZE_LABELS, TppRunIn, TppRunOut, KpiScaleUpsertIn, KpiScaleBandIn, KpiValueOut, MassageRunIn, MassageRunOut, KpiValueOut
+from .schemas import UserCreate, UserOut, Token, ProductIn, ProductOut, ProductMetaOut, ProductPreferenceIn, ProductPreferenceOut, KpiDefIn, KpiDefOut, ProductApplicationIn, ProductApplicationOut, SIZE_LABELS, TppRunIn, TppRunOut, KpiScaleUpsertIn, KpiScaleBandIn, KpiValueOut, MassageRunIn, MassageRunOut, KpiValueOut, MassagePointOut, MassagePointIn
 from .auth import hash_password, verify_password, create_access_token, get_current_user, require_role
 from .deps import apply_cors
 from .services.kpi_engine import score_from_scales, massage_compute_derivatives
@@ -832,13 +832,18 @@ def get_latest_massage_run(
         .limit(1)
     ).first()
     if not run:
-        return {"run": None}
+        return {"run": None, "points": []}
 
     pts = session.exec(
         select(MassagePoint)
         .where(MassagePoint.run_id == run.id)
         .order_by(MassagePoint.pressure_kpa.desc())
     ).all()
+
+    points_payload = [
+        {"pressure_kpa": p.pressure_kpa, "min_val": p.min_val, "max_val": p.max_val}
+        for p in pts
+    ]
 
     return {
         "run": {
@@ -847,9 +852,50 @@ def get_latest_massage_run(
             "performed_at": run.performed_at,
             "notes": run.notes,
             "created_at": run.created_at,
-            "points": [
-                {"pressure_kpa": p.pressure_kpa, "min_val": p.min_val, "max_val": p.max_val}
-                for p in pts
-            ],
-        }
+            "points": points_payload,  # compat
+        },
+        "points": points_payload,       # comodo per il FE
+    }
+
+@app.put("/massage/runs/{run_id}/points", response_model=dict)
+def upsert_massage_points(
+    run_id: int = Path(..., ge=1),
+    points: List[MassagePointIn] = Body(...),   # [{pressure_kpa,min_val,max_val}, ...]
+    session: Session = Depends(get_session),
+    user = Depends(require_role("admin")),
+):
+    run = session.get(MassageRun, run_id)
+    if not run:
+        raise HTTPException(status_code=404, detail="Run not found")
+    if not points:
+        raise HTTPException(status_code=400, detail="At least one point is required")
+    # Normalizziamo per pressione (l’ultima voce con la stessa pressione vince)
+    by_kpa = {}
+    for p in points:
+        kpa = int(p.pressure_kpa)
+        if kpa not in (45, 40, 35):
+            raise HTTPException(status_code=400, detail="pressure_kpa must be one of 45, 40, 35")
+        by_kpa[kpa] = p  # override se duplicato
+    # Upsert semplice: cancella i punti esistenti del run e reinserisci quelli passati
+    session.exec(delete(MassagePoint).where(MassagePoint.run_id == run_id))
+    for kpa, p in by_kpa.items():
+        session.add(MassagePoint(
+            run_id=run_id,
+            pressure_kpa=kpa,
+            min_val=float(p.min_val),
+            max_val=float(p.max_val),
+        ))
+    session.commit()
+    # risposta coerente col GET latest
+    saved = session.exec(
+        select(MassagePoint)
+        .where(MassagePoint.run_id == run_id)
+        .order_by(MassagePoint.pressure_kpa.desc())
+    ).all()
+    return {
+        "id": run_id,
+        "points": [
+            {"pressure_kpa": r.pressure_kpa, "min_val": r.min_val, "max_val": r.max_val}
+            for r in saved
+        ]
     }
