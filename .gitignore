@@ -7,23 +7,18 @@ npm-debug.log*
 
 # Python / FastAPI
 backend/.venv/
-backend/__pycache__/
-backend/*.sqlite3
-backend/*.db
-backend/.pytest_cache/
-<<<<<<< HEAD
 backend/**/__pycache__/
 **/*.pyc
-=======
-backend/*.py[cod]
-backend/*.pyo
-backend/*.pyd
+**/*.pyo
+**/*.pyd
+backend/.pytest_cache/
+backend/*.sqlite3
+backend/*.db
 backend/app.db
->>>>>>> d3b5f7c (chore: stop tracking __pycache__/pyc and ignore local artifacts)
 
 # Env & secrets
 *.env
-*.env.*        # non committare file env reali
+*.env.*
 !backend/.env.example
 !frontend/.env.example
 
