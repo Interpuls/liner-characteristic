@@ -1,6 +1,7 @@
 from typing import Optional, Any, Dict, List
 from pydantic import BaseModel, EmailStr, condecimal, constr, Field
 from enum import Enum
+from datetime import datetime
 
 NameStr = constr(min_length=2, max_length=100)
 Num01 = condecimal(ge=0, max_digits=6, decimal_places=3)
@@ -148,14 +149,20 @@ class FormulaType(str, Enum):
     PY  = "PY"
     AGG = "AGG"
 
+class TestKind(str, Enum):
+    TPP = "TPP"
+    MASSAGE = "MASSAGE"
+    SPEED = "SPEED"
+    SMT = "SMT"
+
 class KpiDefIn(BaseModel):
     code: str
     name: str
     description: Optional[str] = None
-    test_type_id: int
+    test_type_code: TestKind            # <-- qui
     formula_type: FormulaType
     formula_text: str
-    inputs: Dict[str, Any] = {}   # es. {"source_table":"tests", "field":"value"}
+    inputs: Dict[str, Any] = {}
     weight: float = 1.0
 
 class KpiDefOut(BaseModel):
@@ -163,11 +170,78 @@ class KpiDefOut(BaseModel):
     code: str
     name: str
     description: Optional[str] = None
-    test_type_id: int
+    test_type_code: TestKind            # <-- qui
     formula_type: FormulaType
     formula_text: str
     inputs: Dict[str, Any]
     weight: float
 
+    class Config:
+        from_attributes = True
+
+# ------- KPI (scale) -------
+class KpiScaleBandIn(BaseModel):
+    band_min: float
+    band_max: float
+    score: int
+    label: Optional[str] = None
+
+class KpiScaleUpsertIn(BaseModel):
+    bands: List[KpiScaleBandIn]
+
+# ------- TPP runs -------
+class TppRunIn(BaseModel):
+    product_application_id: int
+    real_tpp: float
+    performed_at: Optional[datetime] = None
+    notes: Optional[str] = None
+
+class TppRunOut(BaseModel):
+    id: int
+    product_application_id: int
+    real_tpp: Optional[float]
+    performed_at: Optional[datetime]
+    notes: Optional[str]
+    created_at: datetime
+    class Config:
+        from_attributes = True
+
+class KpiValueOut(BaseModel):
+    kpi_code: str
+    value_num: float
+    score: int
+    unit: Optional[str] = None
+    context_json: Optional[str] = None
+    computed_at: datetime
+
+
+# MASSAGE schemas
+class MassagePointIn(BaseModel):
+    pressure_kpa: int  # 45, 40, 35
+    min_val: float
+    max_val: float
+
+class MassageRunIn(BaseModel):
+    product_application_id: int
+    points: List[MassagePointIn]         # almeno 1, idealmente 3
+    performed_at: Optional[datetime] = None
+    notes: Optional[str] = None
+
+class MassageRunOut(BaseModel):
+    id: int
+    product_application_id: int
+    performed_at: Optional[datetime]
+    notes: Optional[str]
+    created_at: datetime
+    class Config:
+        from_attributes = True
+
+class MassagePointOut(BaseModel):
+    id: int
+    run_id: int
+    pressure_kpa: int
+    min_val: float
+    max_val: float
+    created_at: datetime
     class Config:
         from_attributes = True

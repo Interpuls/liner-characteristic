@@ -11,11 +11,12 @@ function NavCard({ href, title, desc, badge }) {
   return (
     <LinkBox as="article" p="5" borderWidth="1px" rounded="xl"
       _hover={{ shadow: "md", borderColor: "blue.300" }} transition="all 0.15s ease">
-      <Heading size="md" mb="2">
+      <Heading size="md" mb="2" columns={2} justifyContent="space-between" display="flex" alignItems="center" >
         <LinkOverlay as={NextLink} href={href}>{title}</LinkOverlay>
+        {badge ? <Badge color="white" backgroundColor={"#5ec0ef"} borderRadius={4} p={1} variant="subtle">{badge}</Badge> : null}
       </Heading>
       <Text color="gray.600">{desc}</Text>
-      {badge ? <Badge mt="3" colorScheme="blue" variant="subtle">{badge}</Badge> : null}
+      
     </LinkBox>
   );
 }
@@ -41,8 +42,8 @@ export default function Home() {
         <Heading size="lg">Liner Characteristic</Heading>
         <Spacer />
         <HStack>
-          <Badge colorScheme={isAdmin ? "purple" : "green"}>{isAdmin ? "Admin" : "User"}</Badge>
-          <Button size="sm" variant="outline" onClick={() => { clearToken(); window.location.replace("/login"); }}>
+          <Badge colorScheme={isAdmin ? "purple" : "green"} color="white" borderRadius={4} p={1}>{isAdmin ? "Admin" : "User"}</Badge>
+          <Button size="sm" variant="outline" backgroundColor={"red"} color={"white"} onClick={() => { clearToken(); window.location.replace("/login"); }}>
             Logout
           </Button>
         </HStack>

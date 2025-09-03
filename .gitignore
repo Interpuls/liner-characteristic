@@ -7,16 +7,18 @@ npm-debug.log*
 
 # Python / FastAPI
 backend/.venv/
-backend/__pycache__/
-backend/*.sqlite3
-backend/*.db
-backend/.pytest_cache/
 backend/**/__pycache__/
 **/*.pyc
+**/*.pyo
+**/*.pyd
+backend/.pytest_cache/
+backend/*.sqlite3
+backend/*.db
+backend/app.db
 
 # Env & secrets
 *.env
-*.env.*        # non committare file env reali
+*.env.*
 !backend/.env.example
 !frontend/.env.example
 
