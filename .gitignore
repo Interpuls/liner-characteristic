@@ -11,8 +11,15 @@ backend/__pycache__/
 backend/*.sqlite3
 backend/*.db
 backend/.pytest_cache/
+<<<<<<< HEAD
 backend/**/__pycache__/
 **/*.pyc
+=======
+backend/*.py[cod]
+backend/*.pyo
+backend/*.pyd
+backend/app.db
+>>>>>>> d3b5f7c (chore: stop tracking __pycache__/pyc and ignore local artifacts)
 
 # Env & secrets
 *.env
