@@ -245,19 +245,7 @@ class SpeedRun(SQLModel, table=True):
     __tablename__ = "speed_runs"
     id: Optional[int] = Field(default=None, primary_key=True)
     product_application_id: int = Field(foreign_key="product_applications.id", index=True)
-    performed_at: datetime = Field(default_factory=datetime.utcnow, nullable=False)
+    performed_at: Optional[datetime] = None
+    measure_ml: Optional[float] = None   # <— NUOVO campo singolo
     notes: Optional[str] = None
     created_at: datetime = Field(default_factory=datetime.utcnow, nullable=False)
-
-
-class SpeedMeasure(SQLModel, table=True):
-    __tablename__ = "speed_measures"
-    id: Optional[int] = Field(default=None, primary_key=True)
-    run_id: int = Field(foreign_key="speed_runs.id", index=True)
-    sample_no: int = Field(default=1)  # 1,2,3... per ripetizione
-    volume_ml: float = Field(nullable=False)
-    created_at: datetime = Field(default_factory=datetime.utcnow, nullable=False)
-
-    __table_args__ = (
-        sa.UniqueConstraint("run_id", "sample_no", name="ux_speed_measure_run_sample"),
-    )

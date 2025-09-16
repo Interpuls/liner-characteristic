@@ -248,23 +248,18 @@ class MassagePointOut(BaseModel):
 
 
 # --- SPEED TEST ---
-class SpeedMeasureIn(BaseModel):
-    sample_no: int
-    volume_ml: float
-
-class SpeedMeasureOut(BaseModel):
-    sample_no: int
-    volume_ml: float
-
 class SpeedRunIn(BaseModel):
     product_application_id: int
+    measure_ml: float
+    performed_at: Optional[datetime] = None
     notes: Optional[str] = None
-    measures: List[SpeedMeasureIn]
 
 class SpeedRunOut(BaseModel):
     id: int
     product_application_id: int
-    performed_at: datetime
+    measure_ml: Optional[float]
+    performed_at: Optional[datetime]
     notes: Optional[str]
     created_at: datetime
-    measures: List[SpeedMeasureOut] = []
+    class Config:
+        from_attributes = True

@@ -122,17 +122,25 @@ export const updateMassagePoints = (token, runId, points) =>
   });
 
 
+
 // ---------------------------- SPEED TESTS ----------------------------
-
-export const getLatestSpeedRun = (token, productApplicationId) =>
-  http(`/speed/runs/latest?product_application_id=${productApplicationId}`, { token });
-
 export const createSpeedRun = (token, body) =>
   http(`/speed/runs`, { method: "POST", token, body });
 
-export const upsertSpeedMeasures = (token, runId, measures) =>
-  http(`/speed/runs/${runId}/measures`, { method: "PUT", token, body: measures });
-
 export const computeSpeedRun = (token, runId) =>
   http(`/speed/runs/${runId}/compute`, { method: "POST", token });
+
+export const listSpeedRuns = (token, { product_application_id } = {}) =>
+  http(
+    `/speed/runs${
+      product_application_id ? `?product_application_id=${product_application_id}` : ""
+    }`,
+    { token }
+  );
+
+export const getSpeedRunKpis = (token, runId) =>
+  http(`/speed/runs/${runId}/kpis`, { token });
+
+export const getLastSpeedRunForApplication = (token, productApplicationId) =>
+  http(`/speed/last-run-by-application/${productApplicationId}`, { token });
 

@@ -2,13 +2,13 @@ import { useEffect, useState } from "react";
 import {
   Box, Heading, HStack, Button, Select, Input, Stack, Card, CardBody, CardHeader,
   SimpleGrid, Tag, TagLabel, Text, Tooltip, Stat, StatNumber, InputGroup, InputLeftAddon,
-  Spinner, useToast, Inputvalue
+  Spinner, useToast
 } from "@chakra-ui/react";
 import { LuCalculator } from "react-icons/lu";
 import { getToken } from "@/lib/auth";
 import {
   listProducts, listProductApplications, getProduct,
-  createSpeedRun, computeSpeedRun, listSpeedRuns, getSpeedRunKpis
+  createTppRun, computeTppRun, listTppRuns, getTppRunKpis
 } from "@/lib/api";
 
 // helpers per visualizzare lo score
@@ -24,29 +24,29 @@ const scoreLabel = (s) =>
   s === 2 ? "Fair" :
   s === 1 ? "Poor" : "—";
 
-function SpeedRow({ pa, product, token, onDone }) {
+function TppRow({ pa, product, token, onDone }) {
   const toast = useToast();
   const [value, setValue] = useState("");
   const [saving, setSaving] = useState(false);
-  const [score, setScore] = useState(null); // KPI SPEED se presente
+  const [score, setScore] = useState(null); // KPI CLOSURE se presente
 
   // Prefill dall’ultimo run e caricamento KPI se già calcolati
   useEffect(() => {
     if (!token || !pa?.id) return;
     (async () => {
       try {
-        const runs = await listSpeedRuns(token, { product_application_id: pa.id });
+        const runs = await listTppRuns(token, { product_application_id: pa.id });
         const lastRun = Array.isArray(runs) && runs.length ? runs[0] : null;
         if (lastRun) {
-          if (lastRun.measure_ml != null) setValue(String(lastRun.measure_ml));
+          if (lastRun.real_tpp != null) setValue(String(lastRun.real_tpp));
           try {
-            const kpis = await getSpeedRunKpis(token, lastRun.id);
-            const speed = (kpis || []).find((k) => {
-              if (k.kpi_code !== "SPEED") return false;
+            const kpis = await getTppRunKpis(token, lastRun.id);
+            const closure = (kpis || []).find((k) => {
+              if (k.kpi_code !== "CLOSURE") return false;
               const ctx = k.context_json || "";
               return typeof ctx === "string" && ctx.includes('"agg"') && ctx.includes("final");
             });
-            if (speed) setScore(speed.score);
+            if (closure) setScore(closure.score);
           } catch {
             // nessun KPI computato ancora: ok
           }
@@ -66,14 +66,14 @@ function SpeedRow({ pa, product, token, onDone }) {
     try {
       setSaving(true);
       // 1) salva run
-      const run = await createSpeedRun(token, {
+      const run = await createTppRun(token, {
         product_application_id: pa.id,
-        measure_ml: realVal
+        real_tpp: realVal
       });
-      // 2) compute KPI SPEED
-      const kpis = await computeSpeedRun(token, run.id);
-      const speed = kpis?.find?.(k => k.kpi_code === "SPEED");
-      if (speed) setScore(speed.score);
+      // 2) compute KPI CLOSURE
+      const kpis = await computeTppRun(token, run.id);
+      const closure = kpis?.find?.(k => k.kpi_code === "CLOSURE");
+      if (closure) setScore(closure.score);
       toast({ title: "Salvato e calcolato", status: "success" });
       onDone?.();
     } catch (err) {
@@ -83,6 +83,8 @@ function SpeedRow({ pa, product, token, onDone }) {
     }
   };
 
+  const mpDepth = product?.mp_depth_mm ?? null;
+
   return (
     <Card variant="outline">
       <CardHeader pb="2">
@@ -91,36 +93,36 @@ function SpeedRow({ pa, product, token, onDone }) {
             <Heading size="sm">{product?.model ?? "Model"}</Heading>
             <Tag size="sm" variant="subtle"><TagLabel>{product?.brand ?? "-"}</TagLabel></Tag>
           </HStack>
-          <Tag size="sm" colorScheme="purple"><TagLabel>{pa.size_mm} mm</TagLabel></Tag>
+          <Tag size="sm" colorScheme="blue"><TagLabel>{pa.size_mm} mm</TagLabel></Tag>
         </HStack>
       </CardHeader>
       <CardBody pt="0">
         <Stack spacing={3}>
           <SimpleGrid columns={{ base: 1, md: 3 }} gap={3}>
             <Box>
-              <Text fontSize="xs" color="gray.500" mb={1}>Product</Text>
-              <Text>{product?.brand ? `${product.brand} ${product.model ?? ""}`.trim() : (product?.model ?? "-")}</Text>
+              <Text fontSize="xs" color="gray.500" mb={1}>MP depth (product)</Text>
+              <Text>{mpDepth != null ? `${mpDepth} mm` : "-"}</Text>
             </Box>
             <Box>
-              <Text fontSize="xs" color="gray.500" mb={1}>Measure</Text>
+              <Text fontSize="xs" color="gray.500" mb={1}>Real TPP</Text>
               <InputGroup>
-                <InputLeftAddon>ml</InputLeftAddon>
+                <InputLeftAddon>mm</InputLeftAddon>
                 <Input
                   value={value}
                   onChange={(e) => setValue(e.target.value)}
-                  placeholder="Enter measured Speed (ml)"
+                  placeholder="Enter measured Real TPP"
                   isDisabled={saving}
                 />
               </InputGroup>
             </Box>
             <Box>
-              <Text fontSize="xs" color="gray.500" mb={1}>SPEED score</Text>
+              <Text fontSize="xs" color="gray.500" mb={1}>Closure</Text>
               <Tooltip
                 label={score != null ? `Score: ${scoreLabel(score)} (${score}/4)` : "Not computed yet"}
                 hasArrow
                 placement="top"
               >
-                <Stat p={2} borderWidth="1px" borderRadius="md" bgColor={scoreColor(score)} textAlign="center">
+                <Stat p={2} borderWidth="1px" borderRadius="md" backgroundColor={scoreColor(score)} textAlign="center">
                   <StatNumber fontSize="l" color="white">
                     {score != null ? score : "—"}
                   </StatNumber>
@@ -130,7 +132,7 @@ function SpeedRow({ pa, product, token, onDone }) {
           </SimpleGrid>
 
           <HStack justify="flex-end">
-            <Button onClick={onSaveCompute} colorScheme="purple" isLoading={saving} leftIcon={<LuCalculator />}>
+            <Button onClick={onSaveCompute} colorScheme="blue" isLoading={saving} leftIcon={<LuCalculator />}>
               Save & Compute
             </Button>
           </HStack>
@@ -140,7 +142,7 @@ function SpeedRow({ pa, product, token, onDone }) {
   );
 }
 
-export default function SpeedTestPage() {
+export default function TppTestPage() {
   const toast = useToast();
   const [token, setToken] = useState(null);
   const [products, setProducts] = useState([]);
@@ -204,12 +206,12 @@ export default function SpeedTestPage() {
       ) : pid && apps.length ? (
         <SimpleGrid columns={{ base: 1, md: 2 }} gap={4}>
           {apps.map((pa) => (
-            <SpeedRow
+            <TppRow
               key={pa.id}
               pa={pa}
               product={product}
               token={token}
-              onDone={() => {/* in futuro: refetch */}}
+              onDone={() => {/* future refetch */}}
             />
           ))}
         </SimpleGrid>
