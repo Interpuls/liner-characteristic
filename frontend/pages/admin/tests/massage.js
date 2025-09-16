@@ -1,37 +1,52 @@
 import { useEffect, useMemo, useState } from "react";
 import {
-  Box, Heading, SimpleGrid, Card, CardHeader, CardBody, Text,
-  HStack, VStack, Input, Button, Divider, Spinner, Tag, Stat, StatNumber, Tooltip,
+  Box, SimpleGrid, Card, CardHeader, CardBody, Text,
+  HStack, VStack, Input, Button, Divider, Spinner, Tag, TagLabel,
+  Stat, StatNumber, Tooltip, Select, useToast, Heading
 } from "@chakra-ui/react";
 import { getToken } from "@/lib/auth";
-import { listProducts, listProductApplications } from "@/lib/api"; // già esistenti
-import { listMassageRuns, createMassageRun, computeMassageRun, getKpiValuesByPA, getLatestMassageRun, upsertMassagePoints, updateMassagePoints } from "@/lib/api";
+import {
+  listProducts, listProductApplications,
+  getKpiValuesByPA, getLatestMassageRun,
+  createMassageRun, computeMassageRun, updateMassagePoints
+} from "@/lib/api";
 import { FaCalculator } from "react-icons/fa";
 
 const PRESSURES = [45, 40, 35];
+const MASSAGE_COLOR = "teal";
 
-function scoreColor(score) {
-  if (score == null) return "gray.400";
-  if (score === 4) return "green.500";
-  if (score === 3) return "green.400";
-  if (score === 2) return "yellow.400";
-  return "red.400";
-}
-function scoreLabel(s) {
-  if (s == null) return "N/A";
-  return `${s}/4`;
-}
+// score helpers (coerenti con TPP/Speed)
+const scoreColor = (s) =>
+  s >= 4 ? "green.500" :
+  s === 3 ? "green.400" :
+  s === 2 ? "yellow.500" :
+  s === 1 ? "red.500" : "gray.500";
+
+const scoreLabel = (s) =>
+  s >= 4 ? "Best" :
+  s === 3 ? "Good" :
+  s === 2 ? "Fair" :
+  s === 1 ? "Poor" : "—";
+
+// formatter
+const fmtNum = (v) =>
+  v == null ? "—" : Number(v).toLocaleString("it-IT", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+const fmtPct = (v) =>
+  v == null ? "—" : Number(v).toLocaleString("it-IT", { style: "percent", minimumFractionDigits: 1, maximumFractionDigits: 1 });
 
 export default function MassageTestPage() {
+  const toast = useToast();
   const [token, setToken] = useState(null);
   const [loading, setLoading] = useState(true);
   const [products, setProducts] = useState([]);
-  const [selectedProductId, setSelectedProductId] = useState(null);
+  const [selectedProductId, setSelectedProductId] = useState("");
   const [applications, setApplications] = useState([]);
   const [fetchingApps, setFetchingApps] = useState(false);
 
   useEffect(() => {
-    setToken(getToken());
+    const t = getToken();
+    if (!t) { window.location.replace("/login"); return; }
+    setToken(t);
   }, []);
 
   useEffect(() => {
@@ -39,8 +54,12 @@ export default function MassageTestPage() {
     (async () => {
       setLoading(true);
       try {
-        const rows = await listProducts(token, { limit: 200, offset: 0 }); // o il tuo fetch principale
-        setProducts(rows || []);
+        const rows = await listProducts(token, { product_type: "liner", limit: 100 });
+        const items = Array.isArray(rows) ? rows : (rows?.items ?? []);
+        setProducts(items);
+      } catch (e) {
+        toast({ title: "Errore caricamento prodotti", status: "error" });
+        setProducts([]);
       } finally {
         setLoading(false);
       }
@@ -48,12 +67,14 @@ export default function MassageTestPage() {
   }, [token]);
 
   useEffect(() => {
-    if (!token || !selectedProductId) return;
+    if (!token || !selectedProductId) { setApplications([]); return; }
     (async () => {
       setFetchingApps(true);
       try {
         const apps = await listProductApplications(token, selectedProductId);
-        setApplications(apps || []);
+        setApplications(Array.isArray(apps) ? apps.sort((a,b)=>a.size_mm-b.size_mm) : []);
+      } catch {
+        setApplications([]);
       } finally {
         setFetchingApps(false);
       }
@@ -61,28 +82,34 @@ export default function MassageTestPage() {
   }, [token, selectedProductId]);
 
   return (
-    <Box p={6}>
-      <Heading size="lg" mb={4}>Massage test</Heading>
+    <Box>
+      {/* Heading rimosso come richiesto */}
 
-      {loading ? (
+      {/* Selettore prodotto in Card, come TPP/Speed */}
+      <Card mb={4}>
+        <CardBody>
+          <SimpleGrid columns={{ base: 1, md: 2 }} gap={4}>
+            <Box>
+              <Text fontSize="sm" color="gray.600" mb={1}>Select product</Text>
+              <Select
+                placeholder="Choose a product"
+                value={selectedProductId}
+                onChange={(e) => setSelectedProductId(e.target.value)}
+                isDisabled={loading}
+              >
+                {products.map((p) => (
+                  <option key={p.id} value={p.id}>
+                    {(p.brand ? `${p.brand} ` : "") + (p.model || p.name || `#${p.id}`)}
+                  </option>
+                ))}
+              </Select>
+            </Box>
+          </SimpleGrid>
+        </CardBody>
+      </Card>
+
+      {loading && (
         <HStack><Spinner /><Text>Loading products…</Text></HStack>
-      ) : (
-        
-        <HStack mb={4} wrap="wrap" gap={3}>
-          <Text fontWeight="semibold">Product:</Text>
-          <select
-            value={selectedProductId || ""}
-            onChange={(e) => setSelectedProductId(Number(e.target.value) || null)}
-            style={{ padding: 8, borderRadius: 8, border: "1px solid #ccc" }}
-          >
-            <option value="">Select a product…</option>
-            {products.map((p) => (
-              <option key={p.id} value={p.id}>
-                {p.model || p.name} {p.brand ? `– ${p.brand}` : ""}
-              </option>
-            ))}
-          </select>
-        </HStack>
       )}
 
       {fetchingApps && (
@@ -94,42 +121,44 @@ export default function MassageTestPage() {
           <MassageCard key={pa.id} token={token} application={pa} />
         ))}
       </SimpleGrid>
+
+      {!loading && selectedProductId && applications.length === 0 && (
+        <Box py={8} textAlign="center" color="gray.500">No applications for this product.</Box>
+      )}
+      {!loading && !selectedProductId && (
+        <Box py={8} textAlign="center" color="gray.500">Select a product to start.</Box>
+      )}
     </Box>
   );
 }
 
 function MassageCard({ token, application }) {
-  // inputs per pressione
   const [inputs, setInputs] = useState(() =>
     Object.fromEntries(PRESSURES.map(k => [k, { min_val: "", max_val: "" }]))
   );
-
   const [saving, setSaving] = useState(false);
   const [metrics, setMetrics] = useState(null);
   const [kpis, setKpis] = useState(null);
   const [busy, setBusy] = useState(true);
   const [runId, setRunId] = useState(null);
 
-  // prefill: prendi ultimo run + kpi values
+  // Prefill: ultimo run + KPI per application
   useEffect(() => {
-    if (!token) return;
+    if (!token || !application?.id) return;
     (async () => {
       setBusy(true);
       try {
-        // 1) KPI values
         const values = await getKpiValuesByPA(token, application.id);
         const map = Object.fromEntries((values || []).map(v => [v.kpi_code, v]));
         setKpis(map);
 
-        // 2) ultimo run per precompilare i min/max
         const latest = await getLatestMassageRun(token, application.id);
         if (latest?.run?.id) {
           setRunId(latest.run.id);
-          // prefill inputs dai punti salvati
           const next = { 45:{min_val:"",max_val:""}, 40:{min_val:"",max_val:""}, 35:{min_val:"",max_val:""} };
           for (const p of latest.run.points || []) {
             const k = Number(p.pressure_kpa);
-            if (k === 45 || k === 40 || k === 35) {
+            if (PRESSURES.includes(k)) {
               next[k] = { min_val: String(p.min_val), max_val: String(p.max_val) };
             }
           }
@@ -144,7 +173,6 @@ function MassageCard({ token, application }) {
   }, [token, application?.id]);
 
   const canCompute = useMemo(() => {
-    // richiedi i tre blocchi completi
     return PRESSURES.every(k => {
       const v = inputs[k];
       return v && v.min_val !== "" && v.max_val !== "";
@@ -164,14 +192,12 @@ function MassageCard({ token, application }) {
         min_val: Number(inputs[k].min_val),
         max_val: Number(inputs[k].max_val),
       }));
-  
+
       let currentRunId = runId;
-  
+
       if (currentRunId) {
-        // aggiorna punti su run esistente
         await updateMassagePoints(token, currentRunId, points);
       } else {
-        // crea nuovo run se non esiste ancora
         const run = await createMassageRun(token, {
           product_application_id: application.id,
           points,
@@ -180,12 +206,10 @@ function MassageCard({ token, application }) {
         currentRunId = run.id;
         setRunId(run.id);
       }
-  
-      // compute
+
       const res = await computeMassageRun(token, currentRunId);
       setMetrics(res.metrics || null);
-  
-      // refresh KPI values
+
       const values = await getKpiValuesByPA(token, application.id);
       const map = Object.fromEntries((values || []).map(v => [v.kpi_code, v]));
       setKpis(map);
@@ -194,21 +218,14 @@ function MassageCard({ token, application }) {
     }
   };
 
-  const closureBox = (label, value) => (
-    <Box>
-      <Text fontSize="xs" color="gray.500" mb={1}>{label}</Text>
-      <Text>{value != null ? value : "—"}</Text>
-    </Box>
-  );
-
   return (
     <Card variant="outline">
       <CardHeader>
-        <HStack justify="space-between">
-          <HStack>
-            <Heading size="sm">{application.size_mm} mm</Heading>
-            {application.label && <Tag size="sm">{application.label}</Tag>}
-          </HStack>
+        <HStack justify="space-between" align="center">
+          {/* SOLO application size come chip/tag arrotondato */}
+          <Tag size="sm" colorScheme={MASSAGE_COLOR} variant="subtle" borderRadius="md">
+            <TagLabel>{application.size_mm} mm</TagLabel>
+          </Tag>
           {busy && <Spinner size="sm" />}
         </HStack>
       </CardHeader>
@@ -246,7 +263,7 @@ function MassageCard({ token, application }) {
           <HStack justify="flex-end">
             <Button
               leftIcon={<FaCalculator />}
-              colorScheme="blue"
+              colorScheme={MASSAGE_COLOR}
               onClick={onSaveAndCompute}
               isDisabled={!canCompute || saving}
               isLoading={saving}
@@ -262,15 +279,15 @@ function MassageCard({ token, application }) {
             <Heading size="sm" mb={2}>Derived metrics</Heading>
             {metrics ? (
               <SimpleGrid columns={{ base: 1, md: 3 }} gap={3}>
-                {closureBox("I45", metrics.I45?.toFixed(2))}
-                {closureBox("I40", metrics.I40?.toFixed(2))}
-                {closureBox("I35", metrics.I35?.toFixed(2))}
-                {closureBox("AVG Overmilk", metrics.avg_overmilk?.toFixed(2))}
-                {closureBox("AVG PF", metrics.avg_pf?.toFixed(2))}
-                {closureBox("Diff from max (kPa)", metrics.diff_from_max?.toFixed(2))}
-                {closureBox("Diff %", metrics.diff_pct?.toFixed(3))}
-                {closureBox("Drop 45→40", metrics.drop_45_to_40?.toFixed(3))}
-                {closureBox("Drop 40→35", metrics.drop_40_to_35?.toFixed(3))}
+                {metricChipBox("I45", metrics.I45, "num")}
+                {metricChipBox("I40", metrics.I40, "num")}
+                {metricChipBox("I35", metrics.I35, "num")}
+                {metricChipBox("AVG Overmilk", metrics.avg_overmilk, "num")}
+                {metricChipBox("AVG PF", metrics.avg_pf, "num")}
+                {metricChipBox("Diff from max (kPa)", metrics.diff_from_max, "num")}
+                {metricChipBox("Diff %", metrics.diff_pct, "pct")}
+                {metricChipBox("Drop 45→40", metrics.drop_45_to_40, "pct")}
+                {metricChipBox("Drop 40→35", metrics.drop_40_to_35, "pct")}
               </SimpleGrid>
             ) : (
               <Text color="gray.500">No metrics yet.</Text>
@@ -292,6 +309,19 @@ function MassageCard({ token, application }) {
   );
 }
 
+// “chip” + valore a sinistra (formattazione custom)
+function metricChipBox(label, value, kind /* 'num' | 'pct' */) {
+  const display = kind === "pct" ? fmtPct(value) : fmtNum(value);
+  return (
+    <Box>
+      <Tag size="sm" variant="subtle" colorScheme={MASSAGE_COLOR} borderRadius="md" mb={1}>
+        <TagLabel>{label}</TagLabel>
+      </Tag>
+      <Text>{display}</Text>
+    </Box>
+  );
+}
+
 function KpiBox({ title, k }) {
   const score = k?.score ?? null;
   const rawVal = k?.value_num ?? null;
@@ -301,7 +331,7 @@ function KpiBox({ title, k }) {
       <Tooltip
         label={
           score != null
-            ? `Score: ${scoreLabel(score)}  — value: ${rawVal != null ? rawVal : "n/a"}`
+            ? `Score: ${scoreLabel(score)} (${score}/4) — value: ${rawVal != null ? rawVal : "n/a"}`
             : "Not computed yet"
         }
         hasArrow
