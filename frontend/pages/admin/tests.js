@@ -29,10 +29,10 @@ export default function AdminTests() {
           <TabPanel px={0} pt={4}>
             <TppTestPage />
           </TabPanel>
-          <TabPanel>
+          <TabPanel px={0} pt={4}>
             <AdminMassageTest />
           </TabPanel>
-          <TabPanel>
+          <TabPanel px={0} pt={4}>
             <SpeedTestPage />
           </TabPanel>
           <TabPanel>
