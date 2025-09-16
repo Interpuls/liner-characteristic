@@ -238,3 +238,14 @@ class MassagePoint(SQLModel, table=True):
     __table_args__ = (
         sa.UniqueConstraint("run_id", "pressure_kpa", name="ux_massage_point_run_pressure"),
     )
+    
+
+# --- SPEED TEST ---
+class SpeedRun(SQLModel, table=True):
+    __tablename__ = "speed_runs"
+    id: Optional[int] = Field(default=None, primary_key=True)
+    product_application_id: int = Field(foreign_key="product_applications.id", index=True)
+    performed_at: Optional[datetime] = None
+    measure_ml: Optional[float] = None   # <— NUOVO campo singolo
+    notes: Optional[str] = None
+    created_at: datetime = Field(default_factory=datetime.utcnow, nullable=False)

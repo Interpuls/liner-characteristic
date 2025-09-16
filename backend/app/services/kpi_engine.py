@@ -67,3 +67,19 @@ def massage_compute_derivatives(points: Dict[int, Tuple[float, float]]):
         res["VAC45_DIFF_PCT"] = vac_diff / 45.0
 
     return res
+
+
+def speed_compute_derivatives(volumes: list[float]) -> dict:
+    if not volumes:
+        return {"avg_ml": None, "stdev_ml": None, "min_ml": None, "max_ml": None, "n": 0}
+    n = len(volumes)
+    avg = sum(volumes) / n
+    var = sum((v - avg) ** 2 for v in volumes) / n
+    stdev = var ** 0.5
+    return {
+        "avg_ml": avg,
+        "stdev_ml": stdev,
+        "min_ml": min(volumes),
+        "max_ml": max(volumes),
+        "n": n,
+    }

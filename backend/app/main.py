@@ -19,8 +19,8 @@ from datetime import datetime
 import sqlalchemy as sa
 
 from .db import init_db, get_session
-from .models import User, Product, SearchPreference, KpiDef, FormulaType, ProductApplication, TppRun, TestMetric, KpiValue, KpiScale, MassageRun, MassagePoint, TestMetric, KpiValue
-from .schemas import UserCreate, UserOut, Token, ProductIn, ProductOut, ProductMetaOut, ProductPreferenceIn, ProductPreferenceOut, KpiDefIn, KpiDefOut, ProductApplicationIn, ProductApplicationOut, SIZE_LABELS, TppRunIn, TppRunOut, KpiScaleUpsertIn, KpiScaleBandIn, KpiValueOut, MassageRunIn, MassageRunOut, KpiValueOut, MassagePointOut, MassagePointIn
+from .models import User, Product, SearchPreference, KpiDef, FormulaType, ProductApplication, TppRun, TestMetric, KpiValue, KpiScale, MassageRun, MassagePoint, TestMetric, KpiValue, SpeedRun
+from .schemas import UserCreate, UserOut, Token, ProductIn, ProductOut, ProductMetaOut, ProductPreferenceIn, ProductPreferenceOut, KpiDefIn, KpiDefOut, ProductApplicationIn, ProductApplicationOut, SIZE_LABELS, TppRunIn, TppRunOut, KpiScaleUpsertIn, KpiScaleBandIn, KpiValueOut, MassageRunIn, MassageRunOut, KpiValueOut, MassagePointOut, MassagePointIn, SpeedRunIn, SpeedRunOut
 from .auth import hash_password, verify_password, create_access_token, get_current_user, require_role
 from .deps import apply_cors
 from .services.kpi_engine import score_from_scales, massage_compute_derivatives
@@ -899,3 +899,111 @@ def upsert_massage_points(
             for r in saved
         ]
     }
+
+# ----------------------------------------------------------------
+# -------------------------- SPEED TEST --------------------------
+# ----------------------------------------------------------------
+
+@app.post("/speed/runs", response_model=SpeedRunOut)
+def create_speed_run(payload: SpeedRunIn, session: Session = Depends(get_session), user=Depends(require_role("admin"))):
+    run = SpeedRun(
+        product_application_id=payload.product_application_id,
+        measure_ml=payload.measure_ml,
+        performed_at=payload.performed_at,
+        notes=payload.notes
+    )
+    session.add(run); session.commit(); session.refresh(run)
+    return run
+
+@app.post("/speed/runs/{run_id}/compute", response_model=list[KpiValueOut])
+def compute_speed_kpis(run_id: int, session: Session = Depends(get_session), user=Depends(require_role("admin"))):
+    run = session.get(SpeedRun, run_id)
+    if not run:
+        raise HTTPException(status_code=404, detail="Run not found")
+    if run.measure_ml is None:
+        raise HTTPException(status_code=400, detail="Missing measure_ml")
+
+    context = json.dumps({"agg":"final"})
+
+    # 1) salva metrica derivata (SPEED_ML) su test_metrics (upsert semplice)
+    session.exec(sa.delete(TestMetric).where(
+        (TestMetric.run_type=="SPEED") & (TestMetric.run_id==run.id) &
+        (TestMetric.metric_code=="SPEED_ML") & (TestMetric.context_json==context)
+    ))
+    session.add(TestMetric(
+        run_type="SPEED",
+        run_id=run.id,
+        product_application_id=run.product_application_id,
+        metric_code="SPEED_ML",
+        value_num=run.measure_ml,
+        unit="ml",
+        context_json=context
+    ))
+
+    # 2) calcola KPI SPEED
+    score = score_from_scales(session, "SPEED", run.measure_ml)
+
+    session.exec(sa.delete(KpiValue).where(
+        (KpiValue.run_type=="SPEED") & (KpiValue.run_id==run.id) &
+        (KpiValue.kpi_code=="SPEED") & (KpiValue.context_json==context)
+    ))
+    kv = KpiValue(
+        run_type="SPEED",
+        run_id=run.id,
+        product_application_id=run.product_application_id,
+        kpi_code="SPEED",
+        value_num=run.measure_ml,
+        score=score,
+        unit="ml",
+        context_json=context
+    )
+    session.add(kv)
+    session.commit()
+
+    return [KpiValueOut(
+        kpi_code=kv.kpi_code, value_num=kv.value_num, score=kv.score,
+        unit=kv.unit, context_json=kv.context_json, computed_at=kv.computed_at
+    )]
+
+@app.get("/speed/runs", response_model=list[SpeedRunOut])
+def list_speed_runs(
+    product_application_id: Optional[int] = None,
+    limit: int = Query(50, ge=1, le=200),
+    offset: int = Query(0, ge=0),
+    session: Session = Depends(get_session),
+    user=Depends(get_current_user)
+):
+    q = select(SpeedRun)
+    if product_application_id:
+        q = q.where(SpeedRun.product_application_id == product_application_id)
+    q = q.order_by(SpeedRun.created_at.desc()).limit(limit).offset(offset)
+    return session.exec(q).all()
+
+@app.get("/speed/runs/{run_id}/kpis", response_model=list[KpiValueOut])
+def get_speed_run_kpis(
+    run_id: int,
+    session: Session = Depends(get_session),
+    user=Depends(get_current_user)
+):
+    run = session.get(SpeedRun, run_id)
+    if not run:
+        raise HTTPException(status_code=404, detail="Run not found")
+    rows = session.exec(
+        select(KpiValue)
+        .where((KpiValue.run_type == "SPEED") & (KpiValue.run_id == run_id))
+        .order_by(KpiValue.computed_at.desc())
+    ).all()
+    return rows
+
+@app.get("/speed/last-run-by-application/{product_application_id}", response_model=Optional[SpeedRunOut])
+def get_last_speed_run_for_application(
+    product_application_id: int,
+    session: Session = Depends(get_session),
+    user=Depends(get_current_user)
+):
+    run = session.exec(
+        select(SpeedRun)
+        .where(SpeedRun.product_application_id == product_application_id)
+        .order_by(SpeedRun.created_at.desc())
+    ).first()
+    return run
