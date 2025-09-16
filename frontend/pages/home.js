@@ -53,7 +53,6 @@ export default function Home() {
         <NavCard href="/product"   title="Liner Search"     desc="Cerca e vedi grafici rapidi." />
         <NavCard href="/id-card"  title="Liner ID Card"    desc="Scheda dettagliata del prodotto." />
         <NavCard href="/compare"  title="Setting Calculator" desc="Confronta due modelli." />
-        <NavCard href="/help"     title="Info & Guida"     desc="Come leggere i grafici." />
         {isAdmin && (
           <>
             <NavCard href="/admin/product" title="Gestione Prodotti" desc="Gestione prodotti / modelli." badge="Admin" />

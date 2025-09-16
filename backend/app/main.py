@@ -19,8 +19,8 @@ from datetime import datetime
 import sqlalchemy as sa
 
 from .db import init_db, get_session
-from .models import User, Product, SearchPreference, KpiDef, FormulaType, ProductApplication, TppRun, TestMetric, KpiValue, KpiScale, MassageRun, MassagePoint, TestMetric, KpiValue
-from .schemas import UserCreate, UserOut, Token, ProductIn, ProductOut, ProductMetaOut, ProductPreferenceIn, ProductPreferenceOut, KpiDefIn, KpiDefOut, ProductApplicationIn, ProductApplicationOut, SIZE_LABELS, TppRunIn, TppRunOut, KpiScaleUpsertIn, KpiScaleBandIn, KpiValueOut, MassageRunIn, MassageRunOut, KpiValueOut, MassagePointOut, MassagePointIn
+from .models import User, Product, SearchPreference, KpiDef, FormulaType, ProductApplication, TppRun, TestMetric, KpiValue, KpiScale, MassageRun, MassagePoint, TestMetric, KpiValue, SpeedRun, SpeedMeasure
+from .schemas import UserCreate, UserOut, Token, ProductIn, ProductOut, ProductMetaOut, ProductPreferenceIn, ProductPreferenceOut, KpiDefIn, KpiDefOut, ProductApplicationIn, ProductApplicationOut, SIZE_LABELS, TppRunIn, TppRunOut, KpiScaleUpsertIn, KpiScaleBandIn, KpiValueOut, MassageRunIn, MassageRunOut, KpiValueOut, MassagePointOut, MassagePointIn, SpeedRunIn, SpeedRunOut, SpeedMeasureIn, SpeedMeasureOut
 from .auth import hash_password, verify_password, create_access_token, get_current_user, require_role
 from .deps import apply_cors
 from .services.kpi_engine import score_from_scales, massage_compute_derivatives
@@ -898,4 +898,142 @@ def upsert_massage_points(
             {"pressure_kpa": r.pressure_kpa, "min_val": r.min_val, "max_val": r.max_val}
             for r in saved
         ]
+    }
+
+# ----------------------------------------------------------------
+# -------------------------- SPEED TEST --------------------------
+# ----------------------------------------------------------------
+
+# POST /speed/runs
+@app.post("/speed/runs", response_model=SpeedRunOut)
+def create_speed_run(payload: SpeedRunIn, session: Session = Depends(get_session), user=Depends(get_current_user)):
+    run = SpeedRun(
+        product_application_id=payload.product_application_id,
+        notes=payload.notes,
+    )
+    session.add(run)
+    session.commit()
+    session.refresh(run)
+
+    for m in payload.measures:
+        row = SpeedMeasure(run_id=run.id, sample_no=m.sample_no, volume_ml=m.volume_ml)
+        session.add(row)
+    session.commit()
+
+    measures = session.exec(
+        select(SpeedMeasure).where(SpeedMeasure.run_id == run.id).order_by(SpeedMeasure.sample_no.asc())
+    ).all()
+
+    return SpeedRunOut(
+        id=run.id,
+        product_application_id=run.product_application_id,
+        performed_at=run.performed_at,
+        notes=run.notes,
+        created_at=run.created_at,
+        measures=[SpeedMeasureOut(sample_no=x.sample_no, volume_ml=x.volume_ml) for x in measures],
+    )
+
+
+# PUT /speed/runs/{run_id}/measures  (upsert)
+@app.put("/speed/runs/{run_id}/measures", response_model=dict)
+def upsert_speed_measures(
+    run_id: int = Path(..., ge=1),
+    measures: List[SpeedMeasureIn] = Body(...),
+    session: Session = Depends(get_session),
+    user=Depends(get_current_user),
+):
+    run = session.get(SpeedRun, run_id)
+    if not run:
+        raise HTTPException(status_code=404, detail="Speed run not found")
+
+    # upsert per sample_no
+    for m in measures:
+        existing = session.exec(
+            select(SpeedMeasure).where(SpeedMeasure.run_id == run_id, SpeedMeasure.sample_no == m.sample_no)
+        ).first()
+        if existing:
+            existing.volume_ml = m.volume_ml
+        else:
+            session.add(SpeedMeasure(run_id=run_id, sample_no=m.sample_no, volume_ml=m.volume_ml))
+    session.commit()
+    return {"ok": True}
+
+
+# GET /speed/runs/latest?product_application_id=26
+@app.get("/speed/runs/latest", response_model=dict)
+def get_latest_speed_run(
+    product_application_id: int = Query(..., ge=1),
+    session: Session = Depends(get_session),
+    user=Depends(get_current_user),
+):
+    run = session.exec(
+        select(SpeedRun)
+        .where(SpeedRun.product_application_id == product_application_id)
+        .order_by(SpeedRun.created_at.desc())
+        .limit(1)
+    ).first()
+
+    if not run:
+        return {"run": None}
+
+    rows = session.exec(
+        select(SpeedMeasure)
+        .where(SpeedMeasure.run_id == run.id)
+        .order_by(SpeedMeasure.sample_no.asc())
+    ).all()
+
+    return {
+        "run": {
+            "id": run.id,
+            "product_application_id": run.product_application_id,
+            "performed_at": run.performed_at,
+            "notes": run.notes,
+            "created_at": run.created_at,
+            "measures": [{"sample_no": r.sample_no, "volume_ml": r.volume_ml} for r in rows],
+        }
+    }
+
+
+# POST /speed/compute/{run_id}
+@app.post("/speed/compute/{run_id}", response_model=dict)
+def compute_speed_run(
+    run_id: int = Path(..., ge=1),
+    session: Session = Depends(get_session),
+    user=Depends(get_current_user),
+):
+    run = session.get(SpeedRun, run_id)
+    if not run:
+        raise HTTPException(status_code=404, detail="Speed run not found")
+
+    rows = session.exec(
+        select(SpeedMeasure).where(SpeedMeasure.run_id == run_id).order_by(SpeedMeasure.sample_no.asc())
+    ).all()
+    volumes = [r.volume_ml for r in rows]
+
+    # metrics
+    metrics = speed_compute_derivatives(volumes)
+
+    # KPI value = avg_ml, score da kpi_scales
+    val = metrics["avg_ml"] if metrics["avg_ml"] is not None else 0.0
+    sc = score_from_scales(session, "SPEED", val)
+
+    kv = KpiValue(
+        run_type="SPEED",
+        run_id=run_id,
+        product_application_id=run.product_application_id,
+        kpi_code="SPEED",
+        value_num=val,
+        score=sc,
+        unit="ml",
+        context_json=json.dumps({"samples": volumes}),
+        computed_at=datetime.utcnow(),
+    )
+    session.add(kv)
+    session.commit()
+
+    return {
+        "run_id": run_id,
+        "product_application_id": run.product_application_id,
+        "metrics": metrics,
+        "kpis": {"SPEED": sc},
     }

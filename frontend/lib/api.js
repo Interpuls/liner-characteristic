@@ -120,3 +120,19 @@ export const updateMassagePoints = (token, runId, points) =>
     token,
     body: points, // array: [{pressure_kpa, min_val, max_val}, ...]
   });
+
+
+// ---------------------------- SPEED TESTS ----------------------------
+
+export const getLatestSpeedRun = (token, productApplicationId) =>
+  http(`/speed/runs/latest?product_application_id=${productApplicationId}`, { token });
+
+export const createSpeedRun = (token, body) =>
+  http(`/speed/runs`, { method: "POST", token, body });
+
+export const upsertSpeedMeasures = (token, runId, measures) =>
+  http(`/speed/runs/${runId}/measures`, { method: "PUT", token, body: measures });
+
+export const computeSpeedRun = (token, runId) =>
+  http(`/speed/runs/${runId}/compute`, { method: "POST", token });
+

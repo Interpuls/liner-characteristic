@@ -15,6 +15,8 @@ import {
 } from "../../lib/api";
 
 import AdminMassageTest from "./tests/massage";
+import SpeedTestPage from "./tests/speed";
+
 
 const scoreColor = (s) =>
   s >= 4 ? "green.500" :
@@ -252,7 +254,7 @@ export default function AdminTests() {
             <TabTPP />
           </TabPanel>
           <TabPanel><AdminMassageTest></AdminMassageTest></TabPanel>
-          <TabPanel><Box p={4} color="gray.500">Coming next…</Box></TabPanel>
+          <TabPanel><SpeedTestPage></SpeedTestPage></TabPanel>
           <TabPanel><Box p={4} color="gray.500">Coming next…</Box></TabPanel>
         </TabPanels>
       </Tabs>
