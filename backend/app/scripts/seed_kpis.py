@@ -20,7 +20,7 @@ KPI_LIST = [
     ("FITTING",             "Fitting",             None,  "MASSAGE", "From diff% vs VacMax"),
     ("SPEED",               "Speed",               "ml",  "WATER",   "Water after 1 minute"),
     ("RESPRAY",             "Respray",             None,  "SMT",     "From SMT (smt_max - 45)"),
-    ("FLUIDODYNAMIC",       "Fluidodynamic",       None,  "SMT",     "From SMT piecewise"),
+    ("FLUYDODYNAMIC",       "Fluydodynamic",       None,  "SMT",     "From SMT piecewise"),
     ("SLIPPAGE",            "Slippage",            None,  "HOOD",    "From HOOD piecewise"),
     ("RINGING_RISK",        "Ringing Risk",        None,  "HOOD",    "From Hood max - 45"),
 ]

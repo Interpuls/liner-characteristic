@@ -144,3 +144,25 @@ export const getSpeedRunKpis = (token, runId) =>
 export const getLastSpeedRunForApplication = (token, productApplicationId) =>
   http(`/speed/last-run-by-application/${productApplicationId}`, { token });
 
+
+
+// ---------------------------- SMT / HOOD TESTS ----------------------------
+export const createSmtHoodRun = (token, body) =>
+  http(`/smt-hood/runs`, { method: "POST", token, body });
+
+export const computeSmtHoodRun = (token, runId) =>
+  http(`/smt-hood/runs/${runId}/compute`, { method: "POST", token });
+
+export const listSmtHoodRuns = (token, { product_application_id } = {}) =>
+  http(
+    `/smt-hood/runs${
+      product_application_id ? `?product_application_id=${product_application_id}` : ""
+    }`,
+    { token }
+  );
+
+export const getLatestSmtHoodRun = (token, productApplicationId) =>
+  http(`/smt-hood/runs/latest?product_application_id=${productApplicationId}`, { token });
+
+export const upsertSmtHoodPoints = (token, runId, points) =>
+  http(`/smt-hood/runs/${runId}/points`, { method: "PUT", token, body: points });
