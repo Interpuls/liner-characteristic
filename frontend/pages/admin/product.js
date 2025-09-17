@@ -157,7 +157,7 @@ export default function AdminProducts() {
               icon={<ChevronLeftIcon />}
             />
           </Show>
-          <Heading size="lg">Parco Prodotti</Heading>
+          <Heading size="lg">Manage Products</Heading>
         </HStack>
       </Stack>
 

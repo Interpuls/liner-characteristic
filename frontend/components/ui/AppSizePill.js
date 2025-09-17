@@ -1,7 +1,7 @@
-// ui/AppSizePill.jsx (oppure in testa al file)
+// components/ui/AppSizePill.jsx
 import { Box } from "@chakra-ui/react";
 
-export default function AppSizePill({ children, color="teal" }) {
+function AppSizePill({ children, color = "teal" }) {
   return (
     <Box
       as="span"
@@ -11,7 +11,7 @@ export default function AppSizePill({ children, color="teal" }) {
       py={1}
       rounded="full"
       fontWeight="600"
-      fontSize="md"        // <— più grande del precedente "sm"
+      fontSize="md"
       lineHeight="1"
       display="inline-block"
     >
@@ -19,3 +19,6 @@ export default function AppSizePill({ children, color="teal" }) {
     </Box>
   );
 }
+
+export default AppSizePill;
+export { AppSizePill }; 
