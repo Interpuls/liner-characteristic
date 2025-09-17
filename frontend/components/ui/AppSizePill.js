@@ -1,7 +1,7 @@
 // ui/AppSizePill.jsx (oppure in testa al file)
 import { Box } from "@chakra-ui/react";
 
-export function AppSizePill({ children, color="teal" }) {
+export default function AppSizePill({ children, color="teal" }) {
   return (
     <Box
       as="span"

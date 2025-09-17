@@ -10,7 +10,7 @@ import {
   createSmtHoodRun, computeSmtHoodRun, getLatestSmtHoodRun, upsertSmtHoodPoints
 } from "@/lib/api";
 import { FaCalculator } from "react-icons/fa";
-import { AppSizePill } from "./ui/AppSizePill";
+import { AppSizePill } from "../../../components/ui/AppSizePill";
 
 const FLOWS = [0.5, 1.9, 3.6];
 const COLOR = "orange";

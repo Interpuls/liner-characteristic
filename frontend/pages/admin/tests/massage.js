@@ -11,7 +11,7 @@ import {
   createMassageRun, computeMassageRun, updateMassagePoints
 } from "@/lib/api";
 import { FaCalculator } from "react-icons/fa";
-import { AppSizePill } from "./ui/AppSizePill";
+import { AppSizePill } from "../../../components/ui/AppSizePill";
 
 const PRESSURES = [45, 40, 35];
 const MASSAGE_COLOR = "teal";
