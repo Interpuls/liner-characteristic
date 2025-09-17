@@ -20,7 +20,7 @@ const FALLBACK_KPIS = [
   { code: "FITTING", name: "Fitting" },
   { code: "SPEED", name: "Speed" },
   { code: "RESPRAY", name: "Respray" },
-  { code: "FLUIDODYNAMIC", name: "Fluidodynamic" },
+  { code: "FLUYDODYNAMIC", name: "Fluydodynamic" }, 
   { code: "SLIPPAGE", name: "Slippage" },
   { code: "RINGING_RISK", name: "Ringing Risk" },
 ];
@@ -33,29 +33,49 @@ const TEMPLATE_BANDS = [
   { band_min: 7.51, band_max: 10.0, score: 4, label: "Best"  },
 ];
 
+// helpers
+const toNum = (x) =>
+  typeof x === "number" ? x : parseFloat(String(x).replace(",", "."));
+
 const sortBands = (bands) =>
-  [...bands].sort((a, b) => (a.band_min - b.band_min) || (a.band_max - b.band_max));
+  [...bands].sort((a, b) => {
+    const amin = toNum(a.band_min);
+    const bmin = toNum(b.band_min);
+    if (amin !== bmin) return amin - bmin;
+    const amax = toNum(a.band_max);
+    const bmax = toNum(b.band_max);
+    return amax - bmax;
+  });
 
 function validateBands(bands) {
   if (!bands || !bands.length) return "Add at least one band.";
-  // campi e score
-  for (let i = 0; i < bands.length; i++) {
-    const b = bands[i];
-    if (
-      typeof b.band_min !== "number" ||
-      typeof b.band_max !== "number" ||
-      Number.isNaN(b.band_min) ||
-      Number.isNaN(b.band_max)
-    ) return `Band #${i + 1}: min/max must be numeric.`;
 
-    if (b.band_min > b.band_max) return `Band #${i + 1}: min > max.`;
+  // normalizza a numeri per la validazione
+  const nb = bands.map(b => ({
+    ...b,
+    band_min: toNum(b.band_min),
+    band_max: toNum(b.band_max),
+    score: Number(b.score),
+  }));
 
-    if (![1, 2, 3, 4].includes(Number(b.score))) return `Band #${i + 1}: score must be 1–4.`;
-
-    if (typeof b.label !== "string") return `Band #${i + 1}: label required.`;
+  for (let i = 0; i < nb.length; i++) {
+    const b = nb[i];
+    if (!Number.isFinite(b.band_min) || !Number.isFinite(b.band_max)) {
+      return `Band #${i + 1}: min/max must be numeric.`;
+    }
+    if (b.band_min > b.band_max) {
+      return `Band #${i + 1}: min > max.`;
+    }
+    if (![1, 2, 3, 4].includes(b.score)) {
+      return `Band #${i + 1}: score must be 1–4.`;
+    }
+    if (typeof (b.label ?? "") !== "string") {
+      return `Band #${i + 1}: label required.`;
+    }
   }
-  // overlap (consentiamo adiacenze esatte: il successivo min può essere == al precedente max)
-  const s = sortBands(bands);
+
+  // overlap check (consentite adiacenze: next.min può == prev.max)
+  const s = sortBands(nb);
   for (let i = 1; i < s.length; i++) {
     const prev = s[i - 1], cur = s[i];
     if (cur.band_min < prev.band_max) {
@@ -99,6 +119,7 @@ export default function AdminKpis() {
       try {
         setLoading(true);
         const res = await getKpiScales(token, code).catch(() => ({ bands: [] }));
+        // manteniamo i valori come arrivano (numeri), ma gli input gestiranno stringhe in edit
         setBands(sortBands(res?.bands || []));
       } catch (e) {
         setBands([]);
@@ -110,7 +131,7 @@ export default function AdminKpis() {
   }, [token, code]);
 
   const onAddRow = () => {
-    setBands((prev) => [...prev, { band_min: 0, band_max: 0, score: 1, label: "" }]);
+    setBands((prev) => [...prev, { band_min: "", band_max: "", score: 1, label: "" }]);
   };
 
   const onDeleteRow = (idx) => {
@@ -133,7 +154,14 @@ export default function AdminKpis() {
     }
     try {
       setSaving(true);
-      await putKpiScales(token, code, { bands: sortBands(bands) });
+      // prepara payload numerico pulito
+      const payloadBands = sortBands(bands).map(b => ({
+        band_min: toNum(b.band_min),
+        band_max: toNum(b.band_max),
+        score: Number(b.score),
+        label: b.label || "",
+      }));
+      await putKpiScales(token, code, { bands: payloadBands });
       toast({ title: "KPI scales saved", status: "success" });
     } catch (e) {
       toast({
@@ -148,7 +176,7 @@ export default function AdminKpis() {
 
   const headerKpi = useMemo(() => {
     const row = kpis.find((k) => k.code === code);
-    return row ? `${row.test_type_code} Test` : code || "Select KPI";
+    return row ? `${row.test_type_code || ""} ${row.test_type_code ? "Test" : ""}`.trim() : (code || "Select KPI");
   }, [kpis, code]);
 
   return (
@@ -172,12 +200,12 @@ export default function AdminKpis() {
               >
                 {kpis.map((k) => (
                   <option key={k.code} value={k.code}>
-                    {k.name} 
+                    {k.name || k.code}
                   </option>
                 ))}
               </Select>
             </Box>
-            <Badge colorScheme="blue" ml={2} borderRadius={4}>{headerKpi}</Badge>
+            {!!headerKpi && <Badge colorScheme="blue" ml={2} borderRadius={4}>{headerKpi}</Badge>}
             <Spacer />
             <Tooltip label="Reset 4 bands template">
               <IconButton
@@ -230,10 +258,12 @@ export default function AdminKpis() {
                     <Td>
                       <NumberInput
                         value={b.band_min}
-                        onChange={(_, val) => updateBand(idx, { band_min: Number.isFinite(val) ? val : 0 })}
+                        onChange={(valueStr /*, valueNum*/ ) => updateBand(idx, { band_min: valueStr })}
                         precision={2}
                         step={0.1}
                         min={-1e9}
+                        clampValueOnBlur={false}
+                        keepWithinRange={false}
                       >
                         <NumberInputField />
                       </NumberInput>
@@ -241,10 +271,12 @@ export default function AdminKpis() {
                     <Td>
                       <NumberInput
                         value={b.band_max}
-                        onChange={(_, val) => updateBand(idx, { band_max: Number.isFinite(val) ? val : 0 })}
+                        onChange={(valueStr /*, valueNum*/ ) => updateBand(idx, { band_max: valueStr })}
                         precision={2}
                         step={0.1}
                         min={-1e9}
+                        clampValueOnBlur={false}
+                        keepWithinRange={false}
                       >
                         <NumberInputField />
                       </NumberInput>
@@ -262,7 +294,7 @@ export default function AdminKpis() {
                     </Td>
                     <Td>
                       <Input
-                        value={b.label}
+                        value={b.label ?? ""}
                         onChange={(e) => updateBand(idx, { label: e.target.value })}
                         placeholder="Label"
                       />
@@ -291,7 +323,7 @@ export default function AdminKpis() {
 
           <Box color="gray.600" fontSize="sm">
             <strong>Rules:</strong> score ∈ {`{1,2,3,4}`}; bands must be ordered (min ≤ max), no overlaps
-            (adjacent allowed: next.min can equal prev.max).
+            (adjacent allowed: next.min can equal prev.max). Negative values are allowed.
           </Box>
         </CardBody>
       </Card>

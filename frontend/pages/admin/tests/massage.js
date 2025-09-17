@@ -11,6 +11,7 @@ import {
   createMassageRun, computeMassageRun, updateMassagePoints
 } from "@/lib/api";
 import { FaCalculator } from "react-icons/fa";
+import { AppSizePill } from "./ui/AppSizePill";
 
 const PRESSURES = [45, 40, 35];
 const MASSAGE_COLOR = "teal";
@@ -223,9 +224,7 @@ function MassageCard({ token, application }) {
       <CardHeader>
         <HStack justify="space-between" align="center">
           {/* SOLO application size come chip/tag arrotondato */}
-          <Tag size="sm" colorScheme={MASSAGE_COLOR} variant="subtle" borderRadius="md">
-            <TagLabel>{application.size_mm} mm</TagLabel>
-          </Tag>
+          <AppSizePill color={MASSAGE_COLOR}>{application.size_mm} mm</AppSizePill>
           {busy && <Spinner size="sm" />}
         </HStack>
       </CardHeader>

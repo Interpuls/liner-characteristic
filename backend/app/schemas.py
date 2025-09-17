@@ -153,7 +153,7 @@ class TestKind(str, Enum):
     TPP = "TPP"
     MASSAGE = "MASSAGE"
     SPEED = "SPEED"
-    SMT = "SMT"
+    SMT_HOOD = "SMT_HOOD"
 
 class KpiDefIn(BaseModel):
     code: str
@@ -260,6 +260,42 @@ class SpeedRunOut(BaseModel):
     measure_ml: Optional[float]
     performed_at: Optional[datetime]
     notes: Optional[str]
+    created_at: datetime
+    class Config:
+        from_attributes = True
+    
+
+# ---------- SMT/HOOD schemas ----------
+class SmtHoodPointIn(BaseModel):
+    flow_lpm: float                 # 0.5, 1.9, 3.6
+    smt_min: float
+    smt_max: float
+    hood_min: float
+    hood_max: float
+
+class SmtHoodRunIn(BaseModel):
+    product_application_id: int
+    points: List[SmtHoodPointIn]    # attesi 3 punti (uno per flow)
+    performed_at: Optional[datetime] = None
+    notes: Optional[str] = None
+
+class SmtHoodRunOut(BaseModel):
+    id: int
+    product_application_id: int
+    performed_at: Optional[datetime]
+    notes: Optional[str]
+    created_at: datetime
+    class Config:
+        from_attributes = True
+
+class SmtHoodPointOut(BaseModel):
+    id: int
+    run_id: int
+    flow_lpm: float
+    smt_min: float
+    smt_max: float
+    hood_min: float
+    hood_max: float
     created_at: datetime
     class Config:
         from_attributes = True

@@ -7,6 +7,7 @@ import { ChevronLeftIcon } from "@chakra-ui/icons";
 import TppTestPage from "./tests/tpp";
 import AdminMassageTest from "./tests/massage";
 import SpeedTestPage from "./tests/speed";
+import SmtHoodTestPage from "./tests/smt-hood";
 
 export default function AdminTests() {
   return (
@@ -35,8 +36,8 @@ export default function AdminTests() {
           <TabPanel px={0} pt={4}>
             <SpeedTestPage />
           </TabPanel>
-          <TabPanel>
-            <Box p={4} color="gray.500">Coming next…</Box>
+          <TabPanel px={0} pt={4}>
+            <SmtHoodTestPage />
           </TabPanel>
         </TabPanels>
       </Tabs>
