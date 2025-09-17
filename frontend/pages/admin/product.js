@@ -19,6 +19,8 @@ import ProductEditModal from "../../components/ProductEditModal";
 import ProductCard from "../../components/ProductCard";
 import ProductDetailModal from "../../components/ProductDetailModal";
 
+import { BackHomeIcon } from "@/components/ui/BackHomeIcon";
+
 
 
 
@@ -140,23 +142,15 @@ export default function AdminProducts() {
   return (
     <Box maxW="6xl" mx="auto" p={{ base:4, md:8 }}>
       {/* Header */}
-      <Stack direction={{ base: "column", md: "row" }} justify="space-between" align={{ base: "flex-start", md: "center" }} mb={4} gap={3}>
+      <Stack
+        direction={{ base: "column", md: "row" }}
+        justify="space-between"
+        align={{ base: "flex-start", md: "center" }}
+        mb={4}
+        gap={3}
+      >
         <HStack gap={3}>
-          <Hide below="md">
-            <Button as={NextLink} href="/home" variant="outline" size="sm" leftIcon={<ChevronLeftIcon />}>
-              Home
-            </Button>
-          </Hide>
-          <Show below="md">
-            <IconButton
-              as={NextLink}
-              href="/home"
-              variant="outline"
-              size="sm"
-              aria-label="Home"
-              icon={<ChevronLeftIcon />}
-            />
-          </Show>
+          <BackHomeIcon />
           <Heading size="lg">Manage Products</Heading>
         </HStack>
       </Stack>
