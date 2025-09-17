@@ -142,83 +142,23 @@ function TppRow({ pa, product, token, onDone }) {
   );
 }
 
-export default function TppTestPage() {
-  const toast = useToast();
-  const [token, setToken] = useState(null);
-  const [products, setProducts] = useState([]);
-  const [pid, setPid] = useState(""); // product id scelto
-  const [product, setProduct] = useState(null);
-  const [apps, setApps] = useState([]);
-  const [loading, setLoading] = useState(false);
 
-  // bootstrap
-  useEffect(() => {
-    const t = getToken();
-    if (!t) { window.location.replace("/login"); return; }
-    setToken(t);
-    listProducts(t, { product_type: "liner", limit: 100 })
-      .then((items) => setProducts(Array.isArray(items) ? items : (items?.items ?? [])))
-      .catch(() => setProducts([]));
-  }, []);
 
-  // quando seleziono un prodotto, carico dettagli + applicazioni
-  useEffect(() => {
-    if (!token || !pid) { setProduct(null); setApps([]); return; }
-    (async () => {
-      try {
-        setLoading(true);
-        const [p, pas] = await Promise.all([
-          getProduct(token, pid),
-          listProductApplications(token, pid),
-        ]);
-        setProduct(p || null);
-        setApps(Array.isArray(pas) ? pas.sort((a, b) => a.size_mm - b.size_mm) : []);
-      } catch (err) {
-        toast({ title: "Errore caricamento prodotto/applicazioni", status: "error" });
-        setApps([]);
-      } finally {
-        setLoading(false);
-      }
-    })();
-  }, [pid, token]);
-
+export default function TppTestPage({ token, pid, product, apps }) {
+  if (!pid) {
+    return <Box py={8} textAlign="center" color="gray.500">Select a product to start.</Box>;
+  }
+  const list = Array.isArray(apps) ? apps : [];
   return (
     <Box>
-      <Card mb={4}>
-        <CardBody>
-          <SimpleGrid columns={{ base: 1, md: 2 }} gap={4}>
-            <Box>
-              <Text fontSize="sm" color="gray.600" mb={1}>Select product</Text>
-              <Select placeholder="Choose a product" value={pid} onChange={(e) => setPid(e.target.value)}>
-                {products.map((p) => (
-                  <option key={p.id} value={p.id}>
-                    {(p.brand ? `${p.brand} ` : "") + (p.model || p.name || `#${p.id}`)}
-                  </option>
-                ))}
-              </Select>
-            </Box>
-          </SimpleGrid>
-        </CardBody>
-      </Card>
-
-      {loading ? (
-        <HStack justify="center" py={12}><Spinner /></HStack>
-      ) : pid && apps.length ? (
+      {list.length ? (
         <SimpleGrid columns={{ base: 1, md: 2 }} gap={4}>
-          {apps.map((pa) => (
-            <TppRow
-              key={pa.id}
-              pa={pa}
-              product={product}
-              token={token}
-              onDone={() => {/* future refetch */}}
-            />
+          {list.map((pa) => (
+            <TppRow key={pa.id} pa={pa} product={product} token={token} onDone={() => {}} />
           ))}
         </SimpleGrid>
-      ) : pid ? (
-        <Box py={8} textAlign="center" color="gray.500">No applications for this product.</Box>
       ) : (
-        <Box py={8} textAlign="center" color="gray.500">Select a product to start.</Box>
+        <Box py={8} textAlign="center" color="gray.500">No applications for this product.</Box>
       )}
     </Box>
   );

@@ -1,17 +1,14 @@
 import { useEffect, useState } from "react";
 import {
-  Box, Heading, HStack, Button, Select, Input, Stack, Card, CardBody, CardHeader,
-  SimpleGrid, Tag, TagLabel, Text, Tooltip, Stat, StatNumber, InputGroup, InputLeftAddon,
-  Spinner, useToast, Inputvalue
+  Box, HStack, Button, Input, Stack, Card, CardBody, CardHeader,
+  SimpleGrid, Tag, TagLabel, Text, Tooltip, Stat, StatNumber,
+  InputGroup, InputLeftAddon, Spinner, useToast, Heading
 } from "@chakra-ui/react";
 import { LuCalculator } from "react-icons/lu";
-import { getToken } from "@/lib/auth";
 import {
-  listProducts, listProductApplications, getProduct,
   createSpeedRun, computeSpeedRun, listSpeedRuns, getSpeedRunKpis
 } from "@/lib/api";
 
-// helpers per visualizzare lo score
 const scoreColor = (s) =>
   s >= 4 ? "green.500" :
   s === 3 ? "green.400" :
@@ -28,9 +25,8 @@ function SpeedRow({ pa, product, token, onDone }) {
   const toast = useToast();
   const [value, setValue] = useState("");
   const [saving, setSaving] = useState(false);
-  const [score, setScore] = useState(null); // KPI SPEED se presente
+  const [score, setScore] = useState(null);
 
-  // Prefill dall’ultimo run e caricamento KPI se già calcolati
   useEffect(() => {
     if (!token || !pa?.id) return;
     (async () => {
@@ -47,13 +43,9 @@ function SpeedRow({ pa, product, token, onDone }) {
               return typeof ctx === "string" && ctx.includes('"agg"') && ctx.includes("final");
             });
             if (speed) setScore(speed.score);
-          } catch {
-            // nessun KPI computato ancora: ok
-          }
+          } catch { /* ignore */ }
         }
-      } catch {
-        // nessun run salvato: ok
-      }
+      } catch { /* ignore */ }
     })();
   }, [token, pa?.id]);
 
@@ -65,12 +57,10 @@ function SpeedRow({ pa, product, token, onDone }) {
     }
     try {
       setSaving(true);
-      // 1) salva run
       const run = await createSpeedRun(token, {
         product_application_id: pa.id,
         measure_ml: realVal
       });
-      // 2) compute KPI SPEED
       const kpis = await computeSpeedRun(token, run.id);
       const speed = kpis?.find?.(k => k.kpi_code === "SPEED");
       if (speed) setScore(speed.score);
@@ -140,84 +130,23 @@ function SpeedRow({ pa, product, token, onDone }) {
   );
 }
 
-export default function SpeedTestPage() {
-  const toast = useToast();
-  const [token, setToken] = useState(null);
-  const [products, setProducts] = useState([]);
-  const [pid, setPid] = useState(""); // product id scelto
-  const [product, setProduct] = useState(null);
-  const [apps, setApps] = useState([]);
-  const [loading, setLoading] = useState(false);
+export default function SpeedTestPage({ token, pid, product, apps }) {
+  if (!pid) return <Box py={8} textAlign="center" color="gray.500">Select a product to start.</Box>;
 
-  // bootstrap
-  useEffect(() => {
-    const t = getToken();
-    if (!t) { window.location.replace("/login"); return; }
-    setToken(t);
-    listProducts(t, { product_type: "liner", limit: 100 })
-      .then((items) => setProducts(Array.isArray(items) ? items : (items?.items ?? [])))
-      .catch(() => setProducts([]));
-  }, []);
-
-  // quando seleziono un prodotto, carico dettagli + applicazioni
-  useEffect(() => {
-    if (!token || !pid) { setProduct(null); setApps([]); return; }
-    (async () => {
-      try {
-        setLoading(true);
-        const [p, pas] = await Promise.all([
-          getProduct(token, pid),
-          listProductApplications(token, pid),
-        ]);
-        setProduct(p || null);
-        setApps(Array.isArray(pas) ? pas.sort((a, b) => a.size_mm - b.size_mm) : []);
-      } catch (err) {
-        toast({ title: "Errore caricamento prodotto/applicazioni", status: "error" });
-        setApps([]);
-      } finally {
-        setLoading(false);
-      }
-    })();
-  }, [pid, token]);
+  const list = Array.isArray(apps) ? apps : [];
+  if (!list.length) return <Box py={8} textAlign="center" color="gray.500">No applications for this product.</Box>;
 
   return (
-    <Box>
-      <Card mb={4}>
-        <CardBody>
-          <SimpleGrid columns={{ base: 1, md: 2 }} gap={4}>
-            <Box>
-              <Text fontSize="sm" color="gray.600" mb={1}>Select product</Text>
-              <Select placeholder="Choose a product" value={pid} onChange={(e) => setPid(e.target.value)}>
-                {products.map((p) => (
-                  <option key={p.id} value={p.id}>
-                    {(p.brand ? `${p.brand} ` : "") + (p.model || p.name || `#${p.id}`)}
-                  </option>
-                ))}
-              </Select>
-            </Box>
-          </SimpleGrid>
-        </CardBody>
-      </Card>
-
-      {loading ? (
-        <HStack justify="center" py={12}><Spinner /></HStack>
-      ) : pid && apps.length ? (
-        <SimpleGrid columns={{ base: 1, md: 2 }} gap={4}>
-          {apps.map((pa) => (
-            <SpeedRow
-              key={pa.id}
-              pa={pa}
-              product={product}
-              token={token}
-              onDone={() => {/* in futuro: refetch */}}
-            />
-          ))}
-        </SimpleGrid>
-      ) : pid ? (
-        <Box py={8} textAlign="center" color="gray.500">No applications for this product.</Box>
-      ) : (
-        <Box py={8} textAlign="center" color="gray.500">Select a product to start.</Box>
-      )}
-    </Box>
+    <SimpleGrid columns={{ base: 1, md: 2 }} gap={4}>
+      {list.map((pa) => (
+        <SpeedRow
+          key={pa.id}
+          pa={pa}
+          product={product}
+          token={token}
+          onDone={() => {}}
+        />
+      ))}
+    </SimpleGrid>
   );
 }

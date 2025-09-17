@@ -30,94 +30,19 @@ const scoreLabel = (s) =>
 
 const fmt2 = (v) => (v == null ? "—" : Number(v).toLocaleString("it-IT", { minimumFractionDigits: 2, maximumFractionDigits: 2 }));
 
-export default function SmtHoodTestPage() {
-  const toast = useToast();
-  const [token, setToken] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [products, setProducts] = useState([]);
-  const [selectedProductId, setSelectedProductId] = useState("");
-  const [applications, setApplications] = useState([]);
-  const [fetchingApps, setFetchingApps] = useState(false);
-
-  useEffect(() => {
-    const t = getToken();
-    if (!t) { window.location.replace("/login"); return; }
-    setToken(t);
-  }, []);
-
-  useEffect(() => {
-    if (!token) return;
-    (async () => {
-      setLoading(true);
-      try {
-        const rows = await listProducts(token, { product_type: "liner", limit: 100 });
-        const items = Array.isArray(rows) ? rows : (rows?.items ?? []);
-        setProducts(items);
-      } catch {
-        setProducts([]);
-        toast({ title: "Errore caricamento prodotti", status: "error" });
-      } finally {
-        setLoading(false);
-      }
-    })();
-  }, [token]);
-
-  useEffect(() => {
-    if (!token || !selectedProductId) { setApplications([]); return; }
-    (async () => {
-      setFetchingApps(true);
-      try {
-        const apps = await listProductApplications(token, selectedProductId);
-        setApplications(Array.isArray(apps) ? apps.sort((a,b)=>a.size_mm-b.size_mm) : []);
-      } catch {
-        setApplications([]);
-      } finally {
-        setFetchingApps(false);
-      }
-    })();
-  }, [token, selectedProductId]);
-
+export default function SmtHoodTestPage({ token, pid, product, apps }) {
+  if (!pid) return <Box py={8} textAlign="center" color="gray.500">Select a product to start.</Box>;
+  const list = Array.isArray(apps) ? apps : [];
   return (
     <Box>
-      {/* Nessun title, come Massage aggiornato */}
-
-      {/* Selettore prodotto, allineato agli altri tab */}
-      <Card mb={4}>
-        <CardBody>
-          <SimpleGrid columns={{ base: 1, md: 2 }} gap={4}>
-            <Box>
-              <Text fontSize="sm" color="gray.600" mb={1}>Select product</Text>
-              <Select
-                placeholder="Choose a product"
-                value={selectedProductId}
-                onChange={(e) => setSelectedProductId(e.target.value)}
-                isDisabled={loading}
-              >
-                {products.map((p) => (
-                  <option key={p.id} value={p.id}>
-                    {(p.brand ? `${p.brand} ` : "") + (p.model || p.name || `#${p.id}`)}
-                  </option>
-                ))}
-              </Select>
-            </Box>
-          </SimpleGrid>
-        </CardBody>
-      </Card>
-
-      {loading && <HStack><Spinner /><Text>Loading products…</Text></HStack>}
-      {fetchingApps && <HStack><Spinner /><Text>Loading applications…</Text></HStack>}
-
-      <SimpleGrid columns={{ base: 1, md: 2 }} spacing={4}>
-        {applications.map((pa) => (
-          <SmtHoodCard key={pa.id} token={token} application={pa} />
-        ))}
-      </SimpleGrid>
-
-      {!loading && selectedProductId && applications.length === 0 && (
+      {list.length ? (
+        <SimpleGrid columns={{ base: 1, md: 2 }} gap={4}>
+          {list.map((pa) => (
+            <SmtHoodCard key={pa.id} token={token} application={pa} product={product} />
+          ))}
+        </SimpleGrid>
+      ) : (
         <Box py={8} textAlign="center" color="gray.500">No applications for this product.</Box>
-      )}
-      {!loading && !selectedProductId && (
-        <Box py={8} textAlign="center" color="gray.500">Select a product to start.</Box>
       )}
     </Box>
   );
