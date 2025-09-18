@@ -20,6 +20,7 @@ import ProductCard from "../../components/ProductCard";
 import ProductDetailModal from "../../components/ProductDetailModal";
 
 import { BackHomeIcon } from "@/components/ui/BackHomeIcon";
+import {FiPackage} from "react-icons/fi";
 
 
 
@@ -151,7 +152,15 @@ export default function AdminProducts() {
       >
         <HStack gap={3}>
           <BackHomeIcon />
-          <Heading size="lg">Manage Products</Heading>
+            <VStack align="start" spacing={1}>
+              <HStack spacing={2}>
+                <Icon as={FiPackage} boxSize={7} color="grey.500" />
+                <Heading size="lg">Manage Products</Heading>
+              </HStack>
+              <Text fontSize="sm" color="gray.600">
+                Create, edit or delete products and technical specifications.
+              </Text>
+            </VStack>
         </HStack>
       </Stack>
 
