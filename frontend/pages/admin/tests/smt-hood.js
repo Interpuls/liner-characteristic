@@ -165,7 +165,7 @@ function SmtHoodCard({ token, application }) {
     <Card variant="outline">
       <CardHeader>
         <HStack justify="space-between" align="center">
-          <AppSizePill color={COLOR}>{application.size_mm} mm</AppSizePill>
+          <AppSizePill color={COLOR} size="sm">{application.size_mm} mm</AppSizePill>
           {busy && <Spinner size="sm" />}
         </HStack>
       </CardHeader>
@@ -180,39 +180,51 @@ function SmtHoodCard({ token, application }) {
               <SimpleGrid columns={{ base: 1, md: 2 }} gap={3}>
                 <Box>
                   <Text fontSize="xs" color="gray.500" mb={1}>SMT min</Text>
-                  <Input
-                    type="number"
-                    value={inputs[f].smt_min}
-                    onChange={(e) => onChange(f, "smt_min", e.target.value)}
-                    isDisabled={saving}
-                  />
+                  <InputGroup>
+                    <InputLeftAddon fontSize="sm">kPa</InputLeftAddon>                 
+                      <Input
+                        type="number"
+                        value={inputs[f].smt_min}
+                        onChange={(e) => onChange(f, "smt_min", e.target.value)}
+                        isDisabled={saving}
+                      />
+                  </InputGroup>
                 </Box>
                 <Box>
                   <Text fontSize="xs" color="gray.500" mb={1}>SMT max</Text>
-                  <Input
-                    type="number"
-                    value={inputs[f].smt_max}
-                    onChange={(e) => onChange(f, "smt_max", e.target.value)}
-                    isDisabled={saving}
-                  />
+                  <InputGroup>
+                   <InputLeftAddon fontSize="sm">kPa</InputLeftAddon>
+                      <Input
+                        type="number"
+                        value={inputs[f].smt_max}
+                        onChange={(e) => onChange(f, "smt_max", e.target.value)}
+                        isDisabled={saving}
+                      />
+                  </InputGroup>
                 </Box>
                 <Box>
                   <Text fontSize="xs" color="gray.500" mb={1}>HOOD min</Text>
-                  <Input
-                    type="number"
-                    value={inputs[f].hood_min}
-                    onChange={(e) => onChange(f, "hood_min", e.target.value)}
-                    isDisabled={saving}
-                  />
+                  <InputGroup>
+                    <InputLeftAddon fontSize="sm">kPa</InputLeftAddon>
+                      <Input
+                        type="number"
+                        value={inputs[f].hood_min}
+                        onChange={(e) => onChange(f, "hood_min", e.target.value)}
+                        isDisabled={saving}
+                      />
+                  </InputGroup>
                 </Box>
                 <Box>
                   <Text fontSize="xs" color="gray.500" mb={1}>HOOD max</Text>
-                  <Input
-                    type="number"
-                    value={inputs[f].hood_max}
-                    onChange={(e) => onChange(f, "hood_max", e.target.value)}
-                    isDisabled={saving}
-                  />
+                  <InputGroup>
+                    <InputLeftAddon fontSize="sm">kPa</InputLeftAddon>
+                      <Input
+                        type="number"
+                        value={inputs[f].hood_max}
+                        onChange={(e) => onChange(f, "hood_max", e.target.value)}
+                        isDisabled={saving}
+                      />
+                  </InputGroup>
                 </Box>
               </SimpleGrid>
 

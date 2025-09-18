@@ -2,7 +2,8 @@ import { useEffect, useMemo, useState } from "react";
 import {
   Box, SimpleGrid, Card, CardHeader, CardBody, Text,
   HStack, VStack, Input, Button, Divider, Spinner,
-  Stat, StatNumber, Tooltip, Heading, Tag, TagLabel
+  Stat, StatNumber, Tooltip, Heading, Tag, TagLabel,
+  InputGroup, InputLeftAddon
 } from "@chakra-ui/react";
 import {
   getKpiValuesByPA, getLatestMassageRun,
@@ -138,8 +139,8 @@ function MassageCard({ token, application }) {
     <Card variant="outline">
       <CardHeader>
         <HStack justify="space-between" align="center">
-          <AppSizePill color={MASSAGE_COLOR}>{application.size_mm} mm</AppSizePill>
-          {busy && <Spinner size="sm" />}
+          <AppSizePill color={MASSAGE_COLOR} size="sm">{application.size_mm} mm</AppSizePill>
+          {busy && <Spinner size="s" />}
         </HStack>
       </CardHeader>
       <CardBody>
@@ -153,21 +154,27 @@ function MassageCard({ token, application }) {
               <SimpleGrid columns={{ base: 1, md: 2 }} gap={3}>
                 <Box>
                   <Text fontSize="xs" color="gray.500" mb={1}>Min</Text>
-                  <Input
-                    type="number"
-                    value={inputs[k].min_val}
-                    onChange={(e) => onChange(k, "min_val", e.target.value)}
-                    isDisabled={saving}
-                  />
+                  <InputGroup>
+                    <InputLeftAddon fontSize="sm">kPa</InputLeftAddon>
+                    <Input
+                      type="number"
+                      value={inputs[k].min_val}
+                      onChange={(e) => onChange(k, "min_val", e.target.value)}
+                      isDisabled={saving}
+                    />
+                  </InputGroup>
                 </Box>
                 <Box>
                   <Text fontSize="xs" color="gray.500" mb={1}>Max</Text>
-                  <Input
-                    type="number"
-                    value={inputs[k].max_val}
-                    onChange={(e) => onChange(k, "max_val", e.target.value)}
-                    isDisabled={saving}
-                  />
+                  <InputGroup>
+                    <InputLeftAddon fontSize="sm">kPa</InputLeftAddon>                  
+                    <Input
+                      type="number"
+                      value={inputs[k].max_val}
+                      onChange={(e) => onChange(k, "max_val", e.target.value)}
+                      isDisabled={saving}
+                    />
+                  </InputGroup>
                 </Box>
               </SimpleGrid>
             </Box>

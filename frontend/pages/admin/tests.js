@@ -1,85 +1,122 @@
 // pages/admin/tests.js
 import { useEffect, useState } from "react";
-import NextLink from "next/link";
 import {
-  Box, Heading, HStack, Tabs, TabList, TabPanels, Tab, TabPanel,
-  Card, CardBody, SimpleGrid, Select, Text, Spinner
+  Box, Heading, HStack, VStack, Tabs, TabList, TabPanels, Tab, TabPanel,
+  Card, CardBody, SimpleGrid, Select, Text, Badge, Icon
 } from "@chakra-ui/react";
-import { BackHomeIcon } from "../../components/ui/BackHomeIcon";
-import { getToken } from "../../lib/auth";
-import { listProducts, getProduct, listProductApplications } from "../../lib/api";
+import { LuFlaskConical } from "react-icons/lu";
 
 import TppTestPage from "./tests/tpp";
 import AdminMassageTest from "./tests/massage";
 import SpeedTestPage from "./tests/speed";
 import SmtHoodTestPage from "./tests/smt-hood";
 
+import { BackHomeIcon } from "../../components/ui/BackHomeIcon";
+import { getToken } from "@/lib/auth";
+import { listProducts, getProduct, listProductApplications } from "@/lib/api";
+
+const L = ({ children }) => <Text fontSize="xs" color="gray.500" mb={1}>{children}</Text>;
+
+function ProductSpecsCard({ product }) {
+  if (!product) return null;
+  const V = ({ label, value, unit }) => (
+    <Box>
+      <L>{label}</L>
+      <Text>{value ?? "—"}{value != null && unit ? ` ${unit}` : ""}</Text>
+    </Box>
+  );
+  return (
+    <Card mb={4} variant="outline">
+      <CardBody>
+        <HStack justify="space-between" mb={2}>
+          <HStack>
+            <Badge colorScheme="blue" variant="subtle" borderRadius="md">Product</Badge>
+            <Text fontWeight="semibold">
+              {(product.brand ? `${product.brand} ` : "") + (product.model || product.name || `#${product.id}`)}
+            </Text>
+          </HStack>
+        </HStack>
+        <SimpleGrid columns={{ base: 1, md: 3 }} gap={4}>
+          <V label="MP depth" value={product.mp_depth_mm} unit="mm" />
+          <V label="Orifice Ø" value={product.orifice_diameter} unit="mm" />
+          <V label="Hoodcup Ø" value={product.hoodcup_diameter} unit="mm" />
+          <V label="Return → lockring" value={product.return_to_lockring} unit="mm" />
+          <V label="Lockring Ø" value={product.lockring_diameter} unit="mm" />
+          <V label="Overall length" value={product.overall_length} unit="mm" />
+          <V label="Milk tube ID" value={product.milk_tube_id} unit="mm" />
+          <V label="Barrel wall th." value={product.barrell_wall_thickness} unit="mm" />
+          <V label="Barrel conicity" value={product.barrell_conicity} />
+          <V label="Hardness" value={product.hardness} />
+        </SimpleGrid>
+      </CardBody>
+    </Card>
+  );
+}
+
 export default function AdminTests() {
   const [token, setToken] = useState(null);
-
   const [products, setProducts] = useState([]);
-  const [productsLoading, setProductsLoading] = useState(true);
+  const [pid, setPid] = useState("");
+  const [product, setProduct] = useState(null);
+  const [apps, setApps] = useState([]);
 
-  const [pid, setPid] = useState("");             // product id selezionato
-  const [product, setProduct] = useState(null);   // dettaglio prodotto
-  const [apps, setApps] = useState([]);           // applicazioni del prodotto
-  const [appsLoading, setAppsLoading] = useState(false);
-
-  // bootstrap: token + elenco prodotti
   useEffect(() => {
     const t = getToken();
     if (!t) { window.location.replace("/login"); return; }
     setToken(t);
-
     (async () => {
       try {
-        setProductsLoading(true);
-        const rows = await listProducts(t, { product_type: "liner", limit: 200 }).catch(() => []);
+        const rows = await listProducts(t, { product_type: "liner", limit: 100 });
         const items = Array.isArray(rows) ? rows : (rows?.items ?? []);
         setProducts(items);
-      } finally {
-        setProductsLoading(false);
+      } catch {
+        setProducts([]);
       }
     })();
   }, []);
 
-  // quando scelgo il prodotto: carico dettaglio + applicazioni
   useEffect(() => {
     if (!token || !pid) { setProduct(null); setApps([]); return; }
     (async () => {
       try {
-        setAppsLoading(true);
         const [p, pas] = await Promise.all([
           getProduct(token, pid),
-          listProductApplications(token, pid)
+          listProductApplications(token, pid),
         ]);
         setProduct(p || null);
-        const arr = Array.isArray(pas) ? pas.slice().sort((a,b)=>a.size_mm-b.size_mm) : [];
-        setApps(arr);
-      } finally {
-        setAppsLoading(false);
+        setApps(Array.isArray(pas) ? pas.sort((a,b)=>a.size_mm-b.size_mm) : []);
+      } catch {
+        setProduct(null); setApps([]);
       }
     })();
-  }, [token, pid]);
+  }, [pid, token]);
 
   return (
     <Box maxW="6xl" mx="auto" p={{ base:4, md:8 }}>
-      <HStack gap={3} mb={4}>
+      {/* Header: freccia + (titolo con ampolla + sottotitolo) */}
+      <HStack align="center" spacing={3} mb={3}>
         <BackHomeIcon />
-        <Heading size="lg">Tests Campaign</Heading>
+        <VStack align="start" spacing={1}>
+          <HStack spacing={2}>
+            <Icon as={LuFlaskConical} boxSize={7} color="grey.500" />
+            <Heading size="lg">Tests Campaign</Heading>
+          </HStack>
+          <Text fontSize="sm" color="gray.600">
+            Laboratory workspace for Milkrite InterPuls liners: run TPP, Massage, Speed, and SMT/Hood tests on your selected product.
+          </Text>
+        </VStack>
       </HStack>
 
-      {/* Select prodotto sempre visibile, sopra i Tab */}
-      <Card mb={4}>
+      {/* Selettore prodotto (unico per tutti i tab) */}
+      <Card mb={3}>
         <CardBody>
           <SimpleGrid columns={{ base: 1, md: 2 }} gap={4}>
             <Box>
-              <Text fontSize="sm" color="gray.600" mb={1}>Select product</Text>
+              <L>Select product</L>
               <Select
-                placeholder={productsLoading ? "Loading…" : "Choose a product"}
+                placeholder="Choose a product"
                 value={pid}
                 onChange={(e) => setPid(e.target.value)}
-                isDisabled={productsLoading}
               >
                 {products.map((p) => (
                   <option key={p.id} value={p.id}>
@@ -89,19 +126,45 @@ export default function AdminTests() {
               </Select>
             </Box>
           </SimpleGrid>
-          {pid && appsLoading && (
-            <HStack mt={3} color="gray.500"><Spinner size="sm" /><Text>Loading applications…</Text></HStack>
-          )}
         </CardBody>
       </Card>
 
-      <Tabs colorScheme="blue" variant="line">
-        <TabList overflowX="auto" borderBottom="1px" borderColor="gray.200">
-          <Tab _selected={{ borderBottom: "2px solid", borderColor: "blue.500", fontWeight: "bold", color: "blue.600" }}>TPP</Tab>
-          <Tab _selected={{ borderBottom: "2px solid", borderColor: "blue.500", fontWeight: "bold", color: "blue.600" }}>Massage</Tab>
-          <Tab _selected={{ borderBottom: "2px solid", borderColor: "blue.500", fontWeight: "bold", color: "blue.600" }}>Speed</Tab>
-          <Tab _selected={{ borderBottom: "2px solid", borderColor: "blue.500", fontWeight: "bold", color: "blue.600" }}>SMT / Hood</Tab>
+      {/* Scheda specifiche del prodotto selezionato */}
+      {pid && <ProductSpecsCard product={product} />}
+
+      {/* Tabs */}
+      <Tabs variant="unstyled">
+        <TabList
+          overflowX="auto"
+          borderBottom="1px solid"
+          borderColor="gray.200"
+          css={{
+            scrollbarWidth: "none",      /* Firefox */
+            msOverflowStyle: "none",     /* IE/Edge */
+            "&::-webkit-scrollbar": { display: "none" }, /* Chrome/Safari */
+          }}
+        >
+          {["TPP", "Massage", "Speed", "SMT / Hood"].map((label) => (
+            <Tab
+              key={label}
+              borderBottom="2px solid transparent"
+              borderRadius="0"
+              px={4}
+              py={3}
+              mr={2}
+              whiteSpace="nowrap"
+              _selected={{
+                color: "blue.600",
+                fontWeight: "bold",
+                borderBottomColor: "blue.500",
+              }}
+              _focus={{ boxShadow: "none" }}
+            >
+              {label}
+            </Tab>
+          ))}
         </TabList>
+        
         <TabPanels>
           <TabPanel px={0} pt={4}>
             <TppTestPage token={token} pid={pid} product={product} apps={apps} />

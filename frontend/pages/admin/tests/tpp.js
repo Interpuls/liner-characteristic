@@ -11,6 +11,8 @@ import {
   createTppRun, computeTppRun, listTppRuns, getTppRunKpis
 } from "@/lib/api";
 
+import AppSizePill from "@/components/ui/AppSizePill";
+
 // helpers per visualizzare lo score
 const scoreColor = (s) =>
   s >= 4 ? "green.500" :
@@ -87,16 +89,12 @@ function TppRow({ pa, product, token, onDone }) {
 
   return (
     <Card variant="outline">
-      <CardHeader pb="2">
-        <HStack justify="space-between">
-          <HStack>
-            <Heading size="sm">{product?.model ?? "Model"}</Heading>
-            <Tag size="sm" variant="subtle"><TagLabel>{product?.brand ?? "-"}</TagLabel></Tag>
-          </HStack>
-          <Tag size="sm" colorScheme="blue"><TagLabel>{pa.size_mm} mm</TagLabel></Tag>
+      <CardHeader>
+        <HStack justify="space-between" align="center">
+          <AppSizePill color="blue" size="sm" >{pa.size_mm} mm</AppSizePill>
         </HStack>
-      </CardHeader>
-      <CardBody pt="0">
+      </CardHeader> 
+      <CardBody pt="4">
         <Stack spacing={3}>
           <SimpleGrid columns={{ base: 1, md: 3 }} gap={3}>
             <Box>
