@@ -4,7 +4,7 @@ import NextLink from "next/link";
 import {
   Box, Heading, HStack, Button, Select, Card, CardHeader, CardBody,
   Table, Thead, Tbody, Tr, Th, Td, NumberInput, NumberInputField,
-  Input, IconButton, useToast, Badge, Text, Divider, Tooltip, Spacer,
+  Input, IconButton, useToast, Badge, Text, Divider, Tooltip, Spacer, VStack, Icon
 } from "@chakra-ui/react";
 import { ChevronLeftIcon } from "@chakra-ui/icons";
 import { FiPlus, FiTrash2, FiSave, FiRefreshCcw } from "react-icons/fi";
@@ -13,6 +13,7 @@ import { getToken } from "../../lib/auth";
 import { listKpis, getKpiScales, putKpiScales } from "../../lib/api";
 
 import { BackHomeIcon } from "../../components/ui/BackHomeIcon";
+import {FiBarChart2} from "react-icons/fi";
 
 // --- fallback se /kpis non fosse ancora disponibile ---
 const FALLBACK_KPIS = [
@@ -185,7 +186,15 @@ export default function AdminKpis() {
     <Box maxW="6xl" mx="auto" p={{ base: 4, md: 8 }}>
       <HStack gap={3} mb={4}>
         <BackHomeIcon />
-        <Heading size="lg">KPI Definition</Heading>
+        <VStack align="start" spacing={1}>
+          <HStack spacing={2}>
+            <Icon as={FiBarChart2} boxSize={7} color="grey.500" />
+            <Heading size="lg">KPI Scales</Heading>
+          </HStack>
+          <Text fontSize="sm" color="gray.600">
+            Define scales for each KPI.
+          </Text>
+        </VStack>
       </HStack>
 
       <Card>
