@@ -79,7 +79,7 @@ export default function Home() {
       <HStack mb="6" align="center">
         <HStack spacing={3}>
           {/* Logo dell’app: metti /logo.svg o /logo.png in /public */}
-          {/*  <Image src="/logo.svg" alt="Liner Characteristic" width={36} height={36} /> */}
+          {/*<Image src="/logo.jpg" alt="Liner Characteristic" width={36} height={36} />  */}
           <Heading size="lg">Liner Database</Heading>
         </HStack>
         <Spacer />
