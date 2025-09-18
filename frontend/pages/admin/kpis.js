@@ -1,31 +1,33 @@
 // pages/admin/kpis.js
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, useRef } from "react";
 import NextLink from "next/link";
 import {
   Box, Heading, HStack, Button, Select, Card, CardHeader, CardBody,
   Table, Thead, Tbody, Tr, Th, Td, NumberInput, NumberInputField,
-  Input, IconButton, useToast, Badge, Text, Divider, Tooltip, Spacer, VStack, Icon
+  Input, IconButton, useToast, Badge, Text, Divider, Tooltip, Spacer,
+  VStack, Icon, Show, Hide, Center, AlertDialog, AlertDialogOverlay,
+  AlertDialogContent, AlertDialogHeader, AlertDialogBody, AlertDialogFooter,
+  useDisclosure
 } from "@chakra-ui/react";
 import { ChevronLeftIcon } from "@chakra-ui/icons";
-import { FiPlus, FiTrash2, FiSave, FiRefreshCcw } from "react-icons/fi";
+import { FiPlus, FiTrash2, FiSave, FiRefreshCcw, FiBarChart2 } from "react-icons/fi";
+import { MdScreenRotation } from "react-icons/md";
 
 import { getToken } from "../../lib/auth";
 import { listKpis, getKpiScales, putKpiScales } from "../../lib/api";
-
 import { BackHomeIcon } from "../../components/ui/BackHomeIcon";
-import {FiBarChart2} from "react-icons/fi";
 
 // --- fallback se /kpis non fosse ancora disponibile ---
 const FALLBACK_KPIS = [
-  { code: "CLOSURE", name: "Closure" },
-  { code: "CONGESTION_RISK", name: "Congestion Risk" },
-  { code: "HYPERKERATOSIS_RISK", name: "Hyperkeratosis Risk" },
-  { code: "FITTING", name: "Fitting" },
-  { code: "SPEED", name: "Speed" },
-  { code: "RESPRAY", name: "Respray" },
-  { code: "FLUYDODYNAMIC", name: "Fluydodynamic" }, 
-  { code: "SLIPPAGE", name: "Slippage" },
-  { code: "RINGING_RISK", name: "Ringing Risk" },
+  { code: "CLOSURE", name: "Closure", description: "" },
+  { code: "CONGESTION_RISK", name: "Congestion Risk", description: "" },
+  { code: "HYPERKERATOSIS_RISK", name: "Hyperkeratosis Risk", description: "" },
+  { code: "FITTING", name: "Fitting", description: "" },
+  { code: "SPEED", name: "Speed", description: "" },
+  { code: "RESPRAY", name: "Respray", description: "" },
+  { code: "FLUYDODINAMIC", name: "Fluydodinamic", description: "" },
+  { code: "SLIPPAGE", name: "Slippage", description: "" },
+  { code: "RINGING_RISK", name: "Ringing Risk", description: "" },
 ];
 
 // Template 4 bande base (modifica i numeri a piacere quando fai Reset)
@@ -98,6 +100,14 @@ export default function AdminKpis() {
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
 
+  // conferma reset template
+  const {
+    isOpen: isResetOpen,
+    onOpen: onResetOpen,
+    onClose: onResetClose
+  } = useDisclosure();
+  const cancelRef = useRef();
+
   // bootstrap: token + elenco KPI
   useEffect(() => {
     const t = getToken();
@@ -122,7 +132,6 @@ export default function AdminKpis() {
       try {
         setLoading(true);
         const res = await getKpiScales(token, code).catch(() => ({ bands: [] }));
-        // manteniamo i valori come arrivano (numeri), ma gli input gestiranno stringhe in edit
         setBands(sortBands(res?.bands || []));
       } catch (e) {
         setBands([]);
@@ -137,16 +146,17 @@ export default function AdminKpis() {
     setBands((prev) => [...prev, { band_min: "", band_max: "", score: 1, label: "" }]);
   };
 
+  const onConfirmResetTemplate = () => {
+    setBands(sortBands(TEMPLATE_BANDS));
+    onResetClose();
+  };
+
   const onDeleteRow = (idx) => {
     setBands((prev) => prev.filter((_, i) => i !== idx));
   };
 
   const updateBand = (idx, patch) => {
     setBands((prev) => prev.map((b, i) => (i === idx ? { ...b, ...patch } : b)));
-  };
-
-  const onResetTemplate = () => {
-    setBands(sortBands(TEMPLATE_BANDS));
   };
 
   const onSave = async () => {
@@ -177,10 +187,14 @@ export default function AdminKpis() {
     }
   };
 
+  const selectedKpi = useMemo(
+    () => kpis.find((k) => k.code === code) || null,
+    [kpis, code]
+  );
+
   const headerKpi = useMemo(() => {
-    const row = kpis.find((k) => k.code === code);
-    return row ? `${row.test_type_code || ""} ${row.test_type_code ? "Test" : ""}`.trim() : (code || "Select KPI");
-  }, [kpis, code]);
+    return selectedKpi ? `${selectedKpi.test_type_code || ""} ${selectedKpi.test_type_code ? "Test" : ""}`.trim() : (code || "Select KPI");
+  }, [selectedKpi, code]);
 
   return (
     <Box maxW="6xl" mx="auto" p={{ base: 4, md: 8 }}>
@@ -197,9 +211,10 @@ export default function AdminKpis() {
         </VStack>
       </HStack>
 
+      {/* Selettore KPI + badge + description */}
       <Card>
         <CardHeader pb={2}>
-          <HStack>
+          <HStack align="start" w="100%">
             <Box>
               <Text fontSize="xs" color="gray.500" mb={1}>KPI</Text>
               <Select
@@ -220,7 +235,7 @@ export default function AdminKpis() {
               <IconButton
                 aria-label="Reset template"
                 icon={<FiRefreshCcw />}
-                onClick={onResetTemplate}
+                onClick={onResetOpen}
                 variant="outline"
                 size="sm"
               />
@@ -246,96 +261,146 @@ export default function AdminKpis() {
               </Button>
             </Tooltip>
           </HStack>
+
+          {/* Descrizione KPI dal DB */}
+          {selectedKpi?.description ? (
+            <Text mt={3} fontSize="sm" color="gray.600">
+              {selectedKpi.description}
+            </Text>
+          ) : null}
         </CardHeader>
-        <CardBody pt={2}>
-          <Table size="sm" variant="simple">
-            <Thead>
-              <Tr>
-                <Th minW="140px">Min</Th>
-                <Th minW="140px">Max</Th>
-                <Th minW="120px">Score</Th>
-                <Th>Label</Th>
-                <Th w="1%"></Th>
-              </Tr>
-            </Thead>
-            <Tbody>
-              {loading ? (
-                <Tr><Td colSpan={5}>Loading…</Td></Tr>
-              ) : bands.length ? (
-                bands.map((b, idx) => (
-                  <Tr key={idx}>
-                    <Td>
-                      <NumberInput
-                        value={b.band_min}
-                        onChange={(valueStr /*, valueNum*/ ) => updateBand(idx, { band_min: valueStr })}
-                        precision={2}
-                        step={0.1}
-                        min={-1e9}
-                        clampValueOnBlur={false}
-                        keepWithinRange={false}
-                      >
-                        <NumberInputField />
-                      </NumberInput>
-                    </Td>
-                    <Td>
-                      <NumberInput
-                        value={b.band_max}
-                        onChange={(valueStr /*, valueNum*/ ) => updateBand(idx, { band_max: valueStr })}
-                        precision={2}
-                        step={0.1}
-                        min={-1e9}
-                        clampValueOnBlur={false}
-                        keepWithinRange={false}
-                      >
-                        <NumberInputField />
-                      </NumberInput>
-                    </Td>
-                    <Td>
-                      <Select
-                        value={b.score}
-                        onChange={(e) => updateBand(idx, { score: Number(e.target.value) })}
-                      >
-                        <option value={1}>1</option>
-                        <option value={2}>2</option>
-                        <option value={3}>3</option>
-                        <option value={4}>4</option>
-                      </Select>
-                    </Td>
-                    <Td>
-                      <Input
-                        value={b.label ?? ""}
-                        onChange={(e) => updateBand(idx, { label: e.target.value })}
-                        placeholder="Label"
-                      />
-                    </Td>
-                    <Td>
-                      <Tooltip label="Delete row">
-                        <IconButton
-                          aria-label="Delete row"
-                          icon={<FiTrash2 />}
-                          onClick={() => onDeleteRow(idx)}
-                          variant="ghost"
-                          colorScheme="red"
-                          size="sm"
+
+        {/* MOBILE: nasconde la tabella e mostra invito a ruotare */}
+        <Show below="md">
+          <CardBody>
+            <Center py={8} flexDir="column" textAlign="center">
+              <Icon as={MdScreenRotation} boxSize={12} mb={3} color="gray.500" />
+              <Text color="gray.600">
+                For a better experience, rotate your device to landscape to edit bands.
+              </Text>
+            </Center>
+          </CardBody>
+        </Show>
+
+        {/* DESKTOP/TABLET (md+): mostra tabella */}
+        <Hide below="md">
+          <CardBody pt={2}>
+            <Table size="sm" variant="simple">
+              <Thead>
+                <Tr>
+                  <Th minW="140px">Min</Th>
+                  <Th minW="140px">Max</Th>
+                  <Th minW="120px">Score</Th>
+                  <Th>Label</Th>
+                  <Th w="1%"></Th>
+                </Tr>
+              </Thead>
+              <Tbody>
+                {loading ? (
+                  <Tr><Td colSpan={5}>Loading…</Td></Tr>
+                ) : bands.length ? (
+                  bands.map((b, idx) => (
+                    <Tr key={idx}>
+                      <Td>
+                        <NumberInput
+                          value={b.band_min}
+                          onChange={(valueStr) => updateBand(idx, { band_min: valueStr })}
+                          precision={2}
+                          step={0.1}
+                          min={-1e9}
+                          clampValueOnBlur={false}
+                          keepWithinRange={false}
+                        >
+                          <NumberInputField />
+                        </NumberInput>
+                      </Td>
+                      <Td>
+                        <NumberInput
+                          value={b.band_max}
+                          onChange={(valueStr) => updateBand(idx, { band_max: valueStr })}
+                          precision={2}
+                          step={0.1}
+                          min={-1e9}
+                          clampValueOnBlur={false}
+                          keepWithinRange={false}
+                        >
+                          <NumberInputField />
+                        </NumberInput>
+                      </Td>
+                      <Td>
+                        <Select
+                          value={b.score}
+                          onChange={(e) => updateBand(idx, { score: Number(e.target.value) })}
+                        >
+                          <option value={1}>1</option>
+                          <option value={2}>2</option>
+                          <option value={3}>3</option>
+                          <option value={4}>4</option>
+                        </Select>
+                      </Td>
+                      <Td>
+                        <Input
+                          value={b.label ?? ""}
+                          onChange={(e) => updateBand(idx, { label: e.target.value })}
+                          placeholder="Label"
                         />
-                      </Tooltip>
-                    </Td>
-                  </Tr>
-                ))
-              ) : (
-                <Tr><Td colSpan={5} color="gray.500">No bands. Click “Add band” or “Reset template”.</Td></Tr>
-              )}
-            </Tbody>
-          </Table>
+                      </Td>
+                      <Td>
+                        <Tooltip label="Delete row">
+                          <IconButton
+                            aria-label="Delete row"
+                            icon={<FiTrash2 />}
+                            onClick={() => onDeleteRow(idx)}
+                            variant="ghost"
+                            colorScheme="red"
+                            size="sm"
+                          />
+                        </Tooltip>
+                      </Td>
+                    </Tr>
+                  ))
+                ) : (
+                  <Tr><Td colSpan={5} color="gray.500">No bands. Click “Add band” or “Reset template”.</Td></Tr>
+                )}
+              </Tbody>
+            </Table>
 
-          <Divider my={4} />
+            <Divider my={4} />
 
-          <Box color="gray.600" fontSize="sm">
-            <strong>Rules:</strong> score ∈ {`{1,2,3,4}`}; bands must be ordered (min ≤ max), no overlaps
-            (adjacent allowed: next.min can equal prev.max). Negative values are allowed.
-          </Box>
-        </CardBody>
+            <Box color="gray.600" fontSize="sm">
+              <strong>Rules:</strong> score ∈ {`{1,2,3,4}`}; bands must be ordered (min ≤ max), no overlaps
+              (adjacent allowed: next.min can equal prev.max). Negative values are allowed.
+            </Box>
+          </CardBody>
+        </Hide>
       </Card>
+
+      {/* Conferma RESET template */}
+      <AlertDialog
+        isOpen={isResetOpen}
+        leastDestructiveRef={cancelRef}
+        onClose={onResetClose}
+        isCentered
+      >
+        <AlertDialogOverlay>
+          <AlertDialogContent>
+            <AlertDialogHeader fontSize="lg" fontWeight="bold">
+              Reset 4 bands template
+            </AlertDialogHeader>
+            <AlertDialogBody>
+              This will overwrite current bands with the 4-band template. Continue?
+            </AlertDialogBody>
+            <AlertDialogFooter>
+              <Button ref={cancelRef} onClick={onResetClose}>
+                Cancel
+              </Button>
+              <Button colorScheme="blue" onClick={onConfirmResetTemplate} ml={3}>
+                Apply template
+              </Button>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialogOverlay>
+      </AlertDialog>
     </Box>
   );
 }

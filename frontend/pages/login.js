@@ -48,11 +48,11 @@ export default function Login() {
   return (
     <Box minH="100vh" display="flex" alignItems="center" justifyContent="center" p="6">
       <Box w="full" maxW="sm" p="6" borderWidth="1px" rounded="lg">
-        <Heading size="md" mb="4" textAlign="center">Accedi</Heading>
+        <Heading size="md" mb="4" textAlign="center">Login</Heading>
         <form onSubmit={onSubmit}>
           <Stack gap="3">
             <Input
-              placeholder="email aziendale"
+              placeholder="company email"
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
@@ -65,16 +65,16 @@ export default function Login() {
               onChange={(e) => setPw(e.target.value)}
             />
             <Button type="submit" isLoading={loading} colorScheme="blue">
-              Entra
+              Enter
             </Button>
           </Stack>
         </form>
         <Text fontSize="sm" color="gray.500" mt="4" textAlign="center">
-          Accesso riservato ai domini autorizzati.
+          Access reserved to authorized domains.
         </Text>
         <Box textAlign="center" mt="3">
           <Link color="blue.500" onClick={() => { clearToken(); window.location.reload(); }}>
-            Svuota sessione
+            Clear session
           </Link>
         </Box>
       </Box>

@@ -1211,7 +1211,7 @@ def compute_smt_hood_kpis(
 
         results[fl] = {
             "respray":       {"value": respray_val,  "score": s_respray},
-            "fluydodynamic": {"value": fluydo_val,   "score": s_fluydo},
+            "fluydodinamic": {"value": fluydo_val,   "score": s_fluydo},
             "slippage":      {"value": slippage_val, "score": s_slippage},
             "ringing_risk":  {"value": ringing_val,  "score": s_ringing},
         }
