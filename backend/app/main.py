@@ -704,8 +704,8 @@ def compute_massage_kpis(
     I35 = by[35].max_val - by[35].min_val
 
     # derivati
-    avg_overmilk = (I45 + I40) / 2.0              # per CONGESTION_RISK
-    avg_pf       = (I40 + I35) / 2.0              # per HYPERKERATOSIS_RISK
+    avg_overmilk = (I45 + I40) / 2.0              # per CONGESTION_RISK e HYPERKERATOSIS_RISK
+    avg_pf       = (I40 + I35) / 2.0              # per HYPERKERATOSIS_RISK (? da chiedere ad Alle)
     diff_from_max = 45.0 - by[45].max_val
     diff_pct      = (diff_from_max / 45.0) if 45.0 != 0 else 0.0   # per FITTING
     drop_45_to_40 = (I40 - I45) / I45 if I45 else 0.0
@@ -713,7 +713,7 @@ def compute_massage_kpis(
 
     # KPI score da scale
     k_cong = _score_or_422(session, "CONGESTION_RISK",     avg_overmilk)
-    k_hk   = _score_or_422(session, "HYPERKERATOSIS_RISK", avg_pf)
+    k_hk   = _score_or_422(session, "HYPERKERATOSIS_RISK", avg_overmilk)
     k_fit  = _score_or_422(session, "FITTING",             diff_pct)
 
     # ----- PULIZIA METRICHE ESISTENTI PER QUESTO RUN (idempotente) -----
@@ -785,7 +785,7 @@ def compute_massage_kpis(
             session.add(obj)
 
     upsert_kpi("CONGESTION_RISK",     avg_overmilk, k_cong)
-    upsert_kpi("HYPERKERATOSIS_RISK", avg_pf,       k_hk)
+    upsert_kpi("HYPERKERATOSIS_RISK", avg_overmilk,       k_hk)
     upsert_kpi("FITTING",             diff_pct,     k_fit)
 
     session.commit()
