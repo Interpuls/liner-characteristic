@@ -239,9 +239,9 @@ function SmtHoodCard({ token, application }) {
                       tooltip="SMTmax − 45 (kPa)"
                     />
                     <DerivedBox
-                      label="Fluydodynamic"
-                      value={perFlow[f].fluydodynamic?.value}
-                      score={perFlow[f].fluydodynamic?.score}
+                      label="Fluydodinamic"
+                      value={perFlow[f].fluydodinamic?.value}
+                      score={perFlow[f].fluydodinamic?.score}
                       tooltip="(SMTmax − SMTmin) − max(SMTmax − 45, 0)"
                     />
                     <DerivedBox
@@ -281,7 +281,7 @@ function SmtHoodCard({ token, application }) {
             <Heading size="sm" mb={2}>KPIs</Heading>
             <SimpleGrid columns={{ base: 1, md: 4 }} gap={3}>
               <KpiBox title="Respray" k={kpis?.RESPRAY} />
-              <KpiBox title="Fluydodynamic" k={kpis?.FLUYDODINAMIC} />
+              <KpiBox title="Fluydodinamic" k={kpis?.FLUYDODINAMIC} />
               <KpiBox title="Slippage" k={kpis?.SLIPPAGE} />
               <KpiBox title="Ringing risk" k={kpis?.RINGING_RISK} />
             </SimpleGrid>
