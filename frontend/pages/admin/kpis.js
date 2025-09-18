@@ -12,6 +12,8 @@ import { FiPlus, FiTrash2, FiSave, FiRefreshCcw } from "react-icons/fi";
 import { getToken } from "../../lib/auth";
 import { listKpis, getKpiScales, putKpiScales } from "../../lib/api";
 
+import { BackHomeIcon } from "../../components/ui/BackHomeIcon";
+
 // --- fallback se /kpis non fosse ancora disponibile ---
 const FALLBACK_KPIS = [
   { code: "CLOSURE", name: "Closure" },
@@ -182,9 +184,7 @@ export default function AdminKpis() {
   return (
     <Box maxW="6xl" mx="auto" p={{ base: 4, md: 8 }}>
       <HStack gap={3} mb={4}>
-        <Button as={NextLink} href="/home" variant="outline" size="sm">
-          <ChevronLeftIcon mr={1} /> Home
-        </Button>
+        <BackHomeIcon />
         <Heading size="lg">KPI Definition</Heading>
       </HStack>
 

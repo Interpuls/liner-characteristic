@@ -1,9 +1,9 @@
 import {
   Modal, ModalOverlay, ModalContent, ModalHeader, ModalBody,
-  ModalCloseButton, SimpleGrid, FormControl, FormLabel, Input,
+  ModalCloseButton, SimpleGrid, FormControl, FormLabel,
   Text, Divider, HStack, Button, AlertDialog, AlertDialogOverlay,
   AlertDialogContent, AlertDialogHeader, AlertDialogBody, AlertDialogFooter,
-  useDisclosure
+  useDisclosure, Box
 } from "@chakra-ui/react";
 import { EditIcon, DeleteIcon } from "@chakra-ui/icons";
 import { useRef, useState, useEffect } from "react";
@@ -11,40 +11,21 @@ import { useRef, useState, useEffect } from "react";
 export default function ProductDetailModal({ isOpen, onClose, product, onEdit, onDelete }) {
   const cancelRef = useRef();
   const [confirmOpen, setConfirmOpen] = useState(false);
-  const [form, setForm] = useState(null);
-  const { isOpen: isConfirmOpen, onOpen: onConfirmOpen, onClose: onConfirmClose } = useDisclosure();
-
+  const { onClose: onConfirmClose } = useDisclosure(); // usiamo solo l'helper per la firma
   const [deleting, setDeleting] = useState(false);
 
-    useEffect(() => {
-      if (product) {
-        setForm({
-          brand: product.brand || "",
-          model: product.model || "",
-          mp_depth_mm: product.mp_depth_mm ?? null,
-          orifice_diameter: product.orifice_diameter ?? null,
-          hoodcup_diameter: product.hoodcup_diameter ?? null,
-          return_to_lockring: product.return_to_lockring ?? null,
-          lockring_diameter: product.lockring_diameter ?? null,
-          overall_length: product.overall_length ?? null,
-          milk_tube_id: product.milk_tube_id ?? null,
-          barrell_wall_thickness: product.barrell_wall_thickness ?? null,
-          barrell_conicity: product.barrell_conicity ?? null,
-          hardness: product.hardness ?? null,
-        });
-      }
-    }, [product, isOpen]);
-
-    const handleNumber = (field, value) => {
-      setForm((prev) => ({ ...prev, [field]: value === "" ? null : parseFloat(value) }));
-    };
+  useEffect(() => {
+    // reset stato conferma quando il modal si (ri)apre/chiude
+    if (!isOpen) setConfirmOpen(false);
+  }, [isOpen]);
 
   const handleDelete = async () => {
     if (deleting || !product?.id) return;
     setDeleting(true);
     try {
       await onDelete(product.id);
-      onConfirmClose();
+      setConfirmOpen(false);
+      onConfirmClose?.();
       onClose();
     } finally {
       setDeleting(false);
@@ -53,10 +34,22 @@ export default function ProductDetailModal({ isOpen, onClose, product, onEdit, o
 
   if (!product) return null;
 
+  // Campo “solo lettura” reso come testo, non come input
   const F = ({ label, value }) => (
     <FormControl>
       <FormLabel fontSize="sm" color="gray.600">{label}</FormLabel>
-      <Input value={value ?? ""} isReadOnly />
+      <Box
+        borderWidth="1px"
+        borderRadius="md"
+        px={3}
+        py={2}
+        bg="gray.50"
+        _dark={{ bg: "gray.700", borderColor: "gray.600" }}
+      >
+        <Text fontWeight="medium">
+          {value !== null && value !== undefined && value !== "" ? value : "-"}
+        </Text>
+      </Box>
     </FormControl>
   );
 
@@ -111,7 +104,6 @@ export default function ProductDetailModal({ isOpen, onClose, product, onEdit, o
               >
                 Edit product
               </Button>
-
             </HStack>
           </ModalBody>
         </ModalContent>
@@ -140,7 +132,7 @@ export default function ProductDetailModal({ isOpen, onClose, product, onEdit, o
               <Button
                 colorScheme="red"
                 ml={3}
-                onClick={() => { void handleDelete(); }} 
+                onClick={handleDelete}
                 isLoading={deleting}
               >
                 Delete

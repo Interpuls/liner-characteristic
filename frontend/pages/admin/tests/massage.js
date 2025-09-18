@@ -1,12 +1,11 @@
 import { useEffect, useMemo, useState } from "react";
 import {
   Box, SimpleGrid, Card, CardHeader, CardBody, Text,
-  HStack, VStack, Input, Button, Divider, Spinner, Tag, TagLabel,
-  Stat, StatNumber, Tooltip, Select, useToast, Heading
+  HStack, VStack, Input, Button, Divider, Spinner,
+  Stat, StatNumber, Tooltip, Heading, Tag, TagLabel,
+  InputGroup, InputLeftAddon
 } from "@chakra-ui/react";
-import { getToken } from "@/lib/auth";
 import {
-  listProducts, listProductApplications,
   getKpiValuesByPA, getLatestMassageRun,
   createMassageRun, computeMassageRun, updateMassagePoints
 } from "@/lib/api";
@@ -16,7 +15,7 @@ import { AppSizePill } from "../../../components/ui/AppSizePill";
 const PRESSURES = [45, 40, 35];
 const MASSAGE_COLOR = "teal";
 
-// score helpers (coerenti con TPP/Speed)
+// score helpers
 const scoreColor = (s) =>
   s >= 4 ? "green.500" :
   s === 3 ? "green.400" :
@@ -35,101 +34,18 @@ const fmtNum = (v) =>
 const fmtPct = (v) =>
   v == null ? "—" : Number(v).toLocaleString("it-IT", { style: "percent", minimumFractionDigits: 1, maximumFractionDigits: 1 });
 
-export default function MassageTestPage() {
-  const toast = useToast();
-  const [token, setToken] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [products, setProducts] = useState([]);
-  const [selectedProductId, setSelectedProductId] = useState("");
-  const [applications, setApplications] = useState([]);
-  const [fetchingApps, setFetchingApps] = useState(false);
+export default function AdminMassageTest({ token, pid, product, apps }) {
+  if (!pid) return <Box py={8} textAlign="center" color="gray.500">Select a product to start.</Box>;
 
-  useEffect(() => {
-    const t = getToken();
-    if (!t) { window.location.replace("/login"); return; }
-    setToken(t);
-  }, []);
-
-  useEffect(() => {
-    if (!token) return;
-    (async () => {
-      setLoading(true);
-      try {
-        const rows = await listProducts(token, { product_type: "liner", limit: 100 });
-        const items = Array.isArray(rows) ? rows : (rows?.items ?? []);
-        setProducts(items);
-      } catch (e) {
-        toast({ title: "Errore caricamento prodotti", status: "error" });
-        setProducts([]);
-      } finally {
-        setLoading(false);
-      }
-    })();
-  }, [token]);
-
-  useEffect(() => {
-    if (!token || !selectedProductId) { setApplications([]); return; }
-    (async () => {
-      setFetchingApps(true);
-      try {
-        const apps = await listProductApplications(token, selectedProductId);
-        setApplications(Array.isArray(apps) ? apps.sort((a,b)=>a.size_mm-b.size_mm) : []);
-      } catch {
-        setApplications([]);
-      } finally {
-        setFetchingApps(false);
-      }
-    })();
-  }, [token, selectedProductId]);
+  const list = Array.isArray(apps) ? apps : [];
+  if (!list.length) return <Box py={8} textAlign="center" color="gray.500">No applications for this product.</Box>;
 
   return (
-    <Box>
-      {/* Heading rimosso come richiesto */}
-
-      {/* Selettore prodotto in Card, come TPP/Speed */}
-      <Card mb={4}>
-        <CardBody>
-          <SimpleGrid columns={{ base: 1, md: 2 }} gap={4}>
-            <Box>
-              <Text fontSize="sm" color="gray.600" mb={1}>Select product</Text>
-              <Select
-                placeholder="Choose a product"
-                value={selectedProductId}
-                onChange={(e) => setSelectedProductId(e.target.value)}
-                isDisabled={loading}
-              >
-                {products.map((p) => (
-                  <option key={p.id} value={p.id}>
-                    {(p.brand ? `${p.brand} ` : "") + (p.model || p.name || `#${p.id}`)}
-                  </option>
-                ))}
-              </Select>
-            </Box>
-          </SimpleGrid>
-        </CardBody>
-      </Card>
-
-      {loading && (
-        <HStack><Spinner /><Text>Loading products…</Text></HStack>
-      )}
-
-      {fetchingApps && (
-        <HStack><Spinner /><Text>Loading applications…</Text></HStack>
-      )}
-
-      <SimpleGrid columns={{ base: 1, md: 2 }} spacing={4}>
-        {applications.map((pa) => (
-          <MassageCard key={pa.id} token={token} application={pa} />
-        ))}
-      </SimpleGrid>
-
-      {!loading && selectedProductId && applications.length === 0 && (
-        <Box py={8} textAlign="center" color="gray.500">No applications for this product.</Box>
-      )}
-      {!loading && !selectedProductId && (
-        <Box py={8} textAlign="center" color="gray.500">Select a product to start.</Box>
-      )}
-    </Box>
+    <SimpleGrid columns={{ base: 1, md: 2 }} spacing={4}>
+      {list.map((pa) => (
+        <MassageCard key={pa.id} token={token} application={pa} />
+      ))}
+    </SimpleGrid>
   );
 }
 
@@ -223,9 +139,8 @@ function MassageCard({ token, application }) {
     <Card variant="outline">
       <CardHeader>
         <HStack justify="space-between" align="center">
-          {/* SOLO application size come chip/tag arrotondato */}
-          <AppSizePill color={MASSAGE_COLOR}>{application.size_mm} mm</AppSizePill>
-          {busy && <Spinner size="sm" />}
+          <AppSizePill color={MASSAGE_COLOR} size="sm">{application.size_mm} mm</AppSizePill>
+          {busy && <Spinner size="s" />}
         </HStack>
       </CardHeader>
       <CardBody>
@@ -239,21 +154,27 @@ function MassageCard({ token, application }) {
               <SimpleGrid columns={{ base: 1, md: 2 }} gap={3}>
                 <Box>
                   <Text fontSize="xs" color="gray.500" mb={1}>Min</Text>
-                  <Input
-                    type="number"
-                    value={inputs[k].min_val}
-                    onChange={(e) => onChange(k, "min_val", e.target.value)}
-                    isDisabled={saving}
-                  />
+                  <InputGroup>
+                    <InputLeftAddon fontSize="sm">kPa</InputLeftAddon>
+                    <Input
+                      type="number"
+                      value={inputs[k].min_val}
+                      onChange={(e) => onChange(k, "min_val", e.target.value)}
+                      isDisabled={saving}
+                    />
+                  </InputGroup>
                 </Box>
                 <Box>
                   <Text fontSize="xs" color="gray.500" mb={1}>Max</Text>
-                  <Input
-                    type="number"
-                    value={inputs[k].max_val}
-                    onChange={(e) => onChange(k, "max_val", e.target.value)}
-                    isDisabled={saving}
-                  />
+                  <InputGroup>
+                    <InputLeftAddon fontSize="sm">kPa</InputLeftAddon>                  
+                    <Input
+                      type="number"
+                      value={inputs[k].max_val}
+                      onChange={(e) => onChange(k, "max_val", e.target.value)}
+                      isDisabled={saving}
+                    />
+                  </InputGroup>
                 </Box>
               </SimpleGrid>
             </Box>
@@ -308,7 +229,7 @@ function MassageCard({ token, application }) {
   );
 }
 
-// “chip” + valore a sinistra (formattazione custom)
+// “chip” + valore a sinistra
 function metricChipBox(label, value, kind /* 'num' | 'pct' */) {
   const display = kind === "pct" ? fmtPct(value) : fmtNum(value);
   return (

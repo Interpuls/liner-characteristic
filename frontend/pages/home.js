@@ -55,9 +55,9 @@ export default function Home() {
         <NavCard href="/compare"  title="Setting Calculator" desc="Confronta due modelli." />
         {isAdmin && (
           <>
-            <NavCard href="/admin/product" title="Gestione Prodotti" desc="Gestione prodotti / modelli." badge="Admin" />
+            <NavCard href="/admin/product" title="Manage Products" desc="Manage liner / models." badge="Admin" />
             <NavCard href="/admin/tests"    title="Campagne di Test"  desc="Registra test e risultati." badge="Admin" />
-            <NavCard href="/admin/kpis"     title="Definizione KPI"   desc="Definisci KPI e formule."  badge="Admin" />
+            <NavCard href="/admin/kpis"     title="KPI Scales"   desc="Define scales for each KPI."  badge="Admin" />
           </>
         )}
       </SimpleGrid>
