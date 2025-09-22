@@ -18,7 +18,7 @@ import {
 } from "react-icons/fi";
 import { LuFlaskConical } from "react-icons/lu";
 
-function NavCard({ href, title, desc, icon: IconComp, iconBg = "gray.100" }) {
+function NavCard({ href, title, desc, icon: IconComp, iconBg = "gray.100", titleColor = "black" }) {
   return (
     <LinkBox
       as="article"
@@ -35,7 +35,7 @@ function NavCard({ href, title, desc, icon: IconComp, iconBg = "gray.100" }) {
               <Icon as={IconComp} boxSize={5} />
             </Center>
           )}
-          <Heading size="md">
+          <Heading size="md" color={titleColor}>
             <LinkOverlay as={NextLink} href={href}>{title}</LinkOverlay>
           </Heading>
         </HStack>
@@ -79,8 +79,8 @@ export default function Home() {
       <HStack mb="6" align="center">
         <HStack spacing={3}>
           {/* Logo dell’app: metti /logo.svg o /logo.png in /public */}
-          {/*<Image src="/logo.jpg" alt="Liner Characteristic" width={36} height={36} />  */}
-          <Heading size="lg">Liner Database</Heading>
+          <Image src="/iconblu.ico" alt="Liner Characteristic" width={36} height={36} />  
+          <Heading size="lg" color="#12305f">Liner Database</Heading>
         </HStack>
         <Spacer />
         {/* Right tools (desktop): Info + Logout */}
@@ -110,6 +110,7 @@ export default function Home() {
           desc="Search and view liner graphs."
           icon={FiSearch}
           iconBg="blue.100"
+          titleColor="#12305f"
         />
         <NavCard
           href="/id-card"
@@ -117,6 +118,7 @@ export default function Home() {
           desc="Detail liner ID card."
           icon={FiCreditCard}
           iconBg="blue.100"
+          titleColor="#12305f"
         />
         <NavCard
           href="/compare"
@@ -124,6 +126,7 @@ export default function Home() {
           desc="Compare two liners models."
           icon={FiSliders}
           iconBg="blue.100"
+          titleColor="#12305f"
         />
         {isAdmin && (
           <>
