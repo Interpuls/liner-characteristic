@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { Image as ChakraImage } from "@chakra-ui/react";
 import {
   Box, Button, Heading, Input, Stack, useToast, Text, Link,
 } from "@chakra-ui/react";
@@ -33,12 +34,10 @@ export default function Login() {
       const next = new URLSearchParams(window.location.search).get("next");
       window.location.replace(next || "/");
     } catch (err) {
-      console.error(err);
-      console.log(err.response);
       toast({
         status: "error",
-        title: "Login fallito",
-        description: "Credenziali non valide o utente non autorizzato",
+        title: "Login failed",
+        description: "Credential not valid or User Unauthorized",
       });
     } finally {
       setLoading(false);
@@ -48,7 +47,17 @@ export default function Login() {
   return (
     <Box minH="100vh" display="flex" alignItems="center" justifyContent="center" p="6">
       <Box w="full" maxW="sm" p="6" borderWidth="1px" rounded="lg">
-        <Heading size="md" mb="4" textAlign="center">Login</Heading>
+        {/* Logo */}
+        <Box display="flex" justifyContent="center" mb="8">
+          <ChakraImage
+            src="/logominimal.jpg"
+            alt="Company logo"
+            maxH="100px"
+            objectFit="contain"
+          />
+        </Box>
+
+
         <form onSubmit={onSubmit}>
           <Stack gap="3">
             <Input
@@ -65,14 +74,15 @@ export default function Login() {
               onChange={(e) => setPw(e.target.value)}
             />
             <Button type="submit" isLoading={loading} colorScheme="blue">
-              Enter
+              Login
             </Button>
           </Stack>
         </form>
+
         <Text fontSize="sm" color="gray.500" mt="4" textAlign="center">
           Access reserved to authorized domains.
         </Text>
-        <Box textAlign="center" mt="3">
+        <Box textAlign="center" mt="3" mb="5">
           <Link color="blue.500" onClick={() => { clearToken(); window.location.reload(); }}>
             Clear session
           </Link>

@@ -7,7 +7,7 @@ import {
   Input, IconButton, useToast, Badge, Text, Divider, Tooltip, Spacer,
   VStack, Icon, Show, Hide, Center, AlertDialog, AlertDialogOverlay,
   AlertDialogContent, AlertDialogHeader, AlertDialogBody, AlertDialogFooter,
-  useDisclosure
+  useDisclosure, useMediaQuery
 } from "@chakra-ui/react";
 import { ChevronLeftIcon } from "@chakra-ui/icons";
 import { FiPlus, FiTrash2, FiSave, FiRefreshCcw, FiBarChart2 } from "react-icons/fi";
@@ -99,6 +99,8 @@ export default function AdminKpis() {
   const [bands, setBands] = useState([]);
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
+
+  const[isNarrow] = useMediaQuery("(max-width: 480px)");
 
   // conferma reset template
   const {
@@ -202,7 +204,7 @@ export default function AdminKpis() {
         <BackHomeIcon />
         <VStack align="start" spacing={1}>
           <HStack spacing={2}>
-            <Icon as={FiBarChart2} boxSize={7} color="grey.500" />
+            <Icon as={FiBarChart2} boxSize={7} color="gray.500" />
             <Heading size="lg">KPI Scales</Heading>
           </HStack>
           <Text fontSize="sm" color="gray.600">
@@ -229,7 +231,11 @@ export default function AdminKpis() {
                 ))}
               </Select>
             </Box>
-            {!!headerKpi && <Badge colorScheme="blue" ml={2} borderRadius={4}>{headerKpi}</Badge>}
+            {!!headerKpi && (
+              <Badge colorScheme="blue" ml={2} borderRadius={4}>
+                {headerKpi}
+              </Badge>
+            )}
             <Spacer />
             <Tooltip label="Reset 4 bands template">
               <IconButton
@@ -270,8 +276,8 @@ export default function AdminKpis() {
           ) : null}
         </CardHeader>
 
-        {/* MOBILE: nasconde la tabella e mostra invito a ruotare */}
-        <Show below="md">
+        {/* Se viewport < 640px: mostra invito a ruotare; altrimenti la tabella */}
+        {isNarrow ? (
           <CardBody>
             <Center py={8} flexDir="column" textAlign="center">
               <Icon as={MdScreenRotation} boxSize={12} mb={3} color="gray.500" />
@@ -280,10 +286,7 @@ export default function AdminKpis() {
               </Text>
             </Center>
           </CardBody>
-        </Show>
-
-        {/* DESKTOP/TABLET (md+): mostra tabella */}
-        <Hide below="md">
+        ) : (
           <CardBody pt={2}>
             <Table size="sm" variant="simple">
               <Thead>
@@ -372,7 +375,7 @@ export default function AdminKpis() {
               (adjacent allowed: next.min can equal prev.max). Negative values are allowed.
             </Box>
           </CardBody>
-        </Hide>
+        )}
       </Card>
 
       {/* Conferma RESET template */}

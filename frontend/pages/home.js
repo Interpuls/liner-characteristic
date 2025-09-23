@@ -1,41 +1,58 @@
 // pages/home.js
 import { useEffect, useState, useRef } from "react";
 import NextLink from "next/link";
-import Image from "next/image";
 import {
   Box, Button, Heading, SimpleGrid, LinkBox, LinkOverlay,
-  Text, HStack, Spacer, useToast, AlertDialog, AlertDialogBody,
+  Text, HStack, useToast, AlertDialog, AlertDialogBody,
   AlertDialogFooter, AlertDialogHeader, AlertDialogContent, AlertDialogOverlay,
-  useDisclosure, Hide, Show, Icon, Center
+  useDisclosure, Show, Icon, Center, useBreakpointValue
 } from "@chakra-ui/react";
-import { InfoOutlineIcon } from "@chakra-ui/icons";
+
 import { getToken, clearToken } from "../lib/auth";
 import { getMe } from "../lib/api";
 
-// Icone "logo" per le card
-import {
-  FiSearch, FiCreditCard, FiSliders, FiPackage, FiFlask, FiBarChart2
-} from "react-icons/fi";
+// Icone card
+import { FiSearch, FiCreditCard, FiSliders, FiPackage, FiBarChart2 } from "react-icons/fi";
 import { LuFlaskConical } from "react-icons/lu";
 
-function NavCard({ href, title, desc, icon: IconComp, iconBg = "gray.100" }) {
+// Componenti UI rebranding (creati in /components)
+import AppHeader from "../components/AppHeader";
+import AppFooter from "../components/AppFooter";
+
+// Card di navigazione (UI only)
+function NavCard({ href, title, desc, icon: IconComp, iconBg = "gray.100", titleColor = "black" }) {
   return (
     <LinkBox
       as="article"
-      p="5"
+      p={5}
       borderWidth="1px"
       rounded="xl"
-      _hover={{ shadow: "md", borderColor: "blue.300" }}
-      transition="all 0.15s ease"
+      bg="white"
+      borderColor="gray.200"
+      transition="all 0.2s ease"
+      _hover={{ transform: "translateY(-3px)", shadow: "md", borderColor: "blue.300" }}
+      role="group"
     >
-      <HStack justify="space-between" mb="2" align="center">
+      <HStack justify="space-between" mb={2} align="center">
         <HStack spacing={3} align="center">
           {IconComp && (
-            <Center w="36px" h="36px" rounded="full" bg={iconBg} borderWidth="1px">
-              <Icon as={IconComp} boxSize={5} />
+            <Center
+              w="40px"
+              h="40px"
+              rounded="full"
+              bg={iconBg}
+              borderWidth="1px"
+              borderColor="gray.200"
+            >
+              <Icon as={IconComp} boxSize={5} color="#12305f" />
             </Center>
           )}
-          <Heading size="md">
+          <Heading
+            size="md"
+            color={titleColor}
+            _groupHover={{ color: "#0f2a52" }}
+            transition="color 0.2s ease"
+          >
             <LinkOverlay as={NextLink} href={href}>{title}</LinkOverlay>
           </Heading>
         </HStack>
@@ -49,9 +66,12 @@ export default function Home() {
   const [role, setRole] = useState(null);
   const toast = useToast();
 
-  // Logout confirm dialog
+  // Dialog logout
   const { isOpen, onOpen, onClose } = useDisclosure();
   const cancelRef = useRef();
+
+  // 🔧 Hook UI sempre chiamato prima di qualsiasi early return (evita errore hooks)
+  const topSpacing = useBreakpointValue({ base: 4, md: 6 });
 
   const handleConfirmLogout = () => {
     clearToken();
@@ -68,107 +88,86 @@ export default function Home() {
         toast({ status: "error", title: "Sessione scaduta" });
         window.location.replace("/login");
       });
-  }, []);
+  }, [toast]);
 
   if (!role) return <Box p="8">Loading…</Box>;
   const isAdmin = role === "admin";
 
   return (
-    <Box maxW="6xl" mx="auto" p={{ base: 4, md: 8 }}>
-      {/* Header */}
-      <HStack mb="6" align="center">
-        <HStack spacing={3}>
-          {/* Logo dell’app: metti /logo.svg o /logo.png in /public */}
-          {/*<Image src="/logo.jpg" alt="Liner Characteristic" width={36} height={36} />  */}
-          <Heading size="lg">Liner Database</Heading>
-        </HStack>
-        <Spacer />
-        {/* Right tools (desktop): Info + Logout */}
-        <Hide below="md">
-          <HStack spacing={2}>
-            <Button
-              as={NextLink}
-              href="/information"
-              leftIcon={<InfoOutlineIcon />}
-              variant="ghost"
-              size="sm"
-            >
-              Info
-            </Button>
-            <Button size="sm" colorScheme="red" onClick={onOpen}>
+    <>
+      {/* Header: banda blu, titolo bianco, icona Info; su desktop include anche icona Logout rossa */}
+      <AppHeader
+        title="Liner Database"
+        logoSrc="/favicon.ico"
+        onLogoutClick={onOpen} // l’icona logout desktop apre il dialog
+      />
+
+      {/* Contenuto */}
+      <Box as="main" maxW="6xl" mx="auto" px={{ base: 4, md: 8 }} pt={topSpacing}>
+        <SimpleGrid columns={{ base: 1, sm: 2, lg: 3 }} gap={4}>
+          <NavCard
+            href="/product"
+            title="Liner Search"
+            desc="Search and view liner graphs."
+            icon={FiSearch}
+            iconBg="blue.50"
+            titleColor="#12305f"
+          />
+          <NavCard
+            href="/id-card"
+            title="Liner ID Card"
+            desc="Detail liner ID card."
+            icon={FiCreditCard}
+            iconBg="blue.50"
+            titleColor="#12305f"
+          />
+          <NavCard
+            href="/compare"
+            title="Setting Calculator"
+            desc="Compare two liners models."
+            icon={FiSliders}
+            iconBg="blue.50"
+            titleColor="#12305f"
+          />
+          {isAdmin && (
+            <>
+              <NavCard
+                href="/admin/product"
+                title="Manage Products"
+                desc="Manage liner / models."
+                icon={FiPackage}
+                iconBg="green.50"
+              />
+              <NavCard
+                href="/admin/tests"
+                title="Tests Campaign"
+                desc="Laboratory workspace."
+                icon={LuFlaskConical}
+                iconBg="green.50"
+              />
+              <NavCard
+                href="/admin/kpis"
+                title="KPI Scales"
+                desc="Define scales for each KPI."
+                icon={FiBarChart2}
+                iconBg="green.50"
+              />
+            </>
+          )}
+        </SimpleGrid>
+
+        {/* MOBILE: Logout in fondo, sopra al footer */}
+        <Show below="md">
+          <HStack mt={8} justify="center">
+            <Button size="md" width="50%" colorScheme="red" onClick={onOpen}>
               Logout
             </Button>
           </HStack>
-        </Hide>
-      </HStack>
+        </Show>
+      </Box>
 
-      {/* Grid delle card */}
-      <SimpleGrid columns={{ base: 1, sm: 2, lg: 3 }} gap={4}>
-        <NavCard
-          href="/product"
-          title="Liner Search"
-          desc="Search and view liner graphs."
-          icon={FiSearch}
-          iconBg="blue.100"
-        />
-        <NavCard
-          href="/id-card"
-          title="Liner ID Card"
-          desc="Detail liner ID card."
-          icon={FiCreditCard}
-          iconBg="blue.100"
-        />
-        <NavCard
-          href="/compare"
-          title="Setting Calculator"
-          desc="Compare two liners models."
-          icon={FiSliders}
-          iconBg="blue.100"
-        />
-        {isAdmin && (
-          <>
-            <NavCard
-              href="/admin/product"
-              title="Manage Products"
-              desc="Manage liner / models."
-              icon={FiPackage}
-              iconBg="green.100"
-            />
-            <NavCard
-              href="/admin/tests"
-              title="Tests Campaign"
-              desc="Laboratory workspace."
-              icon={LuFlaskConical}
-              iconBg="green.100"
-            />
-            <NavCard
-              href="/admin/kpis"
-              title="KPI Scales"
-              desc="Define scales for each KPI."
-              icon={FiBarChart2}
-              iconBg="green.100"
-            />
-          </>
-        )}
-      </SimpleGrid>
-
-      {/* Azioni (mobile): Info + Logout sotto le card */}
-      <Show below="md">
-        <HStack mt={6} justify="space-between">
-          <Button
-            as={NextLink}
-            href="/information"
-            leftIcon={<InfoOutlineIcon />}
-            variant="outline"
-            size="sm"
-          >
-            Info
-          </Button>
-          <Button size="sm" colorScheme="red" onClick={onOpen}>
-            Logout
-          </Button>
-        </HStack>
-      </Show>
+      {/* Footer grigino minimal */}
+      <AppFooter appName="Liner Characteristic App" />
 
       {/* AlertDialog di conferma logout */}
       <AlertDialog
@@ -178,7 +177,7 @@ export default function Home() {
         isCentered
       >
         <AlertDialogOverlay>
-          <AlertDialogContent>
+          <AlertDialogContent marginInline={2}>
             <AlertDialogHeader fontSize="lg" fontWeight="bold">
               Confirm Logout
             </AlertDialogHeader>
@@ -198,6 +197,6 @@ export default function Home() {
           </AlertDialogContent>
         </AlertDialogOverlay>
       </AlertDialog>
-    </Box>
+    </>
   );
 }
