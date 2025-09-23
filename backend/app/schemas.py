@@ -48,7 +48,16 @@ class ProductIn(BaseModel):
     only_admin: Optional[bool] = False
     notes: Optional[str] = None
     manufactured_at: Optional[date] = None
+    spider_wash_cup: Optional[float] = None
+    wash_cup: Optional[float] = None
+    shell_type: Optional[float] = None
     
+    #technical
+    shell_orifice: Optional[float] = None
+    shell_length: Optional[float] = None
+    shell_external_diameter: Optional[float] = None
+    barrel_diameter: Optional[float] = None
+
     mp_depth_mm: Optional[float] = None
     orifice_diameter: Optional[float] = None
     hoodcup_diameter: Optional[float] = None
@@ -73,8 +82,16 @@ class ProductOut(BaseModel):
     only_admin: bool = False
     notes: Optional[str] = None 
     manufactured_at: Optional[date] = None
+    spider_wash_cup: Optional[float] = None
+    wash_cup: Optional[float] = None
+    shell_type: Optional[float] = None
 
     # specifiche
+    shell_orifice: Optional[float] = None
+    shell_length: Optional[float] = None
+    shell_external_diameter: Optional[float] = None
+    barrel_diameter: Optional[float] = None
+
     mp_depth_mm: Optional[float] = None
     orifice_diameter: Optional[float] = None
     hoodcup_diameter: Optional[float] = None
