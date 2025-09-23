@@ -120,7 +120,7 @@ export default function AdminTests() {
               >
                 {products.map((p) => (
                   <option key={p.id} value={p.id}>
-                    {(p.brand ? `${p.brand} ` : "") + (p.model || p.name || `#${p.id}`)}
+                    {(p.brand ? `${p.brand} ` : "") + (p.model || p.name || `#${p.id}`) + (p.compound ? ` (${p.compound}) ` : " ")}
                   </option>
                 ))}
               </Select>

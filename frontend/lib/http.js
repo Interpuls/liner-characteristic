@@ -58,3 +58,4 @@ export async function http(path, { method = "GET", token, body } = {}) {
     return text || null;
   }
 }
+

@@ -116,7 +116,9 @@ def healthz():
     return {"ok": True}
 
 
-# ---------------------------- Products ----------------------------------------
+# ------------------------------------------------------------------------------
+# ---------------------------- PRODUCTS ----------------------------------------
+# ------------------------------------------------------------------------------
 
 # 3.a META: distinct values per i dropdown
 @app.get("/products/meta", response_model=ProductMetaOut)
@@ -128,15 +130,10 @@ def products_meta(session: Session = Depends(get_session), user=Depends(get_curr
     product_types = distinct_list(Product.product_type) or ["liner"]
     brands       = distinct_list(Product.brand)
     models       = distinct_list(Product.model)
+    compounds    = distinct_list(Product.compound)  # <--- NEW
 
-    # se vuoi ancora esporre le misure disponibili:
-    sizes = session.exec(
-        select(func.distinct(ProductApplication.size_mm))
-    ).all()
-    teat_sizes = [
-        int(s[0]) if isinstance(s, (tuple, list)) else int(s)
-        for s in sizes if s is not None
-    ]
+    sizes = session.exec(select(func.distinct(ProductApplication.size_mm))).all()
+    teat_sizes = [int(s[0]) if isinstance(s, (tuple, list)) else int(s) for s in sizes if s is not None]
 
     kpis = session.exec(select(KpiDef).order_by(KpiDef.created_at.asc())).all()
 
@@ -144,17 +141,20 @@ def products_meta(session: Session = Depends(get_session), user=Depends(get_curr
         product_types=product_types,
         brands=brands,
         models=models,
-        teat_sizes=teat_sizes,  
+        compounds=compounds,          
+        teat_sizes=teat_sizes,
         kpis=kpis
     )
 
 # 3.b LIST con filtri base (senza KPI per ora)
 @app.get("/products", response_model=list[ProductOut])
 def list_products(
-    session: Session = Depends(get_session), user=Depends(get_current_user),
+    session: Session = Depends(get_session), 
+    user=Depends(get_current_user),
     product_type: Optional[str] = Query(None),
     brand: Optional[str] = Query(None),
     model: Optional[str] = Query(None),
+    compound: Optional[str] = Query(None),       
     q: Optional[str] = Query(None),
     limit: int = Query(20, ge=1, le=500),
     offset: int = Query(0, ge=0),
@@ -163,11 +163,20 @@ def list_products(
     if product_type: qy = qy.where(Product.product_type == product_type)
     if brand:        qy = qy.where(Product.brand == brand)
     if model:        qy = qy.where(Product.model == model)
+    if compound:     qy = qy.where(Product.compound == _norm_compound(compound))  
     if q:
         like = f"%{q}%"
         qy = qy.where(
-            (Product.name.ilike(like)) | (Product.brand.ilike(like)) | (Product.model.ilike(like))
+            (Product.name.ilike(like)) |
+            (Product.brand.ilike(like)) |
+            (Product.model.ilike(like)) |
+            (Product.compound.ilike(like))  
         )
+
+    is_admin = getattr(user, "role", "") == "admin"
+    if not is_admin:
+        qy = qy.where(Product.only_admin == False)
+
     qy = qy.order_by(Product.created_at.desc()).limit(limit).offset(offset)
     return session.exec(qy).all()
 
@@ -195,55 +204,80 @@ def save_pref(payload: ProductPreferenceIn, session: Session = Depends(get_sessi
     return pref
 
 
-def slugify(s: str) -> str:
-    s = s.strip().lower()
-    s = re.sub(r'[^a-z0-9]+', '-', s)
-    s = re.sub(r'-{2,}', '-', s).strip('-')
+def _norm_compound(x: str | None) -> str:
+    return (x or "STD").strip().upper()
+
+def _slugify(s: str) -> str:
+    s = (s or "").strip().lower()
+    s = re.sub(r"[^a-z0-9]+", "-", s)
+    s = re.sub(r"-{2,}", "-", s).strip("-")
     return s or "product"
 
 @app.post("/products", response_model=ProductOut, dependencies=[Depends(require_role("admin"))])
 def create_product(payload: ProductIn, session: Session = Depends(get_session)):
-    # 1) check duplicato (brand, model)
-    exists_bm = session.exec(
-        select(Product).where(Product.brand == payload.brand, Product.model == payload.model)
+    brand = (payload.brand or "").strip()
+    model = (payload.model or "").strip()
+    compound = _norm_compound(payload.compound)
+    only_admin = True if payload.only_admin is None else bool(payload.only_admin)
+
+    # 1) unicità (brand, model, compound)
+    dup = session.exec(
+        select(Product).where(
+            Product.brand == brand,
+            Product.model == model,
+            Product.compound == compound,
+        )
     ).first()
-    if exists_bm:
-        raise HTTPException(status_code=409, detail="Product with same brand and model already exists")
+    if dup:
+        raise HTTPException(status_code=409, detail="Product with same brand, model and compound already exists")
 
-    # 2) genera code + name come prima
-    code = payload.code or slugify(f"{payload.brand}-{payload.model}")
-    base_code = code; i = 1
-    while session.exec(select(Product).where(Product.code == code)).first():
-        i += 1
-        code = f"{base_code}-{i}"
-    name = payload.name or payload.model
-
-    # 3) crea prodotto + applications in un'unica transazione
-    obj = Product(
-        code=code,
-        name=name,
-        description=payload.description,
-        product_type="liner",
-        brand=payload.brand,
-        model=payload.model,
-        # specifiche tecniche
-        mp_depth_mm=payload.mp_depth_mm,
-        orifice_diameter=payload.orifice_diameter,
-        hoodcup_diameter=payload.hoodcup_diameter,
-        return_to_lockring=payload.return_to_lockring,
-        lockring_diameter=payload.lockring_diameter,
-        overall_length=payload.overall_length,
-        milk_tube_id=payload.milk_tube_id,
-        barrell_wall_thickness=payload.barrell_wall_thickness,
-        barrell_conicity=payload.barrell_conicity,
-        hardness=payload.hardness,
-    )
-    session.add(obj)
     try:
-        # flush per avere obj.id senza chiudere la transazione
-        session.flush()
+        # 2) se questa nasce pubblica => demoto eventuali altre pubbliche di stesso brand/model
+        if not only_admin:
+            session.exec(
+                sa.update(Product)
+                .where(
+                    Product.brand == brand,
+                    Product.model == model,
+                    Product.only_admin == sa.false(),
+                )
+                .values(only_admin=True)
+            )
 
-        # 4) crea le 4 applications standard
+        # 3) code univoco
+        base_code = payload.code or _slugify(f"{brand}-{model}-{compound}")
+        code = base_code
+        i = 1
+        while session.exec(select(Product).where(Product.code == code)).first():
+            i += 1
+            code = f"{base_code}-{i}"
+
+        obj = Product(
+            code=code,
+            name=payload.name or model or code,
+            description=payload.description,
+            product_type="liner",
+            brand=brand,
+            model=model,
+            compound=compound,
+            only_admin=only_admin,
+            notes=payload.notes,
+            manufactured_at=payload.manufactured_at,
+            mp_depth_mm=payload.mp_depth_mm,
+            orifice_diameter=payload.orifice_diameter,
+            hoodcup_diameter=payload.hoodcup_diameter,
+            return_to_lockring=payload.return_to_lockring,
+            lockring_diameter=payload.lockring_diameter,
+            overall_length=payload.overall_length,
+            milk_tube_id=payload.milk_tube_id,
+            barrell_wall_thickness=payload.barrell_wall_thickness,
+            barrell_conicity=payload.barrell_conicity,
+            hardness=payload.hardness,
+        )
+        session.add(obj)
+        session.flush()  # vogliamo obj.id per le applications
+
+        # 4) crea le 4 application standard
         for size in (40, 50, 60, 70):
             session.add(ProductApplication(
                 product_id=obj.id,
@@ -251,14 +285,20 @@ def create_product(payload: ProductIn, session: Session = Depends(get_session)):
                 label=SIZE_LABELS[size],
             ))
 
-        session.commit()         # unico commit per prodotto + applications
-    except IntegrityError:
+        session.commit()
+        session.refresh(obj)
+        return obj
+
+    except IntegrityError as e:
         session.rollback()
-        # se è scattato il vincolo (brand,model) o (product_id,size_mm)
-        # ritorna errore coerente
-        raise HTTPException(status_code=409, detail="Product or applications already exist")
-    session.refresh(obj)
-    return obj
+        # facciamo propagare messaggi utili
+        msg = str(getattr(e, "orig", e))
+        if "ux_products_brand_model_compound" in msg:
+            raise HTTPException(status_code=409, detail="Product with same brand, model and compound already exists")
+        raise HTTPException(status_code=409, detail="Could not create product")
+    except Exception:
+        session.rollback()
+        raise HTTPException(status_code=500, detail="Could not create product")
 
 
 @app.get("/products/{product_id}", response_model=ProductOut)
@@ -273,57 +313,81 @@ def get_product(product_id: int, session: Session = Depends(get_session), user=D
 def update_product(product_id: int, payload: ProductIn, session: Session = Depends(get_session)):
     obj = session.get(Product, product_id)
     if not obj:
-        raise HTTPException(status_code=404, detail="Not found")
+        raise HTTPException(status_code=404, detail="Product not found")
 
-    # Se cambiano brand+model, controlla il duplicato
-    if (payload.brand is not None and payload.model is not None) and \
-       (payload.brand != obj.brand or payload.model != obj.model):
-        dup = session.exec(
-            select(Product).where(
-                Product.brand == payload.brand,
-                Product.model == payload.model,
-                Product.id != product_id,
-            )
-        ).first()
-        if dup:
-            raise HTTPException(status_code=409, detail="Product with same brand and model already exists")
+    # nuovi valori candidati (se non passati, mantieni gli attuali)
+    new_brand = (payload.brand if payload.brand is not None else obj.brand) or ""
+    new_model = (payload.model if payload.model is not None else obj.model) or ""
+    new_compound = _norm_compound(payload.compound if payload.compound is not None else obj.compound)
+    new_only_admin = obj.only_admin if payload.only_admin is None else bool(payload.only_admin)
 
-    # --- NON sovrascrivere code/name con None ---
-    # Cambia code SOLO se viene passato (e diverso) e rimane unico
-    if payload.code is not None and payload.code != obj.code:
-        exists = session.exec(select(Product).where(Product.code == payload.code)).first()
-        if exists:
-            raise HTTPException(status_code=400, detail="Product code already exists")
-        obj.code = payload.code
-
-    # Cambia name SOLO se viene passato; se non arriva, lo lasci com’è
-    if payload.name is not None:
-        obj.name = payload.name
-
-    # Aggiorna gli altri campi (accettiamo anche None per azzerarli)
-    if payload.brand is not None:  obj.brand = payload.brand
-    if payload.model is not None:  obj.model = payload.model
-    obj.description = payload.description
-
-    obj.mp_depth_mm = payload.mp_depth_mm
-    obj.orifice_diameter = payload.orifice_diameter
-    obj.hoodcup_diameter = payload.hoodcup_diameter
-    obj.return_to_lockring = payload.return_to_lockring
-    obj.lockring_diameter = payload.lockring_diameter
-    obj.overall_length = payload.overall_length
-    obj.milk_tube_id = payload.milk_tube_id
-    obj.barrell_wall_thickness = payload.barrell_wall_thickness
-    obj.barrell_conicity = payload.barrell_conicity
-    obj.hardness = payload.hardness
+    # unicità (brand,model,compound) escludendo se stesso
+    dup = session.exec(
+        select(Product).where(
+            Product.id != product_id,
+            Product.brand == new_brand,
+            Product.model == new_model,
+            Product.compound == new_compound,
+        )
+    ).first()
+    if dup:
+        raise HTTPException(status_code=409, detail="Product with same brand, model and compound already exists")
 
     try:
+        # se questa diventa pubblica => demoto eventuali altre pubbliche stesso brand/model
+        if new_only_admin is False:
+            session.exec(
+                sa.update(Product)
+                .where(
+                    Product.id != product_id,
+                    Product.brand == new_brand,
+                    Product.model == new_model,
+                    Product.only_admin == sa.false(),
+                )
+                .values(only_admin=True)
+            )
+
+        # applica patch
+        if payload.code is not None and payload.code != obj.code:
+            # assicurati code univoco
+            exists = session.exec(select(Product).where(Product.code == payload.code)).first()
+            if exists:
+                raise HTTPException(status_code=400, detail="Product code already exists")
+            obj.code = payload.code
+        if payload.name is not None: obj.name = payload.name
+        obj.brand = new_brand
+        obj.model = new_model
+        obj.compound = new_compound
+        if payload.description is not None: obj.description = payload.description
+        obj.only_admin = new_only_admin
+        obj.notes = payload.notes if payload.notes is not None else obj.notes
+        obj.manufactured_at = payload.manufactured_at if payload.manufactured_at is not None else obj.manufactured_at
+
+        obj.mp_depth_mm = payload.mp_depth_mm
+        obj.orifice_diameter = payload.orifice_diameter
+        obj.hoodcup_diameter = payload.hoodcup_diameter
+        obj.return_to_lockring = payload.return_to_lockring
+        obj.lockring_diameter = payload.lockring_diameter
+        obj.overall_length = payload.overall_length
+        obj.milk_tube_id = payload.milk_tube_id
+        obj.barrell_wall_thickness = payload.barrell_wall_thickness
+        obj.barrell_conicity = payload.barrell_conicity
+        obj.hardness = payload.hardness
+
         session.add(obj)
         session.commit()
-    except IntegrityError:
+        session.refresh(obj)
+        return obj
+
+    except IntegrityError as e:
         session.rollback()
+        msg = str(getattr(e, "orig", e))
+        if "ux_products_brand_model_compound" in msg:
+            raise HTTPException(status_code=409, detail="Product with same brand, model and compound already exists")
         raise HTTPException(status_code=409, detail="Update violates unique constraints")
-    session.refresh(obj)
-    return obj
+    except Exception:
+        session.rollback()
+        raise HTTPException(status_code=500, detail="Could not update product")
 
 
 @app.delete("/products/{product_id}", status_code=204, dependencies=[Depends(require_role("admin"))])
@@ -335,7 +399,10 @@ def delete_product(product_id: int, session: Session = Depends(get_session)):
     session.commit()
     return
 
-# ------------------------ Product Applications -------------------------------
+# -----------------------------------------------------------------------------
+# ------------------------ PRODUCT APPLICATIONS -------------------------------
+# -----------------------------------------------------------------------------
+
 @app.get("/products/{product_id}/applications",
          response_model=list[ProductApplicationOut])
 def list_product_applications(

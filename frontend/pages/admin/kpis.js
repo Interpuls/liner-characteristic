@@ -100,7 +100,7 @@ export default function AdminKpis() {
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
 
-  const[isNarrow] = useMediaQuery("(max-width: 640px)");
+  const[isNarrow] = useMediaQuery("(max-width: 480px)");
 
   // conferma reset template
   const {
@@ -212,7 +212,7 @@ export default function AdminKpis() {
           </Text>
         </VStack>
       </HStack>
-  
+
       {/* Selettore KPI + badge + description */}
       <Card>
         <CardHeader pb={2}>
@@ -267,7 +267,7 @@ export default function AdminKpis() {
               </Button>
             </Tooltip>
           </HStack>
-          
+
           {/* Descrizione KPI dal DB */}
           {selectedKpi?.description ? (
             <Text mt={3} fontSize="sm" color="gray.600">
@@ -275,7 +275,7 @@ export default function AdminKpis() {
             </Text>
           ) : null}
         </CardHeader>
-        
+
         {/* Se viewport < 640px: mostra invito a ruotare; altrimenti la tabella */}
         {isNarrow ? (
           <CardBody>
@@ -367,9 +367,9 @@ export default function AdminKpis() {
                 )}
               </Tbody>
             </Table>
-              
+
             <Divider my={4} />
-              
+
             <Box color="gray.600" fontSize="sm">
               <strong>Rules:</strong> score ∈ {`{1,2,3,4}`}; bands must be ordered (min ≤ max), no overlaps
               (adjacent allowed: next.min can equal prev.max). Negative values are allowed.
@@ -377,7 +377,7 @@ export default function AdminKpis() {
           </CardBody>
         )}
       </Card>
-      
+
       {/* Conferma RESET template */}
       <AlertDialog
         isOpen={isResetOpen}

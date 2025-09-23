@@ -35,21 +35,28 @@ class User(SQLModel, table=True):
 
 class Product(SQLModel, table=True):
     __tablename__ = "products"
-        # AUTOINCREMENT vero in SQLite (evita riuso ID)
     __table_args__ = (
-        sa.UniqueConstraint("brand", "model", name="ux_products_brand_model"),
+        sa.UniqueConstraint("brand", "model", "compound", name="ux_products_brand_model_compound"),
         sa.UniqueConstraint("code", name="ux_products_code"),
         sa.Index("ix_products_name", "name"),
-        {"sqlite_autoincrement": True},   # <— importante
+        {"sqlite_autoincrement": True},   
     )
     id: int | None = Field(default=None, primary_key=True)
     code: str = Field(index=True)
     name: str
     description: Optional[str] = None
-    # nuovi campi per filtri base
+    
     product_type: Optional[str] = Field(default="liner", index=True)
     brand: Optional[str] = Field(default=None, index=True)
     model: Optional[str] = Field(default=None, index=True)
+    compound: str = Field(default="STD", index=True)     
+    only_admin: bool = Field(default=False, index=True)  
+    notes: Optional[str] = None                          
+    manufactured_at: date | None = Field(
+        default=None,
+        sa_column=sa.Column(sa.Date(), nullable=True)
+    )
+
     # specifiche tecniche
     mp_depth_mm: Optional[float] = None
     orifice_diameter: Optional[float] = None
@@ -63,12 +70,7 @@ class Product(SQLModel, table=True):
     hardness: Optional[float] = None
 
     created_at: datetime = Field(default_factory=datetime.utcnow, nullable=False)
-    __table_args__ = (
-        UniqueConstraint("code", name="uq_products_code"),
-        Index("ix_products_name", "name"),
-    )
 
-    # applications: list["ProductApplication"] = Relationship(back_populates="product")
 
 
 class ProductApplication(SQLModel, table=True):

@@ -1,7 +1,7 @@
 from typing import Optional, Any, Dict, List
 from pydantic import BaseModel, EmailStr, condecimal, constr, Field
 from enum import Enum
-from datetime import datetime
+from datetime import datetime, date
 
 NameStr = constr(min_length=2, max_length=100)
 Num01 = condecimal(ge=0, max_digits=6, decimal_places=3)
@@ -43,6 +43,11 @@ class ProductIn(BaseModel):
     description: Optional[str] = None
     brand: constr(min_length=1)
     model: constr(min_length=1)
+
+    compound: constr(min_length=1)
+    only_admin: Optional[bool] = False
+    notes: Optional[str] = None
+    manufactured_at: Optional[date] = None
     
     mp_depth_mm: Optional[float] = None
     orifice_diameter: Optional[float] = None
@@ -63,6 +68,12 @@ class ProductOut(BaseModel):
     product_type: Optional[str] = None
     brand: Optional[str] = None
     model: Optional[str] = None
+
+    compound: str
+    only_admin: bool = False
+    notes: Optional[str] = None 
+    manufactured_at: Optional[date] = None
+
     # specifiche
     mp_depth_mm: Optional[float] = None
     orifice_diameter: Optional[float] = None
@@ -93,6 +104,7 @@ class ProductMetaOut(BaseModel):
     product_types: List[str]
     brands: List[str]
     models: List[str]
+    compounds: List[str]
     teat_sizes: List[int]
     kpis: List["KpiDefOut"] 
 
