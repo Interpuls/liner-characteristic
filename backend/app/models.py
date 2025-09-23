@@ -56,8 +56,16 @@ class Product(SQLModel, table=True):
         default=None,
         sa_column=sa.Column(sa.Date(), nullable=True)
     )
+    spider_wash_cup: Optional[float] = None
+    wash_cup: Optional[float] = None
+    shell_type: Optional[float] = None
 
     # specifiche tecniche
+    shell_orifice: Optional[float] = None
+    shell_length: Optional[float] = None
+    shell_external_diameter: Optional[float] = None
+    barrel_diameter: Optional[float] = None
+
     mp_depth_mm: Optional[float] = None
     orifice_diameter: Optional[float] = None
     hoodcup_diameter: Optional[float] = None
