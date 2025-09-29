@@ -1,0 +1,24 @@
+name: Tech task
+description: Debito tecnico/manutenzione
+title: "[CHORE] "
+labels: ["type:chore", "status:ready"]
+body:
+  - type: textarea
+    id: context
+    attributes:
+      label: Contesto
+      placeholder: "Perché serve, cosa sistemiamo?"
+    validations: { required: true }
+  - type: textarea
+    id: plan
+    attributes:
+      label: Piano di intervento
+      placeholder: "Passi previsti, rollback, rischi"
+  - type: checkboxes
+    id: acceptance
+    attributes:
+      label: Criteri di accettazione
+      options:
+        - label: Lint/test verdi
+        - label: Documentazione aggiornata (se serve)
+        - label: Nessun breaking change non comunicato
