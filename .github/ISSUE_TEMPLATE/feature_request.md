@@ -7,14 +7,37 @@ assignees: ''
 
 ---
 
-**Is your feature request related to a problem? Please describe.**
-A clear and concise description of what the problem is. Ex. I'm always frustrated when [...]
-
-**Describe the solution you'd like**
-A clear and concise description of what you want to happen.
-
-**Describe alternatives you've considered**
-A clear and concise description of any alternative solutions or features you've considered.
-
-**Additional context**
-Add any other context or screenshots about the feature request here.
+name: Feature request
+description: Proponi una nuova funzionalità o miglioramento
+title: "[FEAT] "
+labels: ["type:feature", "status:ready"]
+body:
+  - type: textarea
+    id: goal
+    attributes:
+      label: Obiettivo
+      description: Quale problema risolve? Qual è il valore per utente/business?
+    validations: { required: true }
+  - type: textarea
+    id: scope
+    attributes:
+      label: Ambito
+      description: Cosa è IN/OUT? (brief)
+      placeholder: "IN: ...\nOUT: ..."
+  - type: textarea
+    id: details
+    attributes:
+      label: Dettagli (UX/API)
+      description: Schizzi, API, esempi di payload, criteri di UX
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: Criteri di accettazione
+      description: Come verifichiamo che è completa?
+      placeholder: "- [ ] ...\n- [ ] ..."
+    validations: { required: true }
+  - type: textarea
+    id: deps
+    attributes:
+      label: Dipendenze/Impatto
+      description: Servizi, migrazioni, sicurezza, performance
