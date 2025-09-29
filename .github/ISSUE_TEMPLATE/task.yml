@@ -1,0 +1,26 @@
+name: Task
+description: Un'attività tecnica o implementazione di dettaglio
+title: "[TASK] "
+labels: ["type:task", "status:ready"]
+body:
+  - type: textarea
+    id: context
+    attributes:
+      label: Contesto
+      description: Perché serve questo task? (collegalo a una feature o bug)
+      placeholder: "Relativo a #ID_FEATURE"
+    validations: { required: true }
+  - type: textarea
+    id: work
+    attributes:
+      label: Attività da svolgere
+      placeholder: "Es. Creare componente Avatar, scrivere test unitari…"
+    validations: { required: true }
+  - type: checkboxes
+    id: acceptance
+    attributes:
+      label: Criteri di accettazione
+      options:
+        - label: Codice compilato senza errori
+        - label: Test superati
+        - label: Documentazione aggiornata (se necessaria)
