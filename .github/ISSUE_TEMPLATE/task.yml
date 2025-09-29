@@ -1,7 +1,7 @@
 name: Task
 description: Un'attività tecnica o implementazione di dettaglio
 title: "[TASK] "
-labels: ["type:task", "status:ready"]
+labels: ["type:Task", "status:To Do"]
 body:
   - type: textarea
     id: context
