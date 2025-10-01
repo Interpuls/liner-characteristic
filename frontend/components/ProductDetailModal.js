@@ -1,3 +1,6 @@
+// Modale di dettaglio del prodotto che si apre dalla pagina prodotti per visualizzare i dettagli specifici di un prodotto
+
+//import vari
 import {
   Modal, ModalOverlay, ModalContent, ModalHeader, ModalBody,
   ModalCloseButton, SimpleGrid, FormControl, FormLabel,
@@ -8,10 +11,12 @@ import {
 import { EditIcon, DeleteIcon } from "@chakra-ui/icons";
 import { useRef, useState, useEffect } from "react";
 
+
+// INIZIO FUNZIONE DEL COMPONENTE MODAL DETAIL
 export default function ProductDetailModal({ isOpen, onClose, product, onEdit, onDelete }) {
   const cancelRef = useRef();
   const [confirmOpen, setConfirmOpen] = useState(false);
-  const { onClose: onConfirmClose } = useDisclosure(); // solo per firma compatibile
+  const { onClose: onConfirmClose } = useDisclosure(); 
   const [deleting, setDeleting] = useState(false);
 
   useEffect(() => {
@@ -36,7 +41,9 @@ export default function ProductDetailModal({ isOpen, onClose, product, onEdit, o
   const F = ({ label, value, addon }) => {
     const display =
       value !== null && value !== undefined && value !== "" ? value : "-";
-  
+
+
+    // RETURN  
     return (
       <FormControl>
         <FormLabel fontSize="sm" color="gray.600">{label}</FormLabel>
@@ -46,8 +53,8 @@ export default function ProductDetailModal({ isOpen, onClose, product, onEdit, o
             <Input
               value={display}
               isReadOnly
-              pointerEvents="none"     // evita focus/caret
-              tabIndex={-1}            // evita tab stop
+              pointerEvents="none"     
+              tabIndex={-1}            
               variant="outline"
               bg="gray.50"
               _dark={{ bg: "gray.700", borderColor: "gray.600" }}
@@ -85,6 +92,9 @@ export default function ProductDetailModal({ isOpen, onClose, product, onEdit, o
               <F label="Model" value={product.model || product.name} />
               <F label="Compound" value={product.compound} />
               <F label="Manufactured at" value={product.manufactured_at || "-"} />
+              <F label="Spider wash cup" value={product.spider_wash_cup} />
+              <F label="Wash cup" value={product.wash_cup} />
+              <F label="Shell type" value={product.shell_type} />
               <F label="Visible to users" value={product.only_admin ? "No" : "Yes"} />
               <FormControl gridColumn={{ base: "span 1", md: "span 2" }}>
                 <FormLabel fontSize="sm" color="gray.600">Notes</FormLabel>
@@ -96,9 +106,11 @@ export default function ProductDetailModal({ isOpen, onClose, product, onEdit, o
 
             <Divider my={2} />
 
+            {/* SPECIFICHE TECNICHE */}
             <Text fontSize="sm" color="gray.400" mb={2} fontWeight="medium">
               Technical specifications
             </Text>
+
             {/* DISEGNO TECNICO O STILIZZATO DELLA GUAINA */}
             <Box mb={4} display="flex" justifyContent="center">
               <Image
@@ -113,14 +125,22 @@ export default function ProductDetailModal({ isOpen, onClose, product, onEdit, o
                 _dark={{ bg: "gray.800", borderColor: "gray.600" }}
               />
             </Box>
+
+            {/* CAMPI TECNICI DEL PRODOTTO */}
             <SimpleGrid columns={{ base:1, md:2 }} gap={4} mb={6}>
-              <F label="MP depth (mm)" value={product.mp_depth_mm} addon="A"/>
+              <F label="Liner length" value={product.liner_length} addon="A" />
+              <F label="Hoodcup diameter (mm)" value={product.hoodcup_diameter} addon="B"/>
+              <F label="Orifice diameter (mm)" value={product.orifice_diameter} addon="C"/>
+              <F label="Barrel diameter at 75mm" value={product.barrel_diameter} addon="D"/>
+              <F label="Return to lockring (mm)" value={product.return_to_lockring} addon="E" />
+              <F label="Lockring diameter (mm)" value={product.lockring_diameter} addon="F"/>
+              <F label="Milk tube ID (mm)" value={product.milk_tube_id} addon="G"/>
+              <F label="MP depth (mm)" value={product.mp_depth_mm} />
+              <F label="Shell Orifice" value={product.shell_orifice} />
+              <F label="Shell Length" value={product.shell_length} />
+              <F label="Shell external diameter" value={product.shell_external_diameter} />
               <F label="Orifice diameter (mm)" value={product.orifice_diameter} />
-              <F label="Hoodcup diameter (mm)" value={product.hoodcup_diameter} />
-              <F label="Return to lockring (mm)" value={product.return_to_lockring} />
-              <F label="Lockring diameter (mm)" value={product.lockring_diameter} />
               <F label="Overall length (mm)" value={product.overall_length} />
-              <F label="Milk tube ID (mm)" value={product.milk_tube_id} />
               <F label="Barrel wall thickness (mm)" value={product.barrell_wall_thickness} />
               <F label="Barrel conicity" value={product.barrell_conicity} />
               <F label="Hardness" value={product.hardness} />
@@ -128,6 +148,8 @@ export default function ProductDetailModal({ isOpen, onClose, product, onEdit, o
 
             <Divider my={4} />
 
+
+            {/* FOOTER DELLA MODALE */}
             <HStack justify="flex-end" spacing={3}>
               <Button
                 leftIcon={<DeleteIcon />}
@@ -148,7 +170,7 @@ export default function ProductDetailModal({ isOpen, onClose, product, onEdit, o
         </ModalContent>
       </Modal>
 
-      {/* Alert conferma delete */}
+      {/* ALERT DI CONFERMA DELETE */}
       <AlertDialog
         isOpen={confirmOpen}
         leastDestructiveRef={cancelRef}
