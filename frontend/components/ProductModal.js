@@ -15,6 +15,7 @@ export default function ProductModal({ isOpen, onClose, meta, onSave }) {
     notes: "",
 
     // technical specs (all optional)
+    liner_length: null,
     mp_depth_mm: null,
     orifice_diameter: null,
     hoodcup_diameter: null,
@@ -63,6 +64,7 @@ export default function ProductModal({ isOpen, onClose, meta, onSave }) {
         manufactured_at: "",
         only_admin: false,
         notes: "",
+        liner_length: null,
         mp_depth_mm: null,
         orifice_diameter: null,
         hoodcup_diameter: null,
@@ -170,6 +172,10 @@ export default function ProductModal({ isOpen, onClose, meta, onSave }) {
 
           <Text fontSize="sm" color="gray.600" mb={2} fontWeight="medium">Technical specifications</Text>
           <SimpleGrid columns={{ base:1, md:2 }} gap={4}>
+            <FormControl>
+              <FormLabel fontSize="sm" color="gray.600">Liner Length (mm)</FormLabel>
+              <Input type="number" value={newProduct.liner_length ?? ""} onChange={(e)=>handleNumberChange("liner_length", e.target.value)} />
+            </FormControl>
             <FormControl>
               <FormLabel fontSize="sm" color="gray.600">MP depth (mm)</FormLabel>
               <Input type="number" value={newProduct.mp_depth_mm ?? ""} onChange={(e)=>handleNumberChange("mp_depth_mm", e.target.value)} />

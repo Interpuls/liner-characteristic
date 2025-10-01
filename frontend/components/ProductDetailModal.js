@@ -36,18 +36,25 @@ export default function ProductDetailModal({ isOpen, onClose, product, onEdit, o
   const F = ({ label, value, addon }) => {
     const display =
       value !== null && value !== undefined && value !== "" ? value : "-";
-  
+
     return (
       <FormControl>
         <FormLabel fontSize="sm" color="gray.600">{label}</FormLabel>
         {addon ? (
-          <InputGroup size="sm">
-            <InputLeftAddon>{addon}</InputLeftAddon>
+          <InputGroup size="md">
+            <InputLeftAddon
+              w="12"                 // larghezza fissa per allineare tutte le lettere
+              justifyContent="center"
+              fontSize="sm"
+              color="inherit"        // evita rosso ereditato
+              _dark={{ bg: "gray.700", borderColor: "gray.600" }}
+            >
+              {addon}
+            </InputLeftAddon>
             <Input
               value={display}
               isReadOnly
-              pointerEvents="none"     // evita focus/caret
-              tabIndex={-1}            // evita tab stop
+              pointerEvents="none"
               variant="outline"
               bg="gray.50"
               _dark={{ bg: "gray.700", borderColor: "gray.600" }}
@@ -68,7 +75,7 @@ export default function ProductDetailModal({ isOpen, onClose, product, onEdit, o
       </FormControl>
     );
   };
-  
+
   return (
     <>
       <Modal isOpen={isOpen} onClose={onClose} size="lg" isCentered>
@@ -76,15 +83,18 @@ export default function ProductDetailModal({ isOpen, onClose, product, onEdit, o
         <ModalContent>
           <ModalHeader>Product details</ModalHeader>
           <ModalCloseButton />
-          <ModalBody pb={6}>
+          <ModalBody pb={6} >
             <Text fontSize="sm" color="gray.400" mb={2} fontWeight="medium">
               Product details
             </Text>
-            <SimpleGrid columns={{ base:1, md:2 }} gap={4} mb={6}>
+            <SimpleGrid columns={{ base:1, md:2, }} gap={4} mb={6}>
               <F label="Brand" value={product.brand} />
               <F label="Model" value={product.model || product.name} />
               <F label="Compound" value={product.compound} />
               <F label="Manufactured at" value={product.manufactured_at || "-"} />
+              <F label="Shell type" value={product.shell_type} />
+              <F label="Wash cup" value={product.wash_cup} /> 
+              <F label="Spider wash cup" value={product.spider_wash_cup} />
               <F label="Visible to users" value={product.only_admin ? "No" : "Yes"} />
               <FormControl gridColumn={{ base: "span 1", md: "span 2" }}>
                 <FormLabel fontSize="sm" color="gray.600">Notes</FormLabel>
@@ -115,12 +125,17 @@ export default function ProductDetailModal({ isOpen, onClose, product, onEdit, o
             </Box>
             <SimpleGrid columns={{ base:1, md:2 }} gap={4} mb={6}>
               <F label="MP depth (mm)" value={product.mp_depth_mm} addon="A"/>
-              <F label="Orifice diameter (mm)" value={product.orifice_diameter} />
-              <F label="Hoodcup diameter (mm)" value={product.hoodcup_diameter} />
-              <F label="Return to lockring (mm)" value={product.return_to_lockring} />
-              <F label="Lockring diameter (mm)" value={product.lockring_diameter} />
+              <F label="Hoodcup diameter (mm)" value={product.hoodcup_diameter} addon="B" />
+              <F label="Orifice diameter (mm)" value={product.orifice_diameter} addon="C" />
+              <F label="Barrel diameter at 75 mm" value={product.barrel_diameter} addon="D" />
+              <F label="Return to lockring (mm)" value={product.return_to_lockring} addon="E" />
+              <F label="Lockring diameter (mm)" value={product.lockring_diameter} addon="F" />
+              <F label="Milk tube ID (mm)" value={product.milk_tube_id} addon="G"/>
+              <F label="Shell orifice (mm)" value={product.shell_orifice} addon="H"/>
+              <F label="Shell length (mm)" value={product.shell_length} addon="I"/>
+              <F label="Shell external diameter (mm)" value={product.shell_external_diameter} addon="L"/>
               <F label="Overall length (mm)" value={product.overall_length} />
-              <F label="Milk tube ID (mm)" value={product.milk_tube_id} />
+              <F label="Hoodcup diameter (mm)" value={product.hoodcup_diameter} />
               <F label="Barrel wall thickness (mm)" value={product.barrell_wall_thickness} />
               <F label="Barrel conicity" value={product.barrell_conicity} />
               <F label="Hardness" value={product.hardness} />
@@ -154,8 +169,8 @@ export default function ProductDetailModal({ isOpen, onClose, product, onEdit, o
         leastDestructiveRef={cancelRef}
         onClose={() => setConfirmOpen(false)}
       >
-        <AlertDialogOverlay>
-          <AlertDialogContent>
+        <AlertDialogOverlay >
+          <AlertDialogContent marginInline={2}>
             <AlertDialogHeader fontSize="lg" fontWeight="bold">
               Delete product
             </AlertDialogHeader>

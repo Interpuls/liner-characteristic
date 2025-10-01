@@ -193,9 +193,21 @@ export default function ProductEditModal({ isOpen, onClose, meta, product, onSav
             <SimpleGrid columns={{ base:1, md:2 }} gap={4}>
               <FormControl>
                 <FormLabel fontSize="sm" color="gray.600">MP depth (mm)</FormLabel>
-                <InputGroup>
-                  <InputLeftAddon color="red" fontSize="sm">A</InputLeftAddon>
-                  <Input type="number" value={form.mp_depth_mm ?? ""} onChange={(e)=>handleNumber("mp_depth_mm", e.target.value)} />
+                <InputGroup size="md">
+                  <InputLeftAddon
+                    w="12"
+                    justifyContent="center"
+                    fontSize="sm"
+                    color="inherit"
+                    _dark={{ bg: "gray.700", borderColor: "gray.600" }}
+                  >
+                    A
+                  </InputLeftAddon>
+                  <Input
+                    type="number"
+                    value={form.mp_depth_mm ?? ""}
+                    onChange={(e)=>handleNumber("mp_depth_mm", e.target.value)}
+                  />
                 </InputGroup>
               </FormControl>
               <FormControl>
@@ -253,7 +265,7 @@ export default function ProductEditModal({ isOpen, onClose, meta, product, onSav
       {/* Confirm delete */}
       <AlertDialog isOpen={isConfirmOpen} leastDestructiveRef={cancelRef} onClose={onConfirmClose} isCentered>
         <AlertDialogOverlay>
-          <AlertDialogContent>
+          <AlertDialogContent marginInline={2}>
             <AlertDialogHeader fontSize="lg" fontWeight="bold">Delete product</AlertDialogHeader>
             <AlertDialogBody>
               Are you sure? This will permanently delete the product.
