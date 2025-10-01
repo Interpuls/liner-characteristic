@@ -43,7 +43,6 @@ export default function ProductDetailModal({ isOpen, onClose, product, onEdit, o
       value !== null && value !== undefined && value !== "" ? value : "-";
 
 
-    // RETURN  
     return (
       <FormControl>
         <FormLabel fontSize="sm" color="gray.600">{label}</FormLabel>
