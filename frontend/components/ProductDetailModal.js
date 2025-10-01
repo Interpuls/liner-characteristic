@@ -124,7 +124,7 @@ export default function ProductDetailModal({ isOpen, onClose, product, onEdit, o
                 _dark={{ bg: "gray.800", borderColor: "gray.600" }}
               />
             </Box>
-
+ 
             {/* CAMPI TECNICI DEL PRODOTTO */}
             <SimpleGrid columns={{ base:1, md:2 }} gap={4} mb={6}>
               <F label="Liner length" value={product.liner_length} addon="A" />
@@ -134,6 +134,7 @@ export default function ProductDetailModal({ isOpen, onClose, product, onEdit, o
               <F label="Return to lockring (mm)" value={product.return_to_lockring} addon="E" />
               <F label="Lockring diameter (mm)" value={product.lockring_diameter} addon="F"/>
               <F label="Milk tube ID (mm)" value={product.milk_tube_id} addon="G"/>
+              {/* Campi non presenti nel disegno */}
               <F label="MP depth (mm)" value={product.mp_depth_mm} />
               <F label="Shell Orifice" value={product.shell_orifice} />
               <F label="Shell Length" value={product.shell_length} />
