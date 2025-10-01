@@ -47,6 +47,7 @@ function ProductSpecsCard({ product }) {
           <V label="Barrel wall th." value={product.barrell_wall_thickness} unit="mm" />
           <V label="Barrel conicity" value={product.barrell_conicity} />
           <V label="Hardness" value={product.hardness} />
+          <V label="Shell Orifice" value={product.shell_orifice} />
         </SimpleGrid>
       </CardBody>
     </Card>
