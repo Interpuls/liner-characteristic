@@ -1,5 +1,6 @@
 // Modale di dettaglio del prodotto che si apre dalla pagina prodotti per visualizzare i dettagli specifici di un prodotto
 
+//import vari
 import {
   Modal, ModalOverlay, ModalContent, ModalHeader, ModalBody,
   ModalCloseButton, SimpleGrid, FormControl, FormLabel,
@@ -10,10 +11,12 @@ import {
 import { EditIcon, DeleteIcon } from "@chakra-ui/icons";
 import { useRef, useState, useEffect } from "react";
 
+
+// INIZIO FUNZIONE DEL COMPONENTE MODAL DETAIL
 export default function ProductDetailModal({ isOpen, onClose, product, onEdit, onDelete }) {
   const cancelRef = useRef();
   const [confirmOpen, setConfirmOpen] = useState(false);
-  const { onClose: onConfirmClose } = useDisclosure();
+  const { onClose: onConfirmClose } = useDisclosure(); 
   const [deleting, setDeleting] = useState(false);
 
   useEffect(() => {
@@ -39,25 +42,19 @@ export default function ProductDetailModal({ isOpen, onClose, product, onEdit, o
     const display =
       value !== null && value !== undefined && value !== "" ? value : "-";
 
+
+    // RETURN  
     return (
       <FormControl>
         <FormLabel fontSize="sm" color="gray.600">{label}</FormLabel>
         {addon ? (
-          <InputGroup size="md">
-            <InputLeftAddon
-              w="12"
-              justifyContent="center"
-              fontSize="sm"
-              color="inherit"
-              _dark={{ bg: "gray.700", borderColor: "gray.600" }}
-            >
-              {addon}
-            </InputLeftAddon>
+          <InputGroup size="sm">
+            <InputLeftAddon>{addon}</InputLeftAddon>
             <Input
               value={display}
               isReadOnly
-              pointerEvents="none"
-              tabIndex={-1}
+              pointerEvents="none"     
+              tabIndex={-1}            
               variant="outline"
               bg="gray.50"
               _dark={{ bg: "gray.700", borderColor: "gray.600" }}
@@ -78,7 +75,7 @@ export default function ProductDetailModal({ isOpen, onClose, product, onEdit, o
       </FormControl>
     );
   };
-
+  
   return (
     <>
       <Modal isOpen={isOpen} onClose={onClose} size="lg" isCentered>
@@ -90,15 +87,14 @@ export default function ProductDetailModal({ isOpen, onClose, product, onEdit, o
             <Text fontSize="sm" color="gray.400" mb={2} fontWeight="medium">
               Product details
             </Text>
-
-            <SimpleGrid columns={{ base: 1, md: 2 }} gap={4} mb={6}>
+            <SimpleGrid columns={{ base:1, md:2 }} gap={4} mb={6}>
               <F label="Brand" value={product.brand} />
               <F label="Model" value={product.model || product.name} />
               <F label="Compound" value={product.compound} />
               <F label="Manufactured at" value={product.manufactured_at || "-"} />
-              <F label="Shell type" value={product.shell_type} />
-              <F label="Wash cup" value={product.wash_cup} />
               <F label="Spider wash cup" value={product.spider_wash_cup} />
+              <F label="Wash cup" value={product.wash_cup} />
+              <F label="Shell type" value={product.shell_type} />
               <F label="Visible to users" value={product.only_admin ? "No" : "Yes"} />
               <FormControl gridColumn={{ base: "span 1", md: "span 2" }}>
                 <FormLabel fontSize="sm" color="gray.600">Notes</FormLabel>
@@ -139,7 +135,6 @@ export default function ProductDetailModal({ isOpen, onClose, product, onEdit, o
               <F label="Return to lockring (mm)" value={product.return_to_lockring} addon="E" />
               <F label="Lockring diameter (mm)" value={product.lockring_diameter} addon="F"/>
               <F label="Milk tube ID (mm)" value={product.milk_tube_id} addon="G"/>
-              {/* Campi non presenti nel disegno */}
               <F label="MP depth (mm)" value={product.mp_depth_mm} />
               <F label="Shell Orifice" value={product.shell_orifice} />
               <F label="Shell Length" value={product.shell_length} />
@@ -153,6 +148,8 @@ export default function ProductDetailModal({ isOpen, onClose, product, onEdit, o
 
             <Divider my={4} />
 
+
+            {/* FOOTER DELLA MODALE */}
             <HStack justify="flex-end" spacing={3}>
               <Button
                 leftIcon={<DeleteIcon />}
@@ -173,13 +170,14 @@ export default function ProductDetailModal({ isOpen, onClose, product, onEdit, o
         </ModalContent>
       </Modal>
 
+      {/* ALERT DI CONFERMA DELETE */}
       <AlertDialog
         isOpen={confirmOpen}
         leastDestructiveRef={cancelRef}
         onClose={() => setConfirmOpen(false)}
       >
         <AlertDialogOverlay>
-          <AlertDialogContent marginInline={2}>
+          <AlertDialogContent>
             <AlertDialogHeader fontSize="lg" fontWeight="bold">
               Delete product
             </AlertDialogHeader>
