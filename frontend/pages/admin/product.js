@@ -14,10 +14,14 @@ import { LuShoppingCart } from "react-icons/lu";
 import { getToken } from "../../lib/auth";
 import { getMe, getProductsMeta, listProductPrefs, createProduct  } from "../../lib/api";
 import { listProducts, deleteProduct, updateProduct  } from "../../lib/api"; 
+
+
 import ProductModal from "../../components/ProductModal";
 import ProductEditModal from "../../components/ProductEditModal";
 import ProductCard from "../../components/ProductCard";
 import ProductDetailModal from "../../components/ProductDetailModal";
+
+import AppHeader from "@/components/AppHeader";
 
 import { BackHomeIcon } from "@/components/ui/BackHomeIcon";
 import {FiPackage} from "react-icons/fi";
@@ -141,28 +145,15 @@ export default function AdminProducts() {
   if (!me) return <Box p="6">Caricamento…</Box>;
 
   return (
-    <Box maxW="6xl" mx="auto" p={{ base:4, md:8 }}>
-      {/* Header */}
-      <Stack
-        direction={{ base: "column", md: "row" }}
-        justify="space-between"
-        align={{ base: "flex-start", md: "center" }}
-        mb={4}
-        gap={3}
-      >
-        <HStack gap={3}>
-          <BackHomeIcon />
-            <VStack align="start" spacing={1}>
-              <HStack spacing={2}>
-                <Icon as={FiPackage} boxSize={7} color="grey.500" />
-                <Heading size="lg">Manage Products</Heading>
-              </HStack>
-              <Text fontSize="sm" color="gray.600">
-                Create, edit or delete products and technical specifications.
-              </Text>
-            </VStack>
-        </HStack>
-      </Stack>
+    <>
+      <AppHeader
+        title="Manage Products"
+        subtitle="Create, edit or delete products and technical specifications."
+        leftIcon={FiPackage}
+        backHref="/"
+        showInfo={false}
+      />
+      <Box as="main" maxW="6xl" mx="auto" px={{ base: 4, md: 8 }} pt={4}>
 
 
       {/* Search + Sort + New Product */}
@@ -355,5 +346,6 @@ export default function AdminProducts() {
         }}
       />
     </Box>
+    </>
   );
 }

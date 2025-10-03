@@ -13,6 +13,8 @@ import { ChevronLeftIcon } from "@chakra-ui/icons";
 import { FiPlus, FiTrash2, FiSave, FiRefreshCcw, FiBarChart2 } from "react-icons/fi";
 import { MdScreenRotation } from "react-icons/md";
 
+import AppHeader from "@/components/AppHeader";
+
 import { getToken } from "../../lib/auth";
 import { listKpis, getKpiScales, putKpiScales } from "../../lib/api";
 import { BackHomeIcon } from "../../components/ui/BackHomeIcon";
@@ -199,19 +201,15 @@ export default function AdminKpis() {
   }, [selectedKpi, code]);
 
   return (
-    <Box maxW="6xl" mx="auto" p={{ base: 4, md: 8 }}>
-      <HStack gap={3} mb={4}>
-        <BackHomeIcon />
-        <VStack align="start" spacing={1}>
-          <HStack spacing={2}>
-            <Icon as={FiBarChart2} boxSize={7} color="gray.500" />
-            <Heading size="lg">KPI Scales</Heading>
-          </HStack>
-          <Text fontSize="sm" color="gray.600">
-            Define scales for each KPI.
-          </Text>
-        </VStack>
-      </HStack>
+        <>
+      <AppHeader
+        title="KPI Scales"
+        subtitle="Define scales for each KPI."
+        leftIcon={FiBarChart2}
+        backHref="/"
+        showInfo={false}
+      />
+      <Box as="main" maxW="6xl" mx="auto" px={{ base: 4, md: 8 }} pt={4}>
 
       {/* Selettore KPI + badge + description */}
       <Card>
@@ -405,5 +403,6 @@ export default function AdminKpis() {
         </AlertDialogOverlay>
       </AlertDialog>
     </Box>
+    </>
   );
 }
