@@ -128,14 +128,25 @@ def healthz():
 # 3.a META: distinct values per i dropdown
 @app.get("/products/meta", response_model=ProductMetaOut)
 def products_meta(session: Session = Depends(get_session), user=Depends(get_current_user)):
-    def distinct_list(col):
-        rows = session.exec(select(func.distinct(col)).where(col.isnot(None))).all()
+    is_admin = getattr(user, "role", "") == "admin"
+
+    def distinct_list(col, extra_where=None):
+        q = select(func.distinct(col)).where(col.isnot(None))
+        if extra_where is not None:
+            q = q.where(extra_where)
+        rows = session.exec(q).all()
         return [r[0] if isinstance(r, tuple) else r for r in rows if r is not None]
 
     product_types = distinct_list(Product.product_type) or ["liner"]
-    brands       = distinct_list(Product.brand)
-    models       = distinct_list(Product.model)
-    compounds    = distinct_list(Product.compound)  # <--- NEW
+
+    # Brand: nascondi i prodotti only_admin=True agli user non admin
+    brand_where = None if is_admin else (Product.only_admin == False)
+    brands = distinct_list(Product.brand, extra_where=brand_where)
+
+    # Models: lista “globale” come prima (può rimanere così)
+    models = distinct_list(Product.model, extra_where=brand_where)
+
+    compounds = distinct_list(Product.compound, extra_where=brand_where)
 
     sizes = session.exec(select(func.distinct(ProductApplication.size_mm))).all()
     teat_sizes = [int(s[0]) if isinstance(s, (tuple, list)) else int(s) for s in sizes if s is not None]
@@ -146,10 +157,25 @@ def products_meta(session: Session = Depends(get_session), user=Depends(get_curr
         product_types=product_types,
         brands=brands,
         models=models,
-        compounds=compounds,          
+        compounds=compounds,
         teat_sizes=teat_sizes,
         kpis=kpis
     )
+@app.get("/products/models", response_model=List[str])
+def list_models_by_brand(
+    brand: str = Query(...),
+    session: Session = Depends(get_session),
+    user=Depends(get_current_user),
+):
+    is_admin = getattr(user, "role", "") == "admin"
+    q = select(func.distinct(Product.model)).where(
+        Product.brand == brand,
+        Product.model.isnot(None),
+    )
+    if not is_admin:
+        q = q.where(Product.only_admin == False)
+    rows = session.exec(q).all()
+    return [r[0] if isinstance(r, (tuple, list)) else r for r in rows if r is not None]
 
 # 3.b LIST con filtri base (senza KPI per ora)
 @app.get("/products", response_model=list[ProductOut])

@@ -18,16 +18,15 @@ export default function Products() {
   const router = useRouter();
 
   const [me, setMe] = useState(null);
-  const [meta, setMeta] = useState({ product_types:["liner"], brands:[], models:[], teat_sizes:[], kpis:[] });
+  const [meta, setMeta] = useState({ brands:[], models:[], teat_sizes:[], kpis:[] });
   const [prefs, setPrefs] = useState([]);
 
-  // filtri base
-  const [productType, setProductType] = useState("liner");
+  // filtri base (senza productType)
   const [brand, setBrand] = useState("");
   const [model, setModel] = useState("");
   const [teatSize, setTeatSize] = useState("");
 
-  // KPI multipli
+  // KPI multipli: solo code
   const [kpiFilters, setKpiFilters] = useState([]);
   const kpiChoices = useMemo(() => meta.kpis || [], [meta.kpis]);
 
@@ -42,35 +41,35 @@ export default function Products() {
     listProductPrefs(t).then(setPrefs).catch(()=>{});
   }, [toast]);
 
-  const addKpi = () => setKpiFilters((prev) => [...prev, { code:"", op:">=", value:"" }]);
+  // KPI handlers: solo code
+  const addKpi = () => setKpiFilters((prev) => [...prev, { code:"" }]);
   const removeKpi = (i) => setKpiFilters((prev) => prev.filter((_, idx) => idx !== i));
   const updateKpi = (i, patch) => setKpiFilters((prev) => prev.map((k, idx) => idx === i ? { ...k, ...patch } : k));
 
   const onConfirm = () => {
     const params = new URLSearchParams();
-    if (productType) params.set("product_type", productType);
     if (brand) params.set("brand", brand);
     if (model) params.set("model", model);
     if (teatSize) params.set("teat_size", teatSize);
+
+    // Solo KPI code -> kpi1, kpi2, ... (niente op/val per non toccare il backend dei filtri numerici)
     kpiFilters.forEach((k, i) => {
-      if (k.code && k.value !== "") {
+      if (k.code) {
         params.set(`kpi${i+1}`, k.code);
-        params.set(`op${i+1}`, k.op || ">=");
-        params.set(`val${i+1}`, String(k.value));
       }
     });
-    router.push(`/products/search?${params.toString()}`);
+
+    router.push(`/product/result?${params.toString()}`);
   };
 
   if (!me) return <Box p="6">Caricamento…</Box>;
 
   return (
     <>
-      {/* Header: back → Home + titolo pagina; NESSUN logout qui */}
+      {/* Header: back → Home  */}
       <AppHeader
         title="Liner Search"
         backHref="/home"
-        // non passiamo onLogoutClick => niente icona logout
       />
 
       <Box as="main" maxW="6xl" mx="auto" px={{ base:4, md:8 }} pt={{ base:4, md:6 }}>
@@ -99,14 +98,8 @@ export default function Products() {
         <Card>
           <CardHeader py="3"><Heading size="sm">Filters</Heading></CardHeader>
           <CardBody pt="0">
-            <SimpleGrid columns={{ base:1, md:2, lg:4 }} gap={4} mb={4}>
-              <FormControl>
-                <FormLabel fontSize="sm" color="gray.500" mb={1}>Tipologia prodotto</FormLabel>
-                <Select value={productType} onChange={e=>setProductType(e.target.value)} variant="filled" size="md">
-                  {(meta.product_types || ["liner"]).map(v => <option key={v} value={v}>{v}</option>)}
-                </Select>
-              </FormControl>
-
+            {/* colonne: brand/model/teat_size (rimosso product_type) */}
+            <SimpleGrid columns={{ base:1, md:2, lg:3 }} gap={4} mb={4}>
               <FormControl>
                 <FormLabel fontSize="sm" color="gray.500" mb={1}>Brand</FormLabel>
                 <Select placeholder="Tutti" value={brand} onChange={e=>setBrand(e.target.value)} variant="filled" size="md">
@@ -131,15 +124,15 @@ export default function Products() {
 
             <Divider my={4} />
 
-            {/* KPI multipli */}
+            {/* KPI multipli: solo selezione KPI */}
             <Stack gap={3}>
               <HStack justify="space-between">
-                <Heading size="sm">Filtri KPI</Heading>
+                <Heading size="sm">KPI</Heading>
                 <Tag size="sm" variant="subtle"><TagLabel>{kpiFilters.length} selezionati</TagLabel></Tag>
               </HStack>
 
               {kpiFilters.map((k, idx) => (
-                <SimpleGrid key={idx} columns={{ base:1, md:4 }} gap={3} alignItems="end">
+                <SimpleGrid key={idx} columns={{ base:1, md:2 }} gap={3} alignItems="end">
                   <FormControl>
                     <FormLabel fontSize="sm" color="gray.500" mb={1}>KPI</FormLabel>
                     <Select
@@ -154,22 +147,6 @@ export default function Products() {
                     </Select>
                   </FormControl>
 
-                  <FormControl maxW={{ md:"140px" }}>
-                    <FormLabel fontSize="sm" color="gray.500" mb={1}>Operatore</FormLabel>
-                    <Select value={k.op} onChange={e=>updateKpi(idx, { op:e.target.value })} variant="filled">
-                      <option value=">=">{">="}</option>
-                      <option value="<=">{"<="}</option>
-                      <option value=">">{">"}</option>
-                      <option value="<">{"<"}</option>
-                      <option value="=">{"="}</option>
-                    </Select>
-                  </FormControl>
-
-                  <FormControl maxW={{ md:"180px" }}>
-                    <FormLabel fontSize="sm" color="gray.500" mb={1}>Valore</FormLabel>
-                    <Input type="number" value={k.value} onChange={e=>updateKpi(idx, { value:e.target.value })} placeholder="es. 10" variant="filled" />
-                  </FormControl>
-
                   <HStack justify={{ base:"flex-end", md:"flex-start" }}>
                     <IconButton aria-label="Rimuovi KPI" icon={<MinusIcon />} onClick={()=>removeKpi(idx)} variant="outline" size="sm" />
                   </HStack>
@@ -178,14 +155,14 @@ export default function Products() {
 
               <HStack>
                 <IconButton aria-label="Aggiungi KPI" icon={<AddIcon />} onClick={addKpi} size="sm" />
-                <Text color="gray.500" fontSize="sm">Aggiungi un altro KPI</Text>
+                <Text color="gray.500" fontSize="sm">Aggiungi un KPI</Text>
               </HStack>
             </Stack>
           </CardBody>
         </Card>
 
         <HStack mt={6} justify="center">
-          <Button colorScheme="blue"  onClick={onConfirm}>Confirm</Button>
+          <Button colorScheme="blue" onClick={onConfirm}>Confirm</Button>
         </HStack>
 
         {/* Mobile: nessun logout in questa pagina */}
