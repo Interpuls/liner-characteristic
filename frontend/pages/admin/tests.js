@@ -11,6 +11,8 @@ import AdminMassageTest from "./tests/massage";
 import SpeedTestPage from "./tests/speed";
 import SmtHoodTestPage from "./tests/smt-hood";
 
+import AppHeader from "@/components/AppHeader";
+
 import { BackHomeIcon } from "../../components/ui/BackHomeIcon";
 import { getToken } from "@/lib/auth";
 import { listProducts, getProduct, listProductApplications } from "@/lib/api";
@@ -93,21 +95,16 @@ export default function AdminTests() {
   }, [pid, token]);
 
   return (
-    <Box maxW="6xl" mx="auto" p={{ base:4, md:8 }}>
-      {/* Header: freccia + (titolo con ampolla + sottotitolo) */}
-      <HStack align="center" spacing={3} mb={3}>
-        <BackHomeIcon />
-        <VStack align="start" spacing={1}>
-          <HStack spacing={2}>
-            <Icon as={LuFlaskConical} boxSize={7} color="grey.500" />
-            <Heading size="lg">Tests Campaign</Heading>
-          </HStack>
-          <Text fontSize="sm" color="gray.600">
-            Laboratory workspace for Milkrite InterPuls liners: run TPP, Massage, Speed, and SMT/Hood tests on your selected product.
-          </Text>
-        </VStack>
-      </HStack>
-
+    <>
+      <AppHeader
+        title="Tests Campaign"
+        subtitle="Laboratory workspace on your selected product."
+        leftIcon={LuFlaskConical}
+        backHref="/"
+        showInfo={false}
+      />
+      <Box as="main" maxW="6xl" mx="auto" px={{ base: 4, md: 8 }} pt={4}>
+        
       {/* Selettore prodotto (unico per tutti i tab) */}
       <Card mb={3}>
         <CardBody>
@@ -182,5 +179,6 @@ export default function AdminTests() {
         </TabPanels>
       </Tabs>
     </Box>
+    </>
   );
 }
