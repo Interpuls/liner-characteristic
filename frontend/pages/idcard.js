@@ -116,7 +116,7 @@ export default function Idcard() {
                 bg="white"
                 color="black"
                 iconColor="gray.500"
-                _focus={{ borderColor: "white", boxShadow: "0 0 0 1px white" }}
+                _focus={{ borderColor: "white", boxShadow: "0 0 0 1px white", bg:"#eaebeda2" }}
                 onChange={async (e) => {
                   const sel = prefs.find(p => String(p.id) === e.target.value);
                   if (!sel) return;
@@ -168,9 +168,19 @@ export default function Idcard() {
                   placeholder="Tutti"
                   value={brand}
                   onChange={(e)=>handleBrandChange(e.target.value)}
-                  variant="filled"
+                  variant="filled"        
                   size="md"
+                  rounded="md"
+                  bg="white"
+                  color="black"
+                  iconColor="gray.500"
+                  iconSize="1rem"
+                  shadow="sm"
+                  _hover={{ bg: "white" }}
+                  _focus={{ bg: "white", borderColor: "blue.400", boxShadow: "0 0 0 1px #4299E1" }}
+                  _disabled={{ opacity: 0.7, cursor: "not-allowed" }}
                 >
+                
                   {(brands || []).map(v => <option key={v} value={v}>{v}</option>)}
                 </Select>
               </FormControl>
@@ -181,10 +191,19 @@ export default function Idcard() {
                   placeholder="Seleziona"
                   value={model}
                   onChange={e=>setModel(e.target.value)}
-                  variant="filled"
+                  isDisabled={!brand}   
+                  variant="filled"          // o "outline" se preferisci
                   size="md"
-                  isDisabled={!brand}   // opzionale: abilita solo dopo scelta brand
-                >
+                  rounded="md"
+                  bg="white"
+                  color="black"
+                  iconColor="gray.500"
+                  iconSize="1rem"
+                  shadow="sm"
+                  _hover={{ bg: "white" }}
+                  _focus={{ bg: "white", borderColor: "blue.400", boxShadow: "0 0 0 1px #4299E1" }}
+                  _disabled={{ opacity: 0.7, cursor: "not-allowed" }}
+                >                
                   {(models || []).map(v => <option key={v} value={v}>{v}</option>)}
                 </Select>
               </FormControl>
