@@ -246,9 +246,12 @@ def _slugify(s: str) -> str:
 
 @app.post("/products", response_model=ProductOut, dependencies=[Depends(require_role("admin"))])
 def create_product(payload: ProductIn, session: Session = Depends(get_session)):
+    # normalizzazioni base
     brand = (payload.brand or "").strip()
     model = (payload.model or "").strip()
-    compound = _norm_compound(payload.compound)
+    compound = _norm_compound(payload.compound or "STD")
+
+    # default storico che usavi: se None => True, altrimenti bool(valore)
     only_admin = True if payload.only_admin is None else bool(payload.only_admin)
 
     # 1) unicità (brand, model, compound)
@@ -283,32 +286,24 @@ def create_product(payload: ProductIn, session: Session = Depends(get_session)):
             i += 1
             code = f"{base_code}-{i}"
 
-        obj = Product(
-            code=code,
-            name=payload.name or model or code,
-            description=payload.description,
-            product_type="liner",
-            brand=brand,
-            model=model,
-            compound=compound,
-            only_admin=only_admin,
-            notes=payload.notes,
-            manufactured_at=payload.manufactured_at,
-            mp_depth_mm=payload.mp_depth_mm,
-            orifice_diameter=payload.orifice_diameter,
-            hoodcup_diameter=payload.hoodcup_diameter,
-            return_to_lockring=payload.return_to_lockring,
-            lockring_diameter=payload.lockring_diameter,
-            overall_length=payload.overall_length,
-            milk_tube_id=payload.milk_tube_id,
-            barrell_wall_thickness=payload.barrell_wall_thickness,
-            barrell_conicity=payload.barrell_conicity,
-            hardness=payload.hardness,
-        )
-        session.add(obj)
-        session.flush()  # vogliamo obj.id per le applications
+        # 4) costruisci l'oggetto includendo i nuovi campi (usa exclude_unset per retro-compatibilità)
+        data = payload.dict(exclude_unset=True)  # se usi Pydantic v2: payload.model_dump(exclude_unset=True)
+        # forziamo i valori calcolati/corretti
+        data.update({
+            "code": code,
+            "name": payload.name or model or code,
+            "product_type": "liner",
+            "brand": brand,
+            "model": model,
+            "compound": compound,
+            "only_admin": only_admin,
+        })
 
-        # 4) crea le 4 application standard
+        obj = Product(**data)
+        session.add(obj)
+        session.flush()  # ci serve obj.id
+
+        # 5) crea le 4 application standard
         for size in (40, 50, 60, 70):
             session.add(ProductApplication(
                 product_id=obj.id,
@@ -322,10 +317,11 @@ def create_product(payload: ProductIn, session: Session = Depends(get_session)):
 
     except IntegrityError as e:
         session.rollback()
-        # facciamo propagare messaggi utili
         msg = str(getattr(e, "orig", e))
         if "ux_products_brand_model_compound" in msg:
             raise HTTPException(status_code=409, detail="Product with same brand, model and compound already exists")
+        if "ux_products_code" in msg:
+            raise HTTPException(status_code=409, detail="Product code already exists")
         raise HTTPException(status_code=409, detail="Could not create product")
     except Exception:
         session.rollback()
@@ -346,13 +342,29 @@ def update_product(product_id: int, payload: ProductIn, session: Session = Depen
     if not obj:
         raise HTTPException(status_code=404, detail="Product not found")
 
-    # nuovi valori candidati (se non passati, mantieni gli attuali)
-    new_brand = (payload.brand if payload.brand is not None else obj.brand) or ""
-    new_model = (payload.model if payload.model is not None else obj.model) or ""
-    new_compound = _norm_compound(payload.compound if payload.compound is not None else obj.compound)
-    new_only_admin = obj.only_admin if payload.only_admin is None else bool(payload.only_admin)
+    # Prendi solo i campi realmente passati (partial update!)
+    data = payload.dict(exclude_unset=True)  # Pydantic v2: payload.model_dump(exclude_unset=True)
 
-    # unicità (brand,model,compound) escludendo se stesso
+    # Normalizzazioni e regole speciali
+    # brand/model/compound
+    if "brand" in data:
+        data["brand"] = (data["brand"] or "").strip()
+    if "model" in data:
+        data["model"] = (data["model"] or "").strip()
+    if "compound" in data:
+        data["compound"] = _norm_compound(data["compound"])
+
+    # only_admin: mantieni il default "storico" solo in create;
+    # qui se non viene passato, NON cambiamo obj.only_admin.
+    if "only_admin" in data:
+        data["only_admin"] = bool(data["only_admin"])
+
+    # Calcola i "nuovi" brand/model/compound da usare per i controlli di unicità
+    new_brand = data.get("brand", obj.brand) or ""
+    new_model = data.get("model", obj.model) or ""
+    new_compound = data.get("compound", obj.compound)
+
+    # Unicità (brand, model, compound) escludendo se stesso
     dup = session.exec(
         select(Product).where(
             Product.id != product_id,
@@ -365,8 +377,9 @@ def update_product(product_id: int, payload: ProductIn, session: Session = Depen
         raise HTTPException(status_code=409, detail="Product with same brand, model and compound already exists")
 
     try:
-        # se questa diventa pubblica => demoto eventuali altre pubbliche stesso brand/model
-        if new_only_admin is False:
+        # Se diventa pubblico => demoto eventuali altri pubblici stesso brand/model
+        becoming_public = ("only_admin" in data) and (data["only_admin"] is False)
+        if becoming_public:
             session.exec(
                 sa.update(Product)
                 .where(
@@ -378,32 +391,21 @@ def update_product(product_id: int, payload: ProductIn, session: Session = Depen
                 .values(only_admin=True)
             )
 
-        # applica patch
-        if payload.code is not None and payload.code != obj.code:
-            # assicurati code univoco
-            exists = session.exec(select(Product).where(Product.code == payload.code)).first()
+        # Se cambia code, verifica univocità
+        if "code" in data and data["code"] != obj.code:
+            exists = session.exec(select(Product).where(Product.code == data["code"])).first()
             if exists:
                 raise HTTPException(status_code=400, detail="Product code already exists")
-            obj.code = payload.code
-        if payload.name is not None: obj.name = payload.name
-        obj.brand = new_brand
-        obj.model = new_model
-        obj.compound = new_compound
-        if payload.description is not None: obj.description = payload.description
-        obj.only_admin = new_only_admin
-        obj.notes = payload.notes if payload.notes is not None else obj.notes
-        obj.manufactured_at = payload.manufactured_at if payload.manufactured_at is not None else obj.manufactured_at
 
-        obj.mp_depth_mm = payload.mp_depth_mm
-        obj.orifice_diameter = payload.orifice_diameter
-        obj.hoodcup_diameter = payload.hoodcup_diameter
-        obj.return_to_lockring = payload.return_to_lockring
-        obj.lockring_diameter = payload.lockring_diameter
-        obj.overall_length = payload.overall_length
-        obj.milk_tube_id = payload.milk_tube_id
-        obj.barrell_wall_thickness = payload.barrell_wall_thickness
-        obj.barrell_conicity = payload.barrell_conicity
-        obj.hardness = payload.hardness
+        # product_type: fisso a "liner" (se presente in data lo ignoriamo)
+        data.pop("product_type", None)
+
+        # Applica la patch campo per campo
+        for k, v in data.items():
+            setattr(obj, k, v)
+
+        # Aggiorna i campi derivati che hai già in logica (se name non passato, NON lo tocco)
+        # Nota: la logica "name = name or model or code" esiste solo in create, qui non forziamo.
 
         session.add(obj)
         session.commit()
@@ -415,6 +417,8 @@ def update_product(product_id: int, payload: ProductIn, session: Session = Depen
         msg = str(getattr(e, "orig", e))
         if "ux_products_brand_model_compound" in msg:
             raise HTTPException(status_code=409, detail="Product with same brand, model and compound already exists")
+        if "ux_products_code" in msg or "code" in msg:
+            raise HTTPException(status_code=409, detail="Product code already exists")
         raise HTTPException(status_code=409, detail="Update violates unique constraints")
     except Exception:
         session.rollback()
