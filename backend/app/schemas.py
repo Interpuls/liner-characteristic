@@ -19,7 +19,7 @@ class LoginInput(BaseModel):
     password: str
 
 # --------------- USER SCHEMAS ----------------------------------
-
+"""
 class UserCreate(BaseModel):
     email: EmailStr
     password: str
@@ -31,7 +31,7 @@ class UserOut(BaseModel):
     role: str
     class Config:
         from_attributes = True
-
+"""
 
 # --------------- PRODUCT SCHEMAS -------------------------------
 
@@ -57,7 +57,7 @@ class ProductIn(BaseModel):
     shell_length: Optional[float] = None
     shell_external_diameter: Optional[float] = None
     barrel_diameter: Optional[float] = None
-
+    liner_length: Optional[float] = None
     mp_depth_mm: Optional[float] = None
     orifice_diameter: Optional[float] = None
     hoodcup_diameter: Optional[float] = None
@@ -91,7 +91,7 @@ class ProductOut(BaseModel):
     shell_length: Optional[float] = None
     shell_external_diameter: Optional[float] = None
     barrel_diameter: Optional[float] = None
-
+    liner_length: Optional[float] = None
     mp_depth_mm: Optional[float] = None
     orifice_diameter: Optional[float] = None
     hoodcup_diameter: Optional[float] = None

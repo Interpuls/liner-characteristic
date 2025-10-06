@@ -8,7 +8,7 @@ from passlib.context import CryptContext
 from fastapi.security import OAuth2PasswordBearer
 from sqlmodel import Session, select
 
-from .models import User
+from app.model.user import User
 from .schemas import TokenData
 from .db import get_session
 

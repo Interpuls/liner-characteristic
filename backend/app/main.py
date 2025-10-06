@@ -19,11 +19,16 @@ from datetime import datetime
 import sqlalchemy as sa
 
 from .db import init_db, get_session
-from .models import User, Product, SearchPreference, KpiDef, FormulaType, ProductApplication, TppRun, TestMetric, KpiValue, KpiScale, MassageRun, MassagePoint, TestMetric, KpiValue, SpeedRun, SmtHoodRun, SmtHoodPoint
-from .schemas import UserCreate, UserOut, Token, ProductIn, ProductOut, ProductMetaOut, ProductPreferenceIn, ProductPreferenceOut, KpiDefIn, KpiDefOut, ProductApplicationIn, ProductApplicationOut, SIZE_LABELS, TppRunIn, TppRunOut, KpiScaleUpsertIn, KpiScaleBandIn, KpiValueOut, MassageRunIn, MassageRunOut, KpiValueOut, MassagePointOut, MassagePointIn, SpeedRunIn, SpeedRunOut, SmtHoodPointIn, SmtHoodPointOut, SmtHoodRunIn, SmtHoodRunOut
+from .models import Product, SearchPreference, KpiDef, FormulaType, ProductApplication, TppRun, TestMetric, KpiValue, KpiScale, MassageRun, MassagePoint, TestMetric, KpiValue, SpeedRun, SmtHoodRun, SmtHoodPoint
+from .schemas import Token, ProductIn, ProductOut, ProductMetaOut, ProductPreferenceIn, ProductPreferenceOut, KpiDefIn, KpiDefOut, ProductApplicationIn, ProductApplicationOut, SIZE_LABELS, TppRunIn, TppRunOut, KpiScaleUpsertIn, KpiScaleBandIn, KpiValueOut, MassageRunIn, MassageRunOut, KpiValueOut, MassagePointOut, MassagePointIn, SpeedRunIn, SpeedRunOut, SmtHoodPointIn, SmtHoodPointOut, SmtHoodRunIn, SmtHoodRunOut
 from .auth import hash_password, verify_password, create_access_token, get_current_user, require_role
 from .deps import apply_cors
 from .services.kpi_engine import score_from_scales, massage_compute_derivatives
+
+#nuovi import
+from .model.user import User
+from .schema.user import UserCreate, UserRead
+
 
 ALLOWED_EMAIL_DOMAIN = os.getenv("ALLOWED_EMAIL_DOMAIN", "milkrite.com")
 
@@ -76,7 +81,7 @@ async def log_requests(request, call_next):
 
 # --------------------------- Auth ----------------------------------------------
 
-@app.post("/auth/register", response_model=UserOut)
+@app.post("/auth/register", response_model=UserRead)
 def register(payload: UserCreate, session: Session = Depends(get_session)):
     # consenti solo email del dominio aziendale
     if not payload.email.endswith(f"@{ALLOWED_EMAIL_DOMAIN}"):
@@ -104,9 +109,9 @@ def login(form: OAuth2PasswordRequestForm = Depends(), session: Session = Depend
 
 # --------------------------- Users (me) ---------------------------------------
 
-@app.get("/me", response_model=UserOut)
+@app.get("/me", response_model=UserRead)
 def me(user=Depends(get_current_user)):
-    return UserOut(id=user.id, email=user.email, role=user.role)
+    return user
 
 
 # ---------------------------- Health ------------------------------------------
