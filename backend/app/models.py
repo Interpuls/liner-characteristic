@@ -12,7 +12,7 @@ from sqlalchemy.dialects.postgresql import JSONB
 
 # --------------- USER MODELS ----------------------------------
 
-class UserRole(str, Enum):
+"""class UserRole(str, Enum):
     admin = "admin"
     user = "user"
 
@@ -29,8 +29,7 @@ class User(SQLModel, table=True):
         UniqueConstraint("email", name="uq_users_email"),
         Index("ix_users_role", "role"),
     )
-
-
+"""
 # --------------- PRODUCT MODELS -------------------------------
 
 class Product(SQLModel, table=True):
@@ -61,6 +60,7 @@ class Product(SQLModel, table=True):
     shell_type: Optional[float] = None
 
     # specifiche tecniche
+    liner_length: Optional[float] = None
     shell_orifice: Optional[float] = None
     shell_length: Optional[float] = None
     shell_external_diameter: Optional[float] = None
