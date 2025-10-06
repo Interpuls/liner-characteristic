@@ -9,6 +9,8 @@ import {
 import { StarIcon } from "@chakra-ui/icons";
 import { getToken } from "../lib/auth";
 import { getMe, getProductsMeta, listProductPrefs, saveProductPref, getModelsByBrand } from "../lib/api";
+
+import FancySelect from "@/components/ui/FancySelect";
 import AppHeader from "../components/AppHeader";
 import AppFooter from "../components/AppFooter";
 
@@ -67,7 +69,7 @@ export default function Idcard() {
       const params = new URLSearchParams();
       if (brand) params.set("brand", brand);
       if (model) params.set("model", model);
-      router.push(`/idcard/idresult?${params.toString()}`); // <-- nuovo path
+      router.push(`/idcard/idresult?${params.toString()}`); 
     };
 
   const openSaveModal = () => {
@@ -164,48 +166,36 @@ export default function Idcard() {
             <SimpleGrid columns={{ base:1, md:2 }} gap={4} mb={2}>
               <FormControl>
                 <FormLabel fontSize="sm" color="gray.500" mb={1}>Brand</FormLabel>
-                <Select
-                  placeholder="Tutti"
-                  value={brand}
-                  onChange={(e)=>handleBrandChange(e.target.value)}
-                  variant="filled"        
-                  size="md"
-                  rounded="md"
-                  bg="white"
-                  color="black"
-                  iconColor="gray.500"
-                  iconSize="1rem"
+                <FancySelect
+                  options={(brands || []).map(v => ({ label: v, value: v }))} // elenco voci
+                  value={brand}                        // valore selezionato
+                  onChange={(val) => handleBrandChange(val)} // riceve direttamente la stringa (no e.target.value)
+                  placeholder="Tutti"                  // testo quando vuoto
+                  clearable                            // X per azzerare rapidamente
+                  w="full"
                   shadow="sm"
-                  _hover={{ bg: "white" }}
-                  _focus={{ bg: "white", borderColor: "blue.400", boxShadow: "0 0 0 1px #4299E1" }}
-                  _disabled={{ opacity: 0.7, cursor: "not-allowed" }}
-                >
-                
-                  {(brands || []).map(v => <option key={v} value={v}>{v}</option>)}
-                </Select>
+                  rounded="md"
+                  borderWidth="1px"
+                  borderColor="gray.200"
+                  _hover={{ borderColor: "blue.400" }}
+                />
               </FormControl>
 
               <FormControl isRequired>
                 <FormLabel fontSize="sm" color="gray.500" mb={1}>Model</FormLabel>
-                <Select
-                  placeholder="Seleziona"
+                <FancySelect
+                  options={(models || []).map(m => ({ label: m, value: m }))}
                   value={model}
-                  onChange={e=>setModel(e.target.value)}
-                  isDisabled={!brand}   
-                  variant="filled"          // o "outline" se preferisci
-                  size="md"
-                  rounded="md"
-                  bg="white"
-                  color="black"
-                  iconColor="gray.500"
-                  iconSize="1rem"
+                  onChange={setModel}            
+                  placeholder="Seleziona"
+                  disabled={!brand}              
+                  w="full"
                   shadow="sm"
-                  _hover={{ bg: "white" }}
-                  _focus={{ bg: "white", borderColor: "blue.400", boxShadow: "0 0 0 1px #4299E1" }}
-                  _disabled={{ opacity: 0.7, cursor: "not-allowed" }}
-                >                
-                  {(models || []).map(v => <option key={v} value={v}>{v}</option>)}
-                </Select>
+                  rounded="md"
+                  borderWidth="1px"
+                  borderColor="gray.200"
+                  _hover={{ borderColor: "blue.400" }}
+                />
               </FormControl>
             </SimpleGrid>
           </CardBody>
