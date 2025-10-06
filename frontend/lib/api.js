@@ -19,6 +19,9 @@ export const getMe = (token) => http("/me", { token });
 
 export const getProductsMeta = (token) => http("/products/meta", { token });
 
+export const getModelsByBrand = (token, brand) =>
+  http(`/products/models?brand=${encodeURIComponent(brand)}`, { token });
+
 export const listProducts = (token, params = {}) => {
   const usp = new URLSearchParams();
   Object.entries(params).forEach(([k, v]) => { if (v != null && v !== "") usp.set(k, String(v)); });
@@ -28,7 +31,7 @@ export const listProducts = (token, params = {}) => {
 
 export const listProductPrefs = (token) => http("/products/preferences", { token });
 
-export const saveProductPref  = (token, name, filters) =>
+export const saveProductPref = (token, name, filters) =>
   http("/products/preferences", { method: "POST", token, body: { name, filters } });
 
 

@@ -114,7 +114,7 @@ export default function Home() {
             titleColor="#12305f"
           />
           <NavCard
-            href="/id-card"
+            href="/idcard"
             title="Liner ID Card"
             desc="Detail liner ID card."
             icon={FiCreditCard}
