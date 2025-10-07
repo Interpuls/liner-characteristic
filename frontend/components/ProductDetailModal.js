@@ -35,12 +35,12 @@ export default function ProductDetailModal({ isOpen, onClose, product, onEdit, o
 
   if (!product) return null;
 
-  const F = ({ label, value, addon }) => {
+  const F = ({ label, value, addon, font }) => {
     const display =
       value !== null && value !== undefined && value !== "" ? value : "-";
 
     return (
-      <FormControl>
+      <FormControl mb={2}>
         <FormLabel fontSize="sm" color="gray.600">{label}</FormLabel>
         {addon ? (
           <InputGroup size="md">
@@ -64,16 +64,18 @@ export default function ProductDetailModal({ isOpen, onClose, product, onEdit, o
             />
           </InputGroup>
         ) : (
-          <Box
-            borderWidth="1px"
-            borderRadius="md"
-            px={3}
-            py={2}
-            bg="gray.50"
-            _dark={{ bg: "gray.700", borderColor: "gray.600" }}
-          >
-            <Text fontWeight="medium">{display}</Text>
-          </Box>
+          <InputGroup size="md">
+            <Input
+              value={display}
+              fontWeight={font}
+              isReadOnly
+              pointerEvents="none"
+              tabIndex={-1}
+              variant="outline"
+              bg="gray.50"
+              _dark={{ bg: "gray.700", borderColor: "gray.600" }}
+            />
+          </InputGroup>
         )}
       </FormControl>
     );
@@ -81,7 +83,7 @@ export default function ProductDetailModal({ isOpen, onClose, product, onEdit, o
 
   return (
     <>
-      <Modal isOpen={isOpen} onClose={onClose} size="lg" isCentered>
+      <Modal isOpen={isOpen} onClose={onClose} size="xl" isCentered>
         <ModalOverlay />
         <ModalContent>
           <ModalHeader>Product details</ModalHeader>
@@ -91,21 +93,21 @@ export default function ProductDetailModal({ isOpen, onClose, product, onEdit, o
               Product details
             </Text>
 
-            <SimpleGrid columns={{ base: 1, md: 2 }} gap={4} mb={6}>
-              <F label="Brand" value={product.brand} />
-              <F label="Model" value={product.model || product.name} />
-              <F label="Compound" value={product.compound} />
-              <F label="Manufactured at" value={product.manufactured_at || "-"} />
+            <SimpleGrid columns={{ base: 1, md: 3 }} gap={4} mb={6}>
+              <F label="Brand" value={product.brand} font="medium" />
+              <F label="Model" value={product.model || product.name} font="medium" />
+              <F label="Compound" value={product.compound} font="medium" />
               <F label="Shell type" value={product.shell_type} />
               <F label="Wash cup" value={product.wash_cup} />
               <F label="Spider wash cup" value={product.spider_wash_cup} />
-              <F label="Visible to users" value={product.only_admin ? "No" : "Yes"} />
+              <F label="Manufactured at" value={product.manufactured_at || "-"} />
               <FormControl gridColumn={{ base: "span 1", md: "span 2" }}>
                 <FormLabel fontSize="sm" color="gray.600">Notes</FormLabel>
                 <Box p={3} borderWidth="1px" rounded="md" bg="gray.50" whiteSpace="pre-wrap">
                   {product.notes || "-"}
                 </Box>
               </FormControl>
+              <F label="Visible to users" value={product.only_admin ? "No" : "Yes"} />
             </SimpleGrid>
 
             <Divider my={2} />
