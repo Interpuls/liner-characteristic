@@ -35,7 +35,7 @@ class UserOut(BaseModel):
 
 # --------------- PRODUCT SCHEMAS -------------------------------
 
-class ProductIn(BaseModel):
+"""class ProductIn(BaseModel):
     # li generiamo lato backend
     code: Optional[constr(min_length=1, max_length=50)] = None
     name:  Optional[str] = None
@@ -153,7 +153,7 @@ class ProductApplicationOut(BaseModel):
     label: str
 
     class Config:
-        from_attributes = True
+        from_attributes = True"""
 
 # --------------- TEST TYPE SCHEMAS ----------------------------------
 
