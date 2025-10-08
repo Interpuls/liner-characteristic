@@ -29,10 +29,11 @@ from .services.kpi_engine import score_from_scales, massage_compute_derivatives
 from .model.user import User
 from .model.product import Product, ProductApplication
 from .model.search import SearchPreference
+from .model.testType import TestType
 
 from .schema.user import UserCreate, UserRead
 from .schema.product import ProductBase, ProductIn, ProductOut, ProductMetaOut, ProductPreferenceIn, ProductPreferenceOut, ProductApplicationIn, ProductApplicationOut, SIZE_LABELS
-
+from .schema.testType import TestTypeIn, TestTypeOut
 
 ALLOWED_EMAIL_DOMAIN = os.getenv("ALLOWED_EMAIL_DOMAIN", "milkrite.com")
 

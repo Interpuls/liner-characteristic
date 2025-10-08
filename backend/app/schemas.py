@@ -157,7 +157,7 @@ class ProductApplicationOut(BaseModel):
 
 # --------------- TEST TYPE SCHEMAS ----------------------------------
 
-class TestTypeIn(BaseModel):
+"""class TestTypeIn(BaseModel):
     code: constr(min_length=1, max_length=50)
     name: NameStr
     description: Optional[str] = None
@@ -168,7 +168,7 @@ class TestTypeOut(BaseModel):
     name: str
     description: Optional[str] = None
     class Config:
-        from_attributes = True
+        from_attributes = True"""
 
 
 # --------------- KPI SCHEMAS ----------------------------------
