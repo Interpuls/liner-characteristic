@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import React, { useMemo, useState } from "react";
 import {
   Menu, MenuButton, MenuList, MenuItem, Button, Box, HStack,
   Input, Text, Icon, Portal
@@ -20,6 +20,7 @@ export default function FancySelect({
   w = "full",
   disabled = false,
   menuPlacement = "bottom-start",
+  menuZIndex = 1600,
   ...btnProps
 }) {
   const [query, setQuery] = useState("");
@@ -37,6 +38,7 @@ export default function FancySelect({
 
   const current = list.find((o) => o.value === value);
   const currentLabel = current?.label ?? "";
+  const isNode = React.isValidElement(currentLabel);
 
   return (
     <Menu isLazy placement={menuPlacement}>
@@ -50,12 +52,17 @@ export default function FancySelect({
         {...btnProps}
       >
         <HStack w="full" justify="space-between">
-          <Text
-            isTruncated
-            color={value ? "inherit" : "gray.500"}
-          >
-            {value ? currentLabel : placeholder}
-          </Text>
+          {value ? (
+            isNode ? (
+              <Box as="span">
+                {currentLabel}
+              </Box>
+            ) : (
+              <Text isTruncated color="inherit">{currentLabel}</Text>
+            )
+          ) : (
+            <Text isTruncated color="gray.500">{placeholder}</Text>
+          )}
           {clearable && !!value && (
             <Icon
               as={CloseIcon}
@@ -72,7 +79,7 @@ export default function FancySelect({
 
       {/* Portal evita che il menu venga tagliato dai container */}
       <Portal>
-        <MenuList p={0} shadow="lg">
+        <MenuList p={0} shadow="lg" zIndex={menuZIndex}>
           <Box p={2} borderBottom="1px" borderColor="gray.100">
             <HStack>
               <Icon as={SearchIcon} color="gray.400" />

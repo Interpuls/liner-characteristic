@@ -79,6 +79,13 @@ class User(SQLModel, table=True):
 
     created_at: datetime = Field(default_factory=datetime.utcnow, nullable=False)
 
+    # nuovi campi richiesti
+    robot_liner: bool = Field(default=False)
+    # "round" | "triangular" | "squared" (salvato come stringa)
+    barrel_shape: Optional[str] = Field(default=None)
+    # lista di aree di riferimento oppure ["Global"]. Persistito come JSON
+    reference_areas: list[str] | None = Field(default=None, sa_column=Column(JSON, nullable=True))
+
 
 
 class ProductApplication(SQLModel, table=True):

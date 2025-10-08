@@ -1,5 +1,6 @@
 from typing import Optional, Any, Dict, List
 from pydantic import BaseModel, EmailStr, condecimal, constr, Field
+from pydantic import field_validator
 from enum import Enum
 from datetime import datetime, date
 
@@ -33,129 +34,7 @@ class UserOut(BaseModel):
         from_attributes = True
 """
 
-# --------------- PRODUCT SCHEMAS -------------------------------
-
-"""class ProductIn(BaseModel):
-    # li generiamo lato backend
-    code: Optional[constr(min_length=1, max_length=50)] = None
-    name:  Optional[str] = None
-
-    description: Optional[str] = None
-    brand: constr(min_length=1)
-    model: constr(min_length=1)
-
-    compound: constr(min_length=1)
-    only_admin: Optional[bool] = False
-    notes: Optional[str] = None
-    manufactured_at: Optional[date] = None
-    spider_wash_cup: Optional[float] = None
-    wash_cup: Optional[float] = None
-    shell_type: Optional[float] = None
-    
-    #technical
-    shell_orifice: Optional[float] = None
-    shell_length: Optional[float] = None
-    shell_external_diameter: Optional[float] = None
-    barrel_diameter: Optional[float] = None
-    liner_length: Optional[float] = None
-    mp_depth_mm: Optional[float] = None
-    orifice_diameter: Optional[float] = None
-    hoodcup_diameter: Optional[float] = None
-    return_to_lockring: Optional[float] = None
-    lockring_diameter: Optional[float] = None
-    overall_length: Optional[float] = None
-    milk_tube_id: Optional[float] = None
-    barrell_wall_thickness: Optional[float] = None
-    barrell_conicity: Optional[float] = None
-    hardness: Optional[float] = None
-
-class ProductOut(BaseModel):
-    id: int
-    code: str
-    name: str
-    description: Optional[str] = None
-    product_type: Optional[str] = None
-    brand: Optional[str] = None
-    model: Optional[str] = None
-
-    compound: str
-    only_admin: bool = False
-    notes: Optional[str] = None 
-    manufactured_at: Optional[date] = None
-    spider_wash_cup: Optional[float] = None
-    wash_cup: Optional[float] = None
-    shell_type: Optional[float] = None
-
-    # specifiche
-    shell_orifice: Optional[float] = None
-    shell_length: Optional[float] = None
-    shell_external_diameter: Optional[float] = None
-    barrel_diameter: Optional[float] = None
-    liner_length: Optional[float] = None
-    mp_depth_mm: Optional[float] = None
-    orifice_diameter: Optional[float] = None
-    hoodcup_diameter: Optional[float] = None
-    return_to_lockring: Optional[float] = None
-    lockring_diameter: Optional[float] = None
-    overall_length: Optional[float] = None
-    milk_tube_id: Optional[float] = None
-    barrell_wall_thickness: Optional[float] = None
-    barrell_conicity: Optional[float] = None
-    hardness: Optional[float] = None
-
-    class Config:
-        from_attributes = True
-
-class ProductPreferenceIn(BaseModel):
-    name: str
-    filters: Dict[str, Any]  # es: {"product_type":"liner","brand":"X","kpi":[...]}
-
-class ProductPreferenceOut(BaseModel):
-    id: int
-    name: str
-    filters: Dict[str, Any]
-    class Config:
-        from_attributes = True
-
-class ProductMetaOut(BaseModel):
-    product_types: List[str]
-    brands: List[str]
-    models: List[str]
-    compounds: List[str]
-    teat_sizes: List[int]
-    kpis: List["KpiDefOut"] 
-
-# --------------- PRODUCT APPLICATION SCHEMAS (Teat Size) -------------------------------
-ALLOWED_SIZES = {40, 50, 60, 70}
-SIZE_LABELS = {
-    40: "Short",
-    50: "Medium",
-    60: "Long",
-    70: "Extra Long"
-}
-
-class ProductApplicationIn(BaseModel):
-    size_mm: int = Field(..., description="One of 40, 50, 60, 70")
-    @classmethod
-    def validate_size(cls, v: int) -> int:
-        if v not in SIZE_LABELS:
-            raise ValueError("size_mm must be one of 40, 50, 60, 70")
-        return v
-
-    def model_post_init(self, _ctx) -> None:
-        self.size_mm = self.validate_size(self.size_mm)
-
-
-class ProductApplicationOut(BaseModel):
-    id: int
-    product_id: int
-    size_mm: int
-    label: str
-
-    class Config:
-        from_attributes = True"""
-
-# --------------- TEST TYPE SCHEMAS ----------------------------------
+# --------------- PRODUCT SCHEMAS -------------------------------\n# Moved to app/schema/product.py to avoid duplication and merge conflicts.\n\n# --------------- TEST TYPE SCHEMAS ----------------------------------
 
 class TestTypeIn(BaseModel):
     code: constr(min_length=1, max_length=50)
@@ -328,3 +207,4 @@ class SmtHoodPointOut(BaseModel):
     created_at: datetime
     class Config:
         from_attributes = True
+
