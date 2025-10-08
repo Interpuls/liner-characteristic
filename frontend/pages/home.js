@@ -13,6 +13,7 @@ import {
 import { getToken, clearToken } from "../lib/auth";
 import { getMe } from "../lib/api";
 import { FiSearch, FiCreditCard, FiSliders } from "react-icons/fi";
+import { RxHamburgerMenu } from "react-icons/rx";
 import AppHeader from "../components/AppHeader";
 import AppFooter from "../components/AppFooter";
 
@@ -77,19 +78,52 @@ export default function Home() {
   const RightArea = () => (
     <HStack spacing={2}>
       {isAdmin && <AdminNav />}
-      {/* Burger shown on mobile for both roles */}
-      <Show below="md">
-        <IconButton aria-label="Menu" icon={<Icon viewBox="0 0 24 24"><path d="M3 6h18M3 12h18M3 18h18" stroke="currentColor" strokeWidth="2"/></Icon>} size="sm" variant="ghost" color="white" _hover={{ bg: "whiteAlpha.200" }} onClick={menuCtrl.onOpen} />
-      </Show>
     </HStack>
   );
 
   const HeroUser = () => (
     <Box position="relative" overflow="hidden" py={{ base: 16, md: 24 }}>
+      {/* Mobile burger inside hero */}
+      <Show below="md">
+        <IconButton
+          aria-label="Open menu"
+          icon={<RxHamburgerMenu />}
+          position="absolute"
+          top={3}
+          left={3}
+          zIndex={2}
+          variant="ghost"
+          color="white"
+          _hover={{ bg: "whiteAlpha.200" }}
+          _active={{ bg: "whiteAlpha.300" }}
+          onClick={menuCtrl.onOpen}
+        />
+      </Show>
       <Box position="absolute" inset={0} zIndex={0}
            bgGradient="linear(180deg, rgba(13,39,82,1) 0%, rgba(18,48,95,1) 35%, rgba(5,21,49,1) 100%)" />
-      <Box position="absolute" top="-20%" left="50%" transform="translateX(-50%)" w="1200px" h="1200px" borderRadius="full"
-           bgGradient="radial(closest-side, rgba(72, 118, 255, 0.35), transparent 70%)" filter="blur(60px)" />
+      <Box
+        position="absolute"
+        top={{ base: "-60%", md: "-20%" }}
+        left="50%"
+        transform="translateX(-50%)"
+        w={{ base: "120vw", md: "1200px" }}
+        h={{ base: "120vw", md: "1200px" }}
+        borderRadius="full"
+        bgGradient="radial(closest-side, rgba(72,118,255,0.45), transparent 70%)"
+        filter="blur(70px)"
+      />
+      {/* Secondary soft glow for mobile center fill */}
+      <Box
+        position="absolute"
+        top={{ base: "-10%", md: "10%" }}
+        left="50%"
+        transform="translateX(-50%)"
+        w={{ base: "80vw", md: "800px" }}
+        h={{ base: "80vw", md: "800px" }}
+        borderRadius="full"
+        bgGradient="radial(closest-side, rgba(88,140,255,0.25), transparent 70%)"
+        filter="blur(60px)"
+      />
 
       <VStack position="relative" zIndex={1} spacing={5}>
         <Image src="/favicon.ico" alt="Logo" width={72} height={72} />
@@ -104,7 +138,7 @@ export default function Home() {
 
   const SectionRow = ({ title }) => (
     <Box>
-      <Heading size="sm" color="gray.200" mb={2}>{title}</Heading>
+      <Heading size="sm" color="gray.400" mb={2}>Teat size: {title}</Heading>
       <HStack spacing={4} overflowX="auto" py={2} px={1}>
         {[1,2,3,4].map((i) => (
           <Box key={i} minW="220px" p={4} borderWidth="1px" borderColor="whiteAlpha.200" bg="whiteAlpha.100" rounded="lg">
@@ -118,11 +152,25 @@ export default function Home() {
 
   return (
     <>
-      <AppHeader title="Liner Database" logoSrc="/favicon.ico" onLogoutClick={onOpen} rightArea={<RightArea />} />
+      <Hide below="md">
+        <AppHeader title="Liner Database" logoSrc="/favicon.ico" onLogoutClick={onOpen} rightArea={<RightArea />} />
+      </Hide>
 
         <Box as="main" bg="#0b1f45" minH="100vh">
           <HeroUser />
-          <Box maxW="7xl" mx="auto" px={{ base: 4, md: 8 }} pb={16}>
+          <Box
+            maxW="7xl"
+            mx="auto"
+            px={{ base: 4, md: 8 }}
+            pb={16}
+            pt={{ base: 6, md: 8 }}
+            bg="rgba(12, 26, 58, 0.55)"
+            borderTopLeftRadius={{ base: "2xl", md: "3xl" }}
+            borderTopRightRadius={{ base: "2xl", md: "3xl" }}
+            boxShadow="0 -10px 30px rgba(0,0,0,0.35)"
+            backdropFilter="saturate(120%) blur(6px)"
+          >
+            <Heading size="md" color="gray.300" mb={4} mt={2}>Performance Rankings</Heading>
             <SimpleGrid columns={{ base: 1 }} gap={8}>
               <SectionRow title="40" />
               <SectionRow title="50" />
@@ -155,7 +203,7 @@ export default function Home() {
                 </>
               )}
               <CkDivider />
-              <Button colorScheme="red" onClick={() => { menuCtrl.onClose(); onOpen(); }}>Logout</Button>
+              <Button backgroundColor="rgba(20, 23, 41, 1)" color="white" onClick={() => { menuCtrl.onClose(); onOpen(); }}>Logout</Button>
             </Stack>
           </DrawerBody>
         </DrawerContent>

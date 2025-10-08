@@ -12,7 +12,7 @@ export default function AppFooter({
       w="100%"
       borderTop="1px solid"
       borderColor="gray.200"
-      mt={8}
+      mt={0}
       py={4}
       bg="gray.50"   // <-- leggermente grigino
     >
