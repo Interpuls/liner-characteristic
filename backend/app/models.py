@@ -100,7 +100,7 @@ class ProductApplication(SQLModel, table=True):
 
 # --------------- SEARCH MODELS ---------------------
 
-class SearchPreference(SQLModel, table=True):
+"""class SearchPreference(SQLModel, table=True):
     __tablename__ = "search_preferences"
     id: Optional[int] = Field(default=None, primary_key=True)
     user_id: int = Field(index=True, foreign_key="users.id")
@@ -108,7 +108,7 @@ class SearchPreference(SQLModel, table=True):
     # JSON di filtri: { product_type, brand, model, teat_size, kpi: [...], ... }
     filters: dict = Field(sa_column=Column(JSON))
     created_at: datetime = Field(default_factory=datetime.utcnow, nullable=False)
-    __table_args__ = (UniqueConstraint("user_id", "name", name="uq_user_pref_name"),)
+    __table_args__ = (UniqueConstraint("user_id", "name", name="uq_user_pref_name"),)"""
 
 
 # --------------- TEST TYPE MODELS ----------------------------------
