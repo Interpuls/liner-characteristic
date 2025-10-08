@@ -113,7 +113,7 @@ class ProductApplication(SQLModel, table=True):
 
 # --------------- TEST TYPE MODELS ----------------------------------
 
-class TestType(SQLModel, table=True):
+"""class TestType(SQLModel, table=True):
     __tablename__ = "test_types"
 
     id: Optional[int] = Field(default=None, primary_key=True)
@@ -125,7 +125,7 @@ class TestType(SQLModel, table=True):
     __table_args__ = (
         UniqueConstraint("code", name="uq_test_types_code"),
         Index("ix_test_types_name", "name"),
-    )
+    )"""
 
 
 
