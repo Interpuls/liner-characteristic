@@ -19,15 +19,18 @@ from datetime import datetime
 import sqlalchemy as sa
 
 from .db import init_db, get_session
-from .models import Product, SearchPreference, KpiDef, FormulaType, ProductApplication, TppRun, TestMetric, KpiValue, KpiScale, MassageRun, MassagePoint, TestMetric, KpiValue, SpeedRun, SmtHoodRun, SmtHoodPoint
-from .schemas import Token, ProductIn, ProductOut, ProductMetaOut, ProductPreferenceIn, ProductPreferenceOut, KpiDefIn, KpiDefOut, ProductApplicationIn, ProductApplicationOut, SIZE_LABELS, TppRunIn, TppRunOut, KpiScaleUpsertIn, KpiScaleBandIn, KpiValueOut, MassageRunIn, MassageRunOut, KpiValueOut, MassagePointOut, MassagePointIn, SpeedRunIn, SpeedRunOut, SmtHoodPointIn, SmtHoodPointOut, SmtHoodRunIn, SmtHoodRunOut
+from .models import SearchPreference, KpiDef, FormulaType, TppRun, TestMetric, KpiValue, KpiScale, MassageRun, MassagePoint, TestMetric, KpiValue, SpeedRun, SmtHoodRun, SmtHoodPoint
+from .schemas import Token, KpiDefIn, KpiDefOut, TppRunIn, TppRunOut, KpiScaleUpsertIn, KpiScaleBandIn, KpiValueOut, MassageRunIn, MassageRunOut, KpiValueOut, MassagePointOut, MassagePointIn, SpeedRunIn, SpeedRunOut, SmtHoodPointIn, SmtHoodPointOut, SmtHoodRunIn, SmtHoodRunOut
 from .auth import hash_password, verify_password, create_access_token, get_current_user, require_role
 from .deps import apply_cors
 from .services.kpi_engine import score_from_scales, massage_compute_derivatives
 
 #nuovi import
 from .model.user import User
+from .model.product import Product, ProductApplication
+
 from .schema.user import UserCreate, UserRead
+from .schema.product import ProductBase, ProductIn, ProductOut, ProductMetaOut, ProductPreferenceIn, ProductPreferenceOut, ProductApplicationIn, ProductApplicationOut, SIZE_LABELS
 
 
 ALLOWED_EMAIL_DOMAIN = os.getenv("ALLOWED_EMAIL_DOMAIN", "milkrite.com")

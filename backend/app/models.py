@@ -32,7 +32,7 @@ class User(SQLModel, table=True):
 """
 # --------------- PRODUCT MODELS -------------------------------
 
-class Product(SQLModel, table=True):
+"""class Product(SQLModel, table=True):
     __tablename__ = "products"
     __table_args__ = (
         sa.UniqueConstraint("brand", "model", "compound", name="ux_products_brand_model_compound"),
@@ -95,7 +95,7 @@ class ProductApplication(SQLModel, table=True):
     )
     size_mm: int = Field(index=True)
     label: str | None = None
-    created_at: datetime = Field(default_factory=datetime.utcnow, nullable=False)
+    created_at: datetime = Field(default_factory=datetime.utcnow, nullable=False)"""
 
 
 # --------------- SEARCH MODELS ---------------------
