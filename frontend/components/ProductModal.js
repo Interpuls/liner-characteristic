@@ -1,7 +1,8 @@
 import { useState } from "react";
 import {
   Modal, ModalOverlay, ModalContent, ModalHeader, ModalBody, ModalFooter, ModalCloseButton,
-  Button,
+  Button, FormControl, FormLabel, Input, SimpleGrid, Divider, Checkbox, Textarea, Text,
+  Image, Box, InputGroup, InputLeftAddon  
 } from "@chakra-ui/react";
 import ProductFields from "./ProductFields";
 
@@ -11,11 +12,11 @@ export default function ProductModal({ isOpen, onClose, meta, onSave }) {
     brand: "",
     model: "",
     compound: "STD",
-    manufactured_at: "",
-    shell_type: null,
-    wash_cup: null,
-    spider_wash_cup: null,
-    only_admin: true,
+    manufactured_at: "", 
+    shell_type: null, 
+    wash_cup: null, 
+    spider_wash_cup: null,        
+    only_admin: true,           
     notes: "",
     robot_liner: false,
     barrel_shape: "",
@@ -27,7 +28,7 @@ export default function ProductModal({ isOpen, onClose, meta, onSave }) {
     orifice_diameter: null,
     barrel_diameter: null,
     shell_orifice: null,
-    shell_length: null,
+    shell_length: null, 
     shell_external_diameter: null,
     hoodcup_diameter: null,
     return_to_lockring: null,
@@ -61,8 +62,8 @@ export default function ProductModal({ isOpen, onClose, meta, onSave }) {
         brand: "",
         model: "",
         compound: "STD",
-        shell_type: null,
-        wash_cup: null,
+        shell_type: null, 
+        wash_cup: null, 
         spider_wash_cup: null,
         manufactured_at: "",
         only_admin: false,
@@ -73,7 +74,7 @@ export default function ProductModal({ isOpen, onClose, meta, onSave }) {
         liner_length: null,
         barrel_diameter: null,
         shell_orifice: null,
-        shell_length: null,
+        shell_length: null, 
         shell_external_diameter: null,
         mp_depth_mm: null,
         orifice_diameter: null,

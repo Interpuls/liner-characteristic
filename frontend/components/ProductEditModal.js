@@ -45,6 +45,7 @@ export default function ProductEditModal({ isOpen, onClose, meta, product, onSav
         barrel_diameter: product.barrel_diameter ?? null,
         shell_orifice: product.shell_orifice ?? null,
         shell_length: product.shell_length ?? null,
+        shell_length: product.shell_length ?? null, 
         shell_external_diameter: product.shell_external_diameter ?? null,
         hoodcup_diameter: product.hoodcup_diameter ?? null,
         return_to_lockring: product.return_to_lockring ?? null,
@@ -149,3 +150,4 @@ export default function ProductEditModal({ isOpen, onClose, meta, product, onSav
     </>
   );
 }
+
