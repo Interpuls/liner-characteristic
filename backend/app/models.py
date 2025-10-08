@@ -183,6 +183,7 @@ class KpiScale(SQLModel, table=True):
     band_max: float
     score: int = Field(index=True)     # 1..4
     label: Optional[str] = None
+    
     created_at: datetime = Field(default_factory=datetime.utcnow, nullable=False)
 
 # ---------- Metriche derivate generiche ----------
