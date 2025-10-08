@@ -5,7 +5,7 @@ import {
   ModalCloseButton, SimpleGrid, FormControl, FormLabel,
   Text, Divider, HStack, Button, AlertDialog, AlertDialogOverlay,
   AlertDialogContent, AlertDialogHeader, AlertDialogBody, AlertDialogFooter,
-  useDisclosure, Box, Image, Input, InputGroup, InputLeftAddon
+  useDisclosure, Box, Image, Input, InputGroup, InputLeftAddon, Stack, Icon
 } from "@chakra-ui/react";
 import { EditIcon, DeleteIcon } from "@chakra-ui/icons";
 import { useRef, useState, useEffect } from "react";
@@ -35,13 +35,13 @@ export default function ProductDetailModal({ isOpen, onClose, product, onEdit, o
 
   if (!product) return null;
 
-  const F = ({ label, value, addon }) => {
+  const F = ({ label, value, addon, font }) => {
     const display =
       value !== null && value !== undefined && value !== "" ? value : "-";
 
     return (
-      <FormControl>
-        <FormLabel fontSize="sm" color="gray.600">{label}</FormLabel>
+      <FormControl mb={2}>
+        <FormLabel fontSize="sm" color="gray.500">{label}</FormLabel>
         {addon ? (
           <InputGroup size="md">
             <InputLeftAddon
@@ -64,54 +64,132 @@ export default function ProductDetailModal({ isOpen, onClose, product, onEdit, o
             />
           </InputGroup>
         ) : (
-          <Box
-            borderWidth="1px"
-            borderRadius="md"
-            px={3}
-            py={2}
-            bg="gray.50"
-            _dark={{ bg: "gray.700", borderColor: "gray.600" }}
-          >
-            <Text fontWeight="medium">{display}</Text>
-          </Box>
+          <InputGroup size="md">
+            <Input
+              value={display}
+              fontWeight={font}
+              isReadOnly
+              pointerEvents="none"
+              tabIndex={-1}
+              variant="outline"
+              bg="gray.50"
+              _dark={{ bg: "gray.700", borderColor: "gray.600" }}
+            />
+          </InputGroup>
         )}
       </FormControl>
     );
   };
 
+  // Icons for barrel shape
+  const RoundIcon = (props) => (
+    <Icon viewBox="0 0 24 24" {...props}>
+      <circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" strokeWidth="2" />
+    </Icon>
+  );
+  const TriangleIcon = (props) => (
+    <Icon viewBox="0 0 24 24" {...props}>
+      <polygon points="12 4 20 18 4 18" fill="none" stroke="currentColor" strokeWidth="2" />
+    </Icon>
+  );
+  const SquareIcon = (props) => (
+    <Icon viewBox="0 0 24 24" {...props}>
+      <rect x="5" y="5" width="14" height="14" rx="2" fill="none" stroke="currentColor" strokeWidth="2" />
+    </Icon>
+  );
+
+  const renderBarrelShape = (shape) => {
+    const s = (shape || "").toLowerCase();
+    const map = {
+      round: { icon: RoundIcon, label: "Round" },
+      triangular: { icon: TriangleIcon, label: "Triangular" },
+      squared: { icon: SquareIcon, label: "Squared" },
+    };
+    const m = map[s];
+    if (!m) return "-";
+    const Ico = m.icon;
+    return (
+      <HStack spacing={2}>
+        <Ico boxSize={4} />
+        <Text>{m.label}</Text>
+      </HStack>
+    );
+  };
+
+  const parlourType = product.robot_liner ? "Robot" : "Conventional Parlour";
+  const areas = Array.isArray(product.reference_areas) ? product.reference_areas : [];
+  const areasDisplay = areas.length === 0 ? "-" : (areas.includes("Global") ? "Global" : areas.join(", "));
+
   return (
     <>
-      <Modal isOpen={isOpen} onClose={onClose} size="lg" isCentered>
+      <Modal isOpen={isOpen} onClose={onClose} size="3xl" isCentered>
         <ModalOverlay />
         <ModalContent>
           <ModalHeader>Product details</ModalHeader>
           <ModalCloseButton />
           <ModalBody pb={6}>
-            <Text fontSize="sm" color="gray.400" mb={2} fontWeight="medium">
+            <Text fontSize="sm" color="gray.600" mb={2} fontWeight="medium">
               Product details
             </Text>
 
-            <SimpleGrid columns={{ base: 1, md: 2 }} gap={4} mb={6}>
-              <F label="Brand" value={product.brand} />
-              <F label="Model" value={product.model || product.name} />
-              <F label="Compound" value={product.compound} />
+            <SimpleGrid columns={{ base: 1, md: 3 }} gap={4} mb={6}>
+              <F label="Brand" value={product.brand} font="medium" />
+              <F label="Model" value={product.model || product.name} font="medium" />
+              <F label="Compound" value={product.compound} font="medium" />
               <F label="Manufactured at" value={product.manufactured_at || "-"} />
-              <F label="Shell type" value={product.shell_type} />
-              <F label="Wash cup" value={product.wash_cup} />
-              <F label="Spider wash cup" value={product.spider_wash_cup} />
-              <F label="Visible to users" value={product.only_admin ? "No" : "Yes"} />
               <FormControl gridColumn={{ base: "span 1", md: "span 2" }}>
-                <FormLabel fontSize="sm" color="gray.600">Notes</FormLabel>
+                <FormLabel fontSize="sm" color="gray.500">Notes</FormLabel>
                 <Box p={3} borderWidth="1px" rounded="md" bg="gray.50" whiteSpace="pre-wrap">
                   {product.notes || "-"}
                 </Box>
+              </FormControl>
+              <F label="Visible to users" value={product.only_admin ? "No" : "Yes"} />
+            </SimpleGrid>
+
+            <Divider my={2} />
+
+            {/* ADDITIONAL */}
+            <Text fontSize="sm" color="gray.600" mb={2} fontWeight="medium">
+              Additional
+            </Text>
+            <SimpleGrid columns={{ base:1, md:2 }} templateColumns={{ base: '1fr', md: '2fr 1fr' }} gap={6} mb={6} alignItems="start">
+              <Box>
+                <SimpleGrid columns={{ base:1, md:2 }} gap={4} mb={4}>
+                  <FormControl>
+                    <FormLabel fontSize="sm" color="gray.500">Parlour Type</FormLabel>
+                    <Box p={2} borderWidth="1px" rounded="md" bg="gray.50">
+                      <Text>{parlourType}</Text>
+                    </Box>
+                  </FormControl>
+                  <FormControl>
+                    <FormLabel fontSize="sm" color="gray.500">Barrel shape</FormLabel>
+                    <Box p={2} borderWidth="1px" rounded="md" bg="gray.50">
+                      {renderBarrelShape(product.barrel_shape)}
+                    </Box>
+                  </FormControl>
+                </SimpleGrid>
+
+                <SimpleGrid columns={{ base:1, md:3 }} gap={4}>
+                  <F label="Shell type" value={product.shell_type} />
+                  <F label="Wash cup" value={product.wash_cup} />
+                  <F label="Spider wash cup" value={product.spider_wash_cup} />
+                </SimpleGrid>
+              </Box>
+              <FormControl>
+                <FormLabel fontSize="sm" color="gray.500">Reference areas</FormLabel>
+                <Box p={3} borderWidth="1px" rounded="md" bg="gray.50">
+                  {areasDisplay}
+                </Box>
+                <Text fontSize="xs" color="gray.500" mt={1}>
+                  Select multiple areas or choose Global to include all.
+                </Text>
               </FormControl>
             </SimpleGrid>
 
             <Divider my={2} />
 
             {/* SPECIFICHE TECNICHE */}
-            <Text fontSize="sm" color="gray.400" mb={2} fontWeight="medium">
+            <Text fontSize="sm" color="gray.600" mb={2} fontWeight="medium">
               Technical specifications
             </Text>
 
@@ -207,3 +285,4 @@ export default function ProductDetailModal({ isOpen, onClose, product, onEdit, o
     </>
   );
 }
+

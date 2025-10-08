@@ -46,6 +46,14 @@ class Product(SQLModel, table=True):
     barrell_conicity: Optional[float] = None
     hardness: Optional[float] = None
 
+    # nuovi campi: parlour type / shape / reference areas
+    robot_liner: bool = Field(default=False)
+    barrel_shape: Optional[str] = None  # "round" | "triangular" | "squared"
+    reference_areas: Optional[list[str]] = Field(
+        default=None,
+        sa_column=sa.Column(sa.JSON, nullable=True)
+    )
+
     created_at: datetime = Field(default_factory=datetime.utcnow, nullable=False)
 
     #Vincoli e indici
@@ -57,7 +65,7 @@ class Product(SQLModel, table=True):
     )
 
 
-class productApplication(SQLModel, table=True):
+class ProductApplication(SQLModel, table=True):
     __tablename__ = "product_applications"
     
     id: int | None = Field(default=None, primary_key=True)

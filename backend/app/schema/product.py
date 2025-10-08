@@ -1,6 +1,7 @@
 from datetime import datetime
-from typing import List, Optional, Dict, Any
+from typing import List, Optional, Dict, Any, ClassVar
 from pydantic import BaseModel, validator, Field
+from enum import Enum
 
 #product schemas
 class ProductBase(BaseModel):
@@ -38,6 +39,40 @@ class ProductBase(BaseModel):
     barrell_wall_thickness: Optional[float] = None
     barrell_conicity: Optional[float] = None
     hardness: Optional[float] = None
+
+    # nuovi campi
+    robot_liner: Optional[bool] = False
+    # enum per coerenza con FE
+    class BarrelShape(str, Enum):
+        round = "round"
+        triangular = "triangular"
+        squared = "squared"
+
+    barrel_shape: Optional["ProductBase.BarrelShape"] = None
+    reference_areas: Optional[List[str]] = None
+
+    # allowed reference areas (include Global as special)
+    REFERENCE_AREAS_ALLOWED: ClassVar[List[str]] = [
+        "North America",
+        "South America",
+        "Europe",
+        "Africa",
+        "China",
+        "Middle East",
+        "Far East",
+        "Oceania",
+        "Global",
+    ]
+
+    @validator("reference_areas")
+    def _validate_reference_areas(cls, v):
+        if v is None:
+            return v
+        if any(area not in cls.REFERENCE_AREAS_ALLOWED for area in v):
+            raise ValueError("Invalid reference area value")
+        if "Global" in v and len(v) > 1:
+            raise ValueError("If 'Global' is set, it must be the only value")
+        return v
 
 
 
@@ -103,6 +138,7 @@ class ProductApplicationIn(BaseModel):
         if v not in ALLOWED_SIZES:
             raise ValueError(f"size_mm must be one of {ALLOWED_SIZES}")
         return v
+    # placeholder for future validators
 
 
 class ProductApplicationOut(BaseModel):
