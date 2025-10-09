@@ -104,7 +104,7 @@ export default function ProductEditModal({ isOpen, onClose, meta, product, onSav
       <Modal isOpen={isOpen} onClose={onClose} size="3xl" isCentered>
         <ModalOverlay />
         <ModalContent>
-          <ModalHeader>Edit product</ModalHeader>
+          <ModalHeader fontWeight="normal">Edit product</ModalHeader>
           <ModalCloseButton />
           <ModalBody>
             <ProductFields
@@ -134,7 +134,7 @@ export default function ProductEditModal({ isOpen, onClose, meta, product, onSav
       <AlertDialog isOpen={isConfirmOpen} leastDestructiveRef={cancelRef} onClose={onConfirmClose} isCentered>
         <AlertDialogOverlay>
           <AlertDialogContent marginInline={2}>
-            <AlertDialogHeader fontSize="lg" fontWeight="bold">Delete product</AlertDialogHeader>
+            <AlertDialogHeader fontSize="lg" fontWeight="normal">Delete product</AlertDialogHeader>
             <AlertDialogBody>
               Are you sure? This will permanently delete the product.
             </AlertDialogBody>

@@ -2,7 +2,7 @@
 import { useEffect, useState } from "react";
 import {
   Box, Heading, HStack, VStack, Tabs, TabList, TabPanels, Tab, TabPanel,
-  Card, CardBody, SimpleGrid, Select, Text, Badge, Icon
+  Card, CardBody, SimpleGrid, Text, Badge, Icon
 } from "@chakra-ui/react";
 import { LuFlaskConical } from "react-icons/lu";
 
@@ -12,12 +12,22 @@ import SpeedTestPage from "./tests/speed";
 import SmtHoodTestPage from "./tests/smt-hood";
 
 import AppHeader from "@/components/AppHeader";
+import FancySelect from "@/components/ui/FancySelect";
 
 import { BackHomeIcon } from "../../components/ui/BackHomeIcon";
 import { getToken } from "@/lib/auth";
 import { listProducts, getProduct, listProductApplications } from "@/lib/api";
 
 const L = ({ children }) => <Text fontSize="xs" color="gray.500" mb={1}>{children}</Text>;
+
+// Piccolo box informativo usato sotto ogni Tab
+function InfoBox({ children }) {
+  return (
+    <Box mb={4} p={3} borderWidth="1px" borderRadius="md" bg="gray.50">
+      <Text fontSize="sm" color="gray.700">{children}</Text>
+    </Box>
+  );
+}
 
 function ProductSpecsCard({ product }) {
   if (!product) return null;
@@ -111,17 +121,16 @@ export default function AdminTests() {
           <SimpleGrid columns={{ base: 1, md: 2 }} gap={4}>
             <Box>
               <L>Select product</L>
-              <Select
+              <FancySelect
                 placeholder="Choose a product"
                 value={pid}
-                onChange={(e) => setPid(e.target.value)}
-              >
-                {products.map((p) => (
-                  <option key={p.id} value={p.id}>
-                    {(p.brand ? `${p.brand} ` : "") + (p.model || p.name || `#${p.id}`) + (p.compound ? ` (${p.compound}) ` : " ")}
-                  </option>
-                ))}
-              </Select>
+                onChange={(val) => setPid(val)}
+                options={products.map((p) => ({
+                  value: String(p.id),
+                  label: (p.brand ? `${p.brand} ` : "") + (p.model || p.name || `#${p.id}`) + (p.compound ? ` (${p.compound})` : ""),
+                }))}
+                w="full"
+              />
             </Box>
           </SimpleGrid>
         </CardBody>
@@ -165,15 +174,34 @@ export default function AdminTests() {
         
         <TabPanels>
           <TabPanel px={0} pt={4}>
+            <InfoBox>
+              TPP — Calcola il KPI “Closure” partendo dal valore reale di TPP.
+              Seleziona il prodotto, poi per ciascuna misura inserisci il Real TPP (mm)
+              e premi “Save & Compute”.
+            </InfoBox>
             <TppTestPage token={token} pid={pid} product={product} apps={apps} />
           </TabPanel>
           <TabPanel px={0} pt={4}>
+            <InfoBox>
+              Massage — Registra i valori min/max alle tre pressioni (45/40/35 kPa),
+              calcola metriche derivate e i KPI di rischio/fitting. Compila tutti i campi
+              per ciascuna misura e premi “Save & Compute”.
+            </InfoBox>
             <AdminMassageTest token={token} pid={pid} product={product} apps={apps} />
           </TabPanel>
           <TabPanel px={0} pt={4}>
+            <InfoBox>
+              Speed — Calcola il KPI “Speed” a partire dal volume misurato (ml).
+              Inserisci il valore misurato per ciascuna misura e premi “Save & Compute”.
+            </InfoBox>
             <SpeedTestPage token={token} pid={pid} product={product} apps={apps} />
           </TabPanel>
           <TabPanel px={0} pt={4}>
+            <InfoBox>
+              SMT / Hood — Inserisci SMT min/max e HOOD min/max ai tre flussi (0.5 / 1.9 / 3.6 L/min).
+              Il sistema calcola le metriche per flusso (Respray, Fluydodinamic, Slippage, Ringing risk)
+              e i KPI medi. Completa tutti i campi e premi “Save & Compute”.
+            </InfoBox>
             <SmtHoodTestPage token={token} pid={pid} product={product} apps={apps} />
           </TabPanel>
         </TabPanels>

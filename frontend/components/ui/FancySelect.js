@@ -3,7 +3,7 @@ import {
   Menu, MenuButton, MenuList, MenuItem, Button, Box, HStack,
   Input, Text, Icon, Portal
 } from "@chakra-ui/react";
-import { ChevronDownIcon, CheckIcon, CloseIcon, SearchIcon } from "@chakra-ui/icons";
+import { ChevronDownIcon, CheckIcon, SearchIcon } from "@chakra-ui/icons";
 
 /**
  * options: array<string | {label: string, value: string}>
@@ -15,7 +15,6 @@ export default function FancySelect({
   value = "",
   onChange,
   placeholder = "Seleziona",
-  clearable = true,
   maxH = "260px",
   w = "full",
   disabled = false,
@@ -46,6 +45,7 @@ export default function FancySelect({
         as={Button}
         w={w}
         variant="outline"
+        fontWeight="normal"
         rightIcon={<ChevronDownIcon />}
         justifyContent="space-between"
         isDisabled={disabled}
@@ -63,17 +63,7 @@ export default function FancySelect({
           ) : (
             <Text isTruncated color="gray.500">{placeholder}</Text>
           )}
-          {clearable && !!value && (
-            <Icon
-              as={CloseIcon}
-              boxSize={3}
-              opacity={0.6}
-              onClick={(e) => {
-                e.stopPropagation();
-                onChange("");
-              }}
-            />
-          )}
+          {/* clear icon intentionally removed */}
         </HStack>
       </MenuButton>
 
