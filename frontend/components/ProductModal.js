@@ -98,7 +98,7 @@ export default function ProductModal({ isOpen, onClose, meta, onSave }) {
     <Modal isOpen={isOpen} onClose={onClose} size="3xl" isCentered>
       <ModalOverlay />
       <ModalContent>
-        <ModalHeader>Create product</ModalHeader>
+        <ModalHeader fontWeight="normal">Create product</ModalHeader>
         <ModalCloseButton />
         <ModalBody>
           <ProductFields
