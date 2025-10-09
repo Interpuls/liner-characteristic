@@ -185,17 +185,17 @@ export default function Home() {
       {/* Mobile Drawer menu */}
       <Drawer isOpen={menuCtrl.isOpen} placement="left" onClose={menuCtrl.onClose} size="xs">
         <DrawerOverlay />
-        <DrawerContent>
+        <DrawerContent backgroundColor="rgba(4, 6, 20, 1)">
           <DrawerCloseButton />
-          <DrawerHeader>Menu</DrawerHeader>
+          <DrawerHeader color="gray.100">Menu</DrawerHeader>
           <DrawerBody>
             <Stack spacing={3} mt={2}>
               {isAdmin ? (
                 <>
-                  <Button as={NextLink} href="/admin/product" variant="ghost" onClick={menuCtrl.onClose}>Manage Product</Button>
-                  <Button as={NextLink} href="/admin/tests" variant="ghost" onClick={menuCtrl.onClose}>Test Campaign</Button>
-                  <Button as={NextLink} href="/admin/kpis" variant="ghost" onClick={menuCtrl.onClose}>KPI Scales</Button>
-                  <Button as={NextLink} href="/settings" variant="ghost" onClick={menuCtrl.onClose}>Settings</Button>
+                  <Button as={NextLink} href="/admin/product" variant="ghost" color="gray.300" onClick={menuCtrl.onClose}>Manage Product</Button>
+                  <Button as={NextLink} href="/admin/tests" variant="ghost" color="gray.300" onClick={menuCtrl.onClose}>Test Campaign</Button>
+                  <Button as={NextLink} href="/admin/kpis" variant="ghost" color="gray.300" onClick={menuCtrl.onClose}>KPI Scales</Button>
+                  <Button as={NextLink} href="/settings" variant="ghost" color="gray.300" onClick={menuCtrl.onClose}>Settings</Button>
                 </>
               ) : (
                 <>
