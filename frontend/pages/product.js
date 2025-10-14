@@ -1,16 +1,12 @@
 // pages/products.js
 import { useEffect, useState } from "react";
 import { useRouter } from "next/router";
-import {
-  Box, Heading, Text, Button, HStack, Stack, Select,
-  useToast, Card, CardBody, CardHeader, Show
-} from "@chakra-ui/react";
-import { StarIcon } from "@chakra-ui/icons";
+import NextLink from "next/link";
+import { Box, Heading, Button, HStack, useToast, Card, CardBody, CardHeader, Show } from "@chakra-ui/react";
+import { StarIcon, ChevronLeftIcon } from "@chakra-ui/icons";
 import { getToken } from "../lib/auth";
 import { getMe, getProductsMeta, listProductPrefs, saveProductPref } from "../lib/api";
 
-import AppHeader from "../components/AppHeader";
-import AppFooter from "../components/AppFooter";
 import ProductFilters from "../components/filters/ProductFilters";
 import { useDisclosure, Modal, ModalOverlay, ModalContent, ModalHeader, ModalCloseButton, ModalBody, ModalFooter, Input, IconButton } from "@chakra-ui/react";
 import FancySelect from "../components/ui/FancySelect";
@@ -88,18 +84,24 @@ export default function Products() {
 
   return (
     <>
-      {/* Header: back → Home  */}
-      <AppHeader
-        title="Liner Search"
-        backHref="/home"
-      />
-
-      <Box as="main" maxW="6xl" mx="auto" px={{ base:4, md:8 }} pt={{ base:4, md:6 }}>
+      <Box as="main" maxW="6xl" mx="auto" px={{ base:0, md:8 }} pt={{ base:0, md:6 }}>
         {/* CardHeader: SOLO Preference research */}
-        <Card mb={4} variant="outline" borderColor="gray.200" overflow="hidden">
-          <CardHeader bg="#12305f" color="white" py={{ base:3, md:4 }}>
+        <Card mb={4} overflow="hidden"
+          mx={{ base: 0, md: 0 }} borderRadius={{ base: 0, md: "md" }}
+          borderWidth={{ base: 0, md: "1px" }} borderColor="gray.200"
+        >
+          <CardHeader bg="#12305f" color="white" py={{ base:3, md:4 }} px={{ base:4, md:6 }}>
             <HStack gap={2} w={{ base:"full", md:"auto" }}>
-              <StarIcon boxSize={4} />
+              <IconButton
+                as={NextLink}
+                href="/"
+                aria-label="Back to home"
+                icon={<ChevronLeftIcon boxSize={6} />}
+                variant="ghost"
+                color="white"
+                _hover={{ bg: "whiteAlpha.200" }}
+                size="sm"
+              />
               <FancySelect
                 options={prefs.map(p => ({ label: p.name, value: String(p.id) }))}
                 value={prefId}
@@ -116,22 +118,31 @@ export default function Products() {
 
         {/* helper text removed per request */}
 
-        <Card>
-          <CardHeader py="3">
+        <Card
+          mx={{ base: 0, md: 0 }}
+          borderRadius={{ base: 0, md: "md" }}
+          borderWidth={{ base: 0, md: "1px" }}
+          borderColor="gray.200"
+          boxShadow={{ base: "none", md: "sm" }}
+          bg={{ base: "transparent", md: "white" }}
+        >
+          <CardHeader py="3" px={{ base:4, md:6 }}>
             <HStack justify="space-between">
-              <Heading size="sm">Filters</Heading>
+              <Heading size={{ base: "2xl", md: "lg" }} color="#12305f">Filters</Heading>
               <Button
                 onClick={saveCtrl.onOpen}
                 size="sm"
                 leftIcon={<StarIcon />}
                 variant="outline"
-                colorScheme="blue"
+                borderColor="gray.300"
+                color="#12305f"
+                _hover={{ borderColor: "gray.400", bg: "gray.50" }}
               >
                 Save
               </Button>
             </HStack>
           </CardHeader>
-          <CardBody pt={{ base: 4, md: 4 }}>
+          <CardBody pt={{ base: 4, md: 4 }} px={{ base:4, md:6 }}>
             <ProductFilters meta={meta} onSelectionsChange={setSelection} onConfirm={onConfirm} value={loadedPref} />
           </CardBody>
         </Card>
@@ -141,8 +152,6 @@ export default function Products() {
           {/* niente */}
         </Show>
       </Box>
-
-      <AppFooter appName="Liner Characteristic App" />
 
       {/* Save preference modal */}
       <Modal isOpen={saveCtrl.isOpen} onClose={saveCtrl.onClose} isCentered>

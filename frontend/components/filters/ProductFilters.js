@@ -130,29 +130,46 @@ export default function ProductFilters({ meta, onSelectionsChange, onConfirm, va
         </Stack>
       ) : (
         <HStack spacing={2} wrap="wrap">
-          <FilterButton label="Reference Area" summary={refSummary} onClick={refArea.onOpen} />
-          <FilterButton label="Brand / Model" summary={bmSummary} onClick={brandModel.onOpen} />
-          <FilterButton label="Teat Size" summary={tsSummary} onClick={teatSize.onOpen} />
-          <FilterButton label="Barrel Shape" summary={shapeSummary} onClick={barrelShape.onOpen} />
-          <FilterButton label="Parlor Type" summary={parlorSummary} onClick={parlorType.onOpen} />
+          <FilterButton icon={FiGlobe} label="Reference Area" summary={refSummary} onClick={refArea.onOpen} />
+          <FilterButton icon={FiTag} label="Brand / Model" summary={bmSummary} onClick={brandModel.onOpen} />
+          <FilterButton icon={FiAperture} label="Teat Size" summary={tsSummary} onClick={teatSize.onOpen} />
+          <FilterButton icon={FiBox} label="Barrel Shape" summary={shapeSummary} onClick={barrelShape.onOpen} />
+          <FilterButton icon={FiCpu} label="Parlor Type" summary={parlorSummary} onClick={parlorType.onOpen} />
           <Spacer />
           <Text fontSize="sm" color="gray.600">{count} liners</Text>
         </HStack>
       )}
 
-      {/* Bottom CTA: Reset (left) and See X liners (right) */}
-      <HStack mt={{ base: 9, md: 8 }} justify="space-between">
-        <Button variant="outline" onClick={() => {
-          setAreas([]);
-          setBrandModelSel({ brands: [], models: {} });
-          setTeatSizes([]);
-          setShapes([]);
-          setParlor([]);
-        }}>Reset</Button>
-        <Button colorScheme="blue" onClick={() => onConfirm && onConfirm()}>
+      {/* Bottom CTA: centered vertical buttons */}
+      <Stack mt={{ base: 12, md: 6 }} spacing={3} align="center">
+        <Button
+          colorScheme="blue"
+          onClick={() => onConfirm && onConfirm()}
+          w="full"
+          maxW={{ base: "240px", md: "220px" }}
+          size={{ base: "md", md: "sm" }}
+          borderRadius="9999px"
+        >
           {`See ${count} liners`}
         </Button>
-      </HStack>
+        <Button
+          onClick={() => {
+            setAreas([]);
+            setBrandModelSel({ brands: [], models: {} });
+            setTeatSizes([]);
+            setShapes([]);
+            setParlor([]);
+          }}
+          variant="link"
+          colorScheme="blue"
+          w="full"
+          maxW={{ base: "240px", md: "220px" }}
+          justifyContent="center"
+          fontSize={{ base: "sm", md: "xs" }}
+        >
+          Clear Filter
+        </Button>
+      </Stack>
 
       <ReferenceAreaFilterModal
         isOpen={refArea.isOpen}
