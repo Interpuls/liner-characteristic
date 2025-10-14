@@ -26,6 +26,7 @@ export default function Products() {
   const saveCtrl = useDisclosure();
   const [saveName, setSaveName] = useState("");
   const [prefId, setPrefId] = useState("");
+  const [loadedPref, setLoadedPref] = useState(null);
 
   useEffect(() => {
     const t = getToken();
@@ -37,6 +38,14 @@ export default function Products() {
     getProductsMeta(t).then(setMeta).catch(()=>{});
     listProductPrefs(t).then(setPrefs).catch(()=>{});
   }, [toast]);
+
+  // when a preference is selected, load its saved filters into ProductFilters
+  useEffect(() => {
+    if (!prefId) { setLoadedPref(null); return; }
+    const sel = prefs.find(p => String(p.id) === String(prefId));
+    if (!sel) { setLoadedPref(null); return; }
+    setLoadedPref(sel.filters || null);
+  }, [prefId, prefs]);
 
   const onConfirm = () => {
     const params = new URLSearchParams();
@@ -123,7 +132,7 @@ export default function Products() {
             </HStack>
           </CardHeader>
           <CardBody pt={{ base: 4, md: 4 }}>
-            <ProductFilters meta={meta} onSelectionsChange={setSelection} onConfirm={onConfirm} />
+            <ProductFilters meta={meta} onSelectionsChange={setSelection} onConfirm={onConfirm} value={loadedPref} />
           </CardBody>
         </Card>
 

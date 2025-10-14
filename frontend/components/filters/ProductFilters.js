@@ -13,7 +13,7 @@ const TEAT_SIZE_OPTIONS = ["40", "50", "60", "70"]; // UI labels; non-influentia
 const BARREL_SHAPES = ["squared", "triangular", "round"];
 const PARLOR_TYPES = ["robot", "conventional"]; // robot => robot_liner=true; conventional => false
 
-export default function ProductFilters({ meta, onSelectionsChange, onConfirm }) {
+export default function ProductFilters({ meta, onSelectionsChange, onConfirm, value }) {
   // reference area
   const refArea = useDisclosure();
   const brandModel = useDisclosure();
@@ -94,6 +94,27 @@ export default function ProductFilters({ meta, onSelectionsChange, onConfirm }) 
     if (!onSelectionsChange) return;
     onSelectionsChange({ areas, brandModel: brandModelSel, teatSizes, shapes, parlor, count });
   }, [areas, brandModelSel, teatSizes, shapes, parlor, count, onSelectionsChange]);
+
+  // allow parent to inject saved selections
+  useEffect(() => {
+    if (!value) return;
+    try {
+      const v = value || {};
+      if (Array.isArray(v.areas)) setAreas(v.areas);
+      if (v.brandModel) {
+        const bm = v.brandModel;
+        setBrandModelSel({
+          brands: Array.isArray(bm.brands) ? bm.brands : [],
+          models: typeof bm.models === "object" && bm.models !== null ? bm.models : {},
+        });
+      }
+      if (Array.isArray(v.teatSizes)) setTeatSizes(v.teatSizes.map(String));
+      if (Array.isArray(v.shapes)) setShapes(v.shapes);
+      if (Array.isArray(v.parlor)) setParlor(v.parlor);
+    } catch {
+      // ignore malformed saved value
+    }
+  }, [value]);
 
   const isMobile = useBreakpointValue({ base: true, md: false });
 
