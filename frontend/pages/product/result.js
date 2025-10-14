@@ -2,13 +2,14 @@
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/router";
 import {
-  Box, Heading, Text, HStack, VStack, Stack, Tag, TagLabel, Button, IconButton,
-  Card, CardHeader, CardBody, SimpleGrid, Table, Thead, Tbody, Tr, Th, Td, useToast
+  Box, Heading, Text, HStack, VStack, Stack, Tag, TagLabel, Button,
+  Card, CardHeader, CardBody, SimpleGrid, useToast, Badge
 } from "@chakra-ui/react";
 import { RepeatIcon } from "@chakra-ui/icons";
 import AppHeader from "../../components/AppHeader";
 import AppFooter from "../../components/AppFooter";
 import { getToken } from "../../lib/auth";
+import { listProducts } from "../../lib/api";
 
 export default function ProductsSearchPage() {
   const router = useRouter();
@@ -17,10 +18,10 @@ export default function ProductsSearchPage() {
 
   // Placeholder risultati (collega quando vuoi)
   const [loading, setLoading] = useState(false);
-  const [items, setItems] = useState([]); // [{id, brand, model, teat_size, ...}]
+  const [items, setItems] = useState([]); // app-level items: [{key, brand, model, size_mm}]
 
   // Leggo i filtri dalla query
-  const { brand, model, teat_size, ...rest } = router.query;
+  const { brand, model, teat_size, barrel_shape, parlor, areas, ...rest } = router.query;
 
   const kpis = useMemo(() => {
     // tutti i parametri che iniziano con kpi e hanno un valore
@@ -31,12 +32,53 @@ export default function ProductsSearchPage() {
 
   useEffect(() => {
     const t = getToken();
-    if (!t) {
-      window.location.replace("/login");
-      return;
-    }
-    setMe({ ok: true }); // manteniamo la pagina “banale” senza toccare backend
+    if (!t) { window.location.replace("/login"); return; }
+    setMe({ ok: true });
   }, []);
+
+  useEffect(() => {
+    const run = async () => {
+      if (!router.isReady) return;
+      const t = getToken();
+      if (!t) return;
+      // fetch products (brand/model filtering supported by backend)
+      const base = await listProducts(t, {
+        limit: 500,
+        ...(brand ? { brand } : {}),
+        ...(model ? { model } : {}),
+      }).catch(() => []);
+
+      // filter client-side for shape/parlor/areas
+      const shapes = barrel_shape ? [String(barrel_shape)] : [];
+      const parlorSel = parlor ? [String(parlor)] : [];
+      const areasSel = typeof areas === "string" && areas ? String(areas).split(",") : [];
+
+      const filtered = (Array.isArray(base) ? base : []).filter((p) => {
+        let okShape = true;
+        if (shapes.length > 0) okShape = p.barrel_shape && shapes.includes(String(p.barrel_shape));
+        let okParlor = true;
+        if (parlorSel[0] === "robot") okParlor = !!p.robot_liner;
+        if (parlorSel[0] === "conventional") okParlor = !p.robot_liner;
+        let okArea = true;
+        if (areasSel.length > 0 && !areasSel.includes("Global")) {
+          const list = Array.isArray(p.reference_areas) ? p.reference_areas : [];
+          okArea = areasSel.some((a) => list.includes(a));
+        }
+        return okShape && okParlor && okArea;
+      });
+
+      // expand by teat sizes
+      const sizes = teat_size ? [String(teat_size)] : ["40","50","60","70"];
+      const apps = [];
+      filtered.forEach((p) => {
+        sizes.forEach((s) => {
+          apps.push({ key: `${p.id}-${s}`, brand: p.brand, model: p.model, size_mm: s });
+        });
+      });
+      setItems(apps);
+    };
+    run();
+  }, [router.isReady, router.query]);
 
   // Quando vorrai collegare il backend:
   // 1) scommenta la useEffect sotto
@@ -119,41 +161,30 @@ export default function ProductsSearchPage() {
         <Card>
           <CardHeader py={3}>
             <HStack justify="space-between" align="center">
-              <Heading size="sm">Risultati</Heading>
-              <Tag size="sm" variant="subtle">
-                <TagLabel>{items.length} trovati</TagLabel>
-              </Tag>
+              <Heading size="sm">Applications</Heading>
+              <Tag size="sm" variant="subtle"><TagLabel>{items.length} trovate</TagLabel></Tag>
             </HStack>
           </CardHeader>
-
           <CardBody pt={0}>
             {items.length === 0 ? (
               <VStack py={8} spacing={2}>
-                <Text color="gray.600">Nessun risultato (pagina banale pronta per l’aggancio al backend).</Text>
-                <Text color="gray.500" fontSize="sm">Usa “Modifica filtri” o collega la fetch nella useEffect commentata.</Text>
+                <Text color="gray.600">Nessun risultato.</Text>
               </VStack>
             ) : (
-              <Box overflowX="auto">
-                <Table size="sm">
-                  <Thead>
-                    <Tr>
-                      <Th>Brand</Th>
-                      <Th>Model</Th>
-                      <Th>Teat size</Th>
-                      {/* aggiungi qui altre colonne se servono */}
-                    </Tr>
-                  </Thead>
-                  <Tbody>
-                    {items.map((p) => (
-                      <Tr key={p.id || `${p.brand}-${p.model}`}>
-                        <Td>{p.brand ?? "-"}</Td>
-                        <Td>{p.model ?? "-"}</Td>
-                        <Td>{p.teat_size ?? "-"}</Td>
-                      </Tr>
-                    ))}
-                  </Tbody>
-                </Table>
-              </Box>
+              <SimpleGrid columns={{ base: 1, md: 2 }} gap={4}>
+                {items.map((a) => (
+                  <Box key={a.key} borderWidth="1px" rounded="md" p={4}>
+                    <HStack justify="space-between">
+                      <Stack spacing={0}>
+                        <Text fontWeight="semibold">{a.brand || "-"} • {a.model || "-"}</Text>
+                        <HStack>
+                          <Badge colorScheme="blue">Teat size: {a.size_mm}</Badge>
+                        </HStack>
+                      </Stack>
+                    </HStack>
+                  </Box>
+                ))}
+              </SimpleGrid>
             )}
           </CardBody>
         </Card>

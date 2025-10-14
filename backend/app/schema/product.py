@@ -6,8 +6,8 @@ from enum import Enum
 
 #product schemas
 class ProductBase(BaseModel):
-    code: str
-    name: str
+    code: Optional[str] = None
+    name: Optional[str] = None
     description: Optional[str] = None
 
     product_type: Optional[str] = "liner"
