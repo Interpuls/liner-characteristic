@@ -19,7 +19,6 @@ from datetime import datetime
 import sqlalchemy as sa
 
 from .db import init_db, get_session
-from .schemas import Token, TppRunIn, TppRunOut, MassageRunIn, MassageRunOut, MassagePointOut, MassagePointIn, SpeedRunIn, SpeedRunOut, SmtHoodPointIn, SmtHoodPointOut, SmtHoodRunIn, SmtHoodRunOut
 from .auth import hash_password, verify_password, create_access_token, get_current_user, require_role
 from .deps import apply_cors
 from .services.kpi_engine import score_from_scales, massage_compute_derivatives
@@ -39,6 +38,12 @@ from .schema.user import UserCreate, UserRead
 from .schema.product import ProductBase, ProductIn, ProductOut, ProductMetaOut, ProductPreferenceIn, ProductPreferenceOut, ProductApplicationIn, ProductApplicationOut, SIZE_LABELS
 from .schema.testType import TestTypeIn, TestTypeOut
 from .schema.kpi import KpiDefIn, KpiDefOut, KpiScaleUpsertIn, KpiScaleBandIn, KpiValueOut, KpiDefBase
+from .schema.tpp import TppRunBase, TppRunIn, TppRunOut
+from .schema.massage import MassageRunBase, MassageRunIn, MassageRunOut, MassagePointIn, MassagePointOut
+from .schema.speed import SpeedRunBase, SpeedRunIn, SpeedRunOut
+from .schema.smthood import SmtHoodRunBase, SmtHoodRunIn, SmtHoodRunOut, SmtHoodPointIn, SmtHoodPointOut
+from app.schema.auth import Token, TokenData, LoginInput
+
 
 ALLOWED_EMAIL_DOMAIN = os.getenv("ALLOWED_EMAIL_DOMAIN", "milkrite.com")
 
