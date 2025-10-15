@@ -9,7 +9,7 @@ from fastapi.security import OAuth2PasswordBearer
 from sqlmodel import Session, select
 
 from app.model.user import User
-from .schemas import TokenData
+from .schema.auth import TokenData
 from .db import get_session
 
 JWT_SECRET = os.getenv("JWT_SECRET", "changeme")

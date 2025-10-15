@@ -1,6 +1,6 @@
 # app/services/kpi_engine.py
 from sqlmodel import Session, select
-from app.models import KpiScale
+from app.model.kpi import KpiScale
 from typing import Dict, Tuple
 import math
 
