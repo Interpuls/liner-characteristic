@@ -136,19 +136,46 @@ export default function ProductFilters({ meta, onSelectionsChange, onConfirm, va
           <FilterButton icon={FiBox} label="Barrel Shape" summary={shapeSummary} onClick={barrelShape.onOpen} />
           <FilterButton icon={FiCpu} label="Parlor Type" summary={parlorSummary} onClick={parlorType.onOpen} />
           <Spacer />
-          <Text fontSize="sm" color="gray.600">{count} liners</Text>
+          <Text fontSize="sm" color="gray.300">{count} liners</Text>
         </HStack>
       )}
 
       {/* Bottom CTA: centered vertical buttons */}
       <Stack mt={{ base: 12, md: 6 }} spacing={3} align="center">
         <Button
-          colorScheme="blue"
           onClick={() => onConfirm && onConfirm()}
           w="full"
-          maxW={{ base: "240px", md: "220px" }}
+          maxW={{ base: "320px", md: "240px" }}
           size={{ base: "md", md: "sm" }}
           borderRadius="9999px"
+          position="relative"
+          overflow="hidden"
+          color="#0c1a3a"
+          borderWidth="1px"
+          borderColor="whiteAlpha.400"
+          bgGradient="linear(135deg, rgba(255,255,255,0.10) 0%, rgba(43,108,176,0.42) 50%, rgba(255,255,255,0.08) 100%)"
+          backdropFilter={{ base: "saturate(130%) blur(6px)", md: "saturate(150%) blur(10px)" }}
+          boxShadow="0 10px 24px rgba(0,0,0,0.28), inset 0 1px 0 rgba(255,255,255,0.18)"
+          _hover={{
+            bgGradient: "linear(135deg, rgba(255,255,255,0.14) 0%, rgba(49,130,206,0.52) 50%, rgba(255,255,255,0.12) 100%)",
+            borderColor: "whiteAlpha.600",
+            boxShadow: "0 12px 28px rgba(0,0,0,0.34), inset 0 1px 0 rgba(255,255,255,0.22)",
+            transform: "translateY(-1px)",
+          }}
+          _active={{
+            transform: "translateY(0)",
+            bgGradient: "linear(135deg, rgba(255,255,255,0.10) 0%, rgba(43,108,176,0.36) 50%, rgba(255,255,255,0.08) 100%)",
+          }}
+          transition="all 0.2s ease"
+          sx={{
+            _before: {
+              content: '""',
+              position: 'absolute',
+              inset: 0,
+              background: 'radial-gradient(80% 140% at 20% 0%, rgba(255,255,255,0.35) 0%, rgba(255,255,255,0.05) 40%, transparent 60%)',
+              pointerEvents: 'none',
+            },
+          }}
         >
           {`See ${count} liners`}
         </Button>
@@ -161,13 +188,14 @@ export default function ProductFilters({ meta, onSelectionsChange, onConfirm, va
             setParlor([]);
           }}
           variant="link"
-          colorScheme="blue"
+          color="gray.300"
+          _hover={{ color: "gray.200" }}
           w="full"
-          maxW={{ base: "240px", md: "220px" }}
+          maxW={{ base: "320px", md: "220px" }}
           justifyContent="center"
           fontSize={{ base: "sm", md: "xs" }}
         >
-          Clear Filter
+          Clear Filters
         </Button>
       </Stack>
 

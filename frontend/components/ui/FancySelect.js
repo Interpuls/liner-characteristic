@@ -20,6 +20,7 @@ export default function FancySelect({
   disabled = false,
   menuPlacement = "bottom-start",
   menuZIndex = 1600,
+  iconColor = "currentColor",
   ...btnProps
 }) {
   const [query, setQuery] = useState("");
@@ -46,7 +47,7 @@ export default function FancySelect({
         w={w}
         variant="outline"
         fontWeight="normal"
-        rightIcon={<ChevronDownIcon />}
+        rightIcon={<ChevronDownIcon color={iconColor} />}
         justifyContent="space-between"
         isDisabled={disabled}
         {...btnProps}

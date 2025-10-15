@@ -2,13 +2,12 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/router";
 import NextLink from "next/link";
-import { Box, Heading, Button, HStack, useToast, Card, CardBody, CardHeader, Show } from "@chakra-ui/react";
-import { StarIcon, ChevronLeftIcon } from "@chakra-ui/icons";
+import { Box, Heading, Button, HStack, useToast, Card, CardBody, CardHeader, Show, IconButton } from "@chakra-ui/react";
+import { ChevronLeftIcon } from "@chakra-ui/icons";
 import { getToken } from "../lib/auth";
 import { getMe, getProductsMeta, listProductPrefs, saveProductPref } from "../lib/api";
 
 import ProductFilters from "../components/filters/ProductFilters";
-import { useDisclosure, Modal, ModalOverlay, ModalContent, ModalHeader, ModalCloseButton, ModalBody, ModalFooter, Input, IconButton } from "@chakra-ui/react";
 import FancySelect from "../components/ui/FancySelect";
 
 export default function Products() {
@@ -19,8 +18,6 @@ export default function Products() {
   const [meta, setMeta] = useState({ brands:[], models:[], teat_sizes:[], kpis:[] });
   const [prefs, setPrefs] = useState([]);
   const [selection, setSelection] = useState({ count: 0 });
-  const saveCtrl = useDisclosure();
-  const [saveName, setSaveName] = useState("");
   const [prefId, setPrefId] = useState("");
   const [loadedPref, setLoadedPref] = useState(null);
 
@@ -64,34 +61,52 @@ export default function Products() {
     // ProductFilters owns state and provides bottom Reset; nothing to do here.
   };
 
-  const onSaveSearch = async () => {
-    try {
-      const t = getToken();
-      if (!t) { window.location.replace("/login"); return; }
-      if (!saveName.trim()) { toast({ status: "warning", title: "Insert a name" }); return; }
-      await saveProductPref(t, saveName.trim(), selection || {});
-      toast({ status: "success", title: "Saved in Preference Research" });
-      setSaveName("");
-      saveCtrl.onClose();
-      // refresh list
-      listProductPrefs(t).then(setPrefs).catch(()=>{});
-    } catch (e) {
-      toast({ status: "error", title: e?.message || "Unable to save preference" });
-    }
-  };
+  // save is now handled in results page
 
   if (!me) return <Box p="6">Caricamento…</Box>;
 
   return (
     <>
-      <Box as="main" maxW="6xl" mx="auto" px={{ base:0, md:8 }} pt={{ base:0, md:6 }}>
-        {/* CardHeader: SOLO Preference research */}
-        <Card mb={4} overflow="hidden"
-          mx={{ base: 0, md: 0 }} borderRadius={{ base: 0, md: "md" }}
-          borderWidth={{ base: 0, md: "1px" }} borderColor="gray.200"
+      <Box as="main" position="relative" overflow="hidden" bg="#0b1f45" minH="100vh">
+        {/* Blue gradient background + soft blur glows (like Home) */}
+        <Box position="absolute" inset={0} zIndex={0}
+             bgGradient="linear(180deg, rgba(13,39,82,1) 0%, rgba(18,48,95,1) 35%, rgba(5,21,49,1) 100%)" />
+        <Box
+          position="absolute"
+          top={{ base: "-60%", md: "-20%" }}
+          left="50%"
+          transform="translateX(-50%)"
+          w={{ base: "120vw", md: "1200px" }}
+          h={{ base: "120vw", md: "1200px" }}
+          borderRadius="full"
+          bgGradient="radial(closest-side, rgba(72,118,255,0.45), transparent 70%)"
+          filter={{ base: "blur(40px)", md: "blur(70px)" }}
+        />
+        <Box
+          position="absolute"
+          top={{ base: "-10%", md: "10%" }}
+          left="50%"
+          transform="translateX(-50%)"
+          w={{ base: "80vw", md: "800px" }}
+          h={{ base: "80vw", md: "800px" }}
+          borderRadius="full"
+          bgGradient="radial(closest-side, rgba(88,140,255,0.25), transparent 70%)"
+          filter={{ base: "blur(40px)", md: "blur(60px)" }}
+          display={{ base: "none", md: "block" }}
+        />
+
+        {/* Content container */}
+        <Box maxW="6xl" mx="auto" px={{ base:0, md:8 }} pt={{ base:0, md:6 }} position="relative" zIndex={1}>
+          {/* Header: Back + Filters title */}
+          <Card mb={4} overflow="hidden"
+          mx={{ base: 0, md: 0 }} borderRadius={{ base: 0, md: 0 }}
+          borderWidth={{ base: 0, md: 0 }} borderColor="transparent" border="0"
+          position="sticky" top={0} zIndex={2}
+          boxShadow={{ base: "0 10px 24px rgba(0,0,0,0.40)", md: "0 16px 36px rgba(0,0,0,0.50)" }}
+          borderBottomWidth="1px" borderBottomColor="whiteAlpha.200"
         >
-          <CardHeader bg="#12305f" color="white" py={{ base:3, md:4 }} px={{ base:4, md:6 }}>
-            <HStack gap={2} w={{ base:"full", md:"auto" }}>
+          <CardHeader bg="rgba(12,26,58,0.96)" color="white" py={{ base:4, md:4 }} px={{ base:4, md:6 }} backdropFilter="saturate(120%) blur(6px)">
+            <HStack gap={3} w={{ base:"full", md:"auto" }}>
               <IconButton
                 as={NextLink}
                 href="/"
@@ -102,6 +117,23 @@ export default function Products() {
                 _hover={{ bg: "whiteAlpha.200" }}
                 size="sm"
               />
+              <Heading size={{ base: "xl", md: "xl" }} color="white">Filters</Heading>
+            </HStack>
+          </CardHeader>
+        </Card>
+
+        <Card
+          mx={{ base: 0, md: 0 }}
+          borderRadius={{ base: 0, md: "md" }}
+          borderWidth={{ base: 0, md: "1px" }}
+          borderColor={{ base: "transparent", md: "whiteAlpha.300" }}
+          boxShadow={{ base: "none", md: "sm" }}
+          bg={{ base: "transparent", md: "rgba(12, 26, 58, 0.55)" }}
+          backdropFilter={{ base: undefined, md: "saturate(120%) blur(6px)" }}
+        >
+          <CardBody pt={{ base: 6, md: 6 }} px={{ base:4, md:6 }}>
+            {/* Preference research selector below header, no back icon */}
+            <HStack justify="flex-start" mb={{ base: 5, md: 6 }} align="center">
               <FancySelect
                 options={prefs.map(p => ({ label: p.name, value: String(p.id) }))}
                 value={prefId}
@@ -109,67 +141,27 @@ export default function Products() {
                 placeholder="Preference research"
                 size="sm"
                 w={{ base:"full", md:"320px" }}
-                bg="white"
-                color="black"
+                variant="solid"
+                bg="#0c1f44"
+                color="white"
+                iconColor="white"
+                _hover={{ bg: "#0b1f45" }}
+                _active={{ bg: "#0b1f45" }}
+                transition="background 0.15s ease"
               />
             </HStack>
-          </CardHeader>
-        </Card>
-
-        {/* helper text removed per request */}
-
-        <Card
-          mx={{ base: 0, md: 0 }}
-          borderRadius={{ base: 0, md: "md" }}
-          borderWidth={{ base: 0, md: "1px" }}
-          borderColor="gray.200"
-          boxShadow={{ base: "none", md: "sm" }}
-          bg={{ base: "transparent", md: "white" }}
-        >
-          <CardHeader py="3" px={{ base:4, md:6 }}>
-            <HStack justify="space-between">
-              <Heading size={{ base: "2xl", md: "lg" }} color="#12305f">Filters</Heading>
-              <Button
-                onClick={saveCtrl.onOpen}
-                size="sm"
-                leftIcon={<StarIcon />}
-                variant="outline"
-                borderColor="gray.300"
-                color="#12305f"
-                _hover={{ borderColor: "gray.400", bg: "gray.50" }}
-              >
-                Save
-              </Button>
-            </HStack>
-          </CardHeader>
-          <CardBody pt={{ base: 4, md: 4 }} px={{ base:4, md:6 }}>
             <ProductFilters meta={meta} onSelectionsChange={setSelection} onConfirm={onConfirm} value={loadedPref} />
           </CardBody>
         </Card>
 
-        {/* Mobile: nessun logout in questa pagina */}
-        <Show below="md">
-          {/* niente */}
-        </Show>
+          {/* Mobile: nessun logout in questa pagina */}
+          <Show below="md">
+            {/* niente */}
+          </Show>
+        </Box>
       </Box>
 
-      {/* Save preference modal */}
-      <Modal isOpen={saveCtrl.isOpen} onClose={saveCtrl.onClose} isCentered>
-        <ModalOverlay />
-        <ModalContent>
-          <ModalHeader>Save search</ModalHeader>
-          <ModalCloseButton />
-          <ModalBody>
-            <Input placeholder="Enter a name" value={saveName} onChange={(e)=>setSaveName(e.target.value)} />
-          </ModalBody>
-          <ModalFooter>
-            <HStack w="full" justify="space-between">
-              <Button variant="ghost" onClick={saveCtrl.onClose}>Cancel</Button>
-              <Button colorScheme="blue" onClick={onSaveSearch}>Save</Button>
-            </HStack>
-          </ModalFooter>
-        </ModalContent>
-      </Modal>
+      {/* Save modal removed; Save action lives in results page */}
     </>
   );
 }

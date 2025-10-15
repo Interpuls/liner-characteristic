@@ -11,21 +11,20 @@ export default function FilterRow({ icon, label, summary, onClick }) {
       w="full"
       py={4}
       px={2}
-      _hover={{ bg: "gray.50" }}
-      _active={{ bg: "gray.100" }}
+      _hover={{ bg: "whiteAlpha.100" }}
+      _active={{ bg: "whiteAlpha.200" }}
     >
       <HStack w="full" spacing={3}>
-        {IconComp ? <Icon as={IconComp} boxSize={5} color="gray.600" /> : null}
-        <Text fontWeight="medium">{label}</Text>
+        {IconComp ? <Icon as={IconComp} boxSize={5} color="gray.200" /> : null}
+        <Text fontWeight="medium" color="gray.200">{label}</Text>
         <Spacer />
         {summary ? (
-          <Text color="gray.500" fontSize="sm" noOfLines={1} maxW="50%" textAlign="right">
+          <Text color="gray.300" fontSize="sm" noOfLines={1} maxW="50%" textAlign="right">
             {summary}
           </Text>
         ) : null}
-        <Icon as={FiChevronRight} color="gray.400" />
+        <Icon as={FiChevronRight} color="gray.300" />
       </HStack>
     </Button>
   );
 }
-

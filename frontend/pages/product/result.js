@@ -3,18 +3,21 @@ import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/router";
 import {
   Box, Heading, Text, HStack, VStack, Stack, Tag, TagLabel, Button,
-  Card, CardHeader, CardBody, SimpleGrid, useToast, Badge
+  Card, CardHeader, CardBody, SimpleGrid, useToast, Badge,
+  useDisclosure, Modal, ModalOverlay, ModalContent, ModalHeader, ModalCloseButton, ModalBody, ModalFooter, Input
 } from "@chakra-ui/react";
-import { RepeatIcon } from "@chakra-ui/icons";
+import { RepeatIcon, StarIcon } from "@chakra-ui/icons";
 import AppHeader from "../../components/AppHeader";
 import AppFooter from "../../components/AppFooter";
 import { getToken } from "../../lib/auth";
-import { listProducts } from "../../lib/api";
+import { listProducts, saveProductPref } from "../../lib/api";
 
 export default function ProductsSearchPage() {
   const router = useRouter();
   const toast = useToast();
   const [me, setMe] = useState(null);
+  const saveCtrl = useDisclosure();
+  const [saveName, setSaveName] = useState("");
 
   // Placeholder risultati (collega quando vuoi)
   const [loading, setLoading] = useState(false);
@@ -35,6 +38,30 @@ export default function ProductsSearchPage() {
     if (!t) { window.location.replace("/login"); return; }
     setMe({ ok: true });
   }, []);
+
+  const onSaveSearch = async () => {
+    try {
+      const t = getToken();
+      if (!t) { window.location.replace("/login"); return; }
+      if (!saveName.trim()) { toast({ status: "warning", title: "Inserisci un nome" }); return; }
+      // Build filters object compatible with ProductFilters
+      const areasSel = typeof areas === "string" && areas ? String(areas).split(",") : [];
+      const brandModelFilters = brand ? { brands: [String(brand)], models: (model ? { [String(brand)]: [String(model)] } : {}) } : { brands: [], models: {} };
+      const payload = {
+        areas: areasSel,
+        brandModel: brandModelFilters,
+        teatSizes: teat_size ? [String(teat_size)] : [],
+        shapes: barrel_shape ? [String(barrel_shape)] : [],
+        parlor: parlor ? [String(parlor)] : [],
+      };
+      await saveProductPref(t, saveName.trim(), payload);
+      toast({ status: "success", title: "Preferenza salvata" });
+      setSaveName("");
+      saveCtrl.onClose();
+    } catch (e) {
+      toast({ status: "error", title: e?.message || "Impossibile salvare" });
+    }
+  };
 
   useEffect(() => {
     const run = async () => {
@@ -142,6 +169,9 @@ export default function ProductsSearchPage() {
               <Button onClick={() => router.push("/product")} variant="outline">
                 Modifica filtri
               </Button>
+              <Button onClick={saveCtrl.onOpen} size="sm" leftIcon={<StarIcon />} variant="outline" color="#12305f" borderColor="gray.300" _hover={{ bg: "gray.50" }}>
+                Save
+              </Button>
               <Button
                 leftIcon={<RepeatIcon />}
                 onClick={() => {
@@ -191,6 +221,24 @@ export default function ProductsSearchPage() {
       </Box>
 
       <AppFooter appName="Liner Characteristic App" />
+
+      {/* Save preference modal */}
+      <Modal isOpen={saveCtrl.isOpen} onClose={saveCtrl.onClose} isCentered>
+        <ModalOverlay />
+        <ModalContent>
+          <ModalHeader>Save search</ModalHeader>
+          <ModalCloseButton />
+          <ModalBody>
+            <Input placeholder="Enter a name" value={saveName} onChange={(e)=>setSaveName(e.target.value)} />
+          </ModalBody>
+          <ModalFooter>
+            <HStack w="full" justify="space-between"> 
+              <Button variant="ghost" onClick={saveCtrl.onClose}>Cancel</Button>
+              <Button colorScheme="blue" onClick={onSaveSearch}>Save</Button>
+            </HStack>
+          </ModalFooter>
+        </ModalContent>
+      </Modal>
     </>
   );
 }
