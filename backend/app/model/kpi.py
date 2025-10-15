@@ -46,7 +46,7 @@ class KpiDef(SQLModel, table=True):
 # --------------- KPI SCALE --------------------------
 
     class KpiScale(SQLModel, table=True):
-        _tablename__ = "kpi_scale"
+        _tablename__ = "kpi_scales"
 
     id: Optional[int] = Field(default=None, primary_key=True)
     kpi_code: str = Field(index=True)
@@ -54,7 +54,7 @@ class KpiDef(SQLModel, table=True):
     band_max: float
     score: int = Field(index=True) #1..4
     label: Optional[str] = None
-    
+
     created_at: datetime = Field(default_factory=datetime.utcnow, nullable=False)
 
 #--------------- TEST METRICHE --------------------------
@@ -73,7 +73,7 @@ class TestMetric(SQLModel, table=True):
     metric_code: str = Field(index=True)
     value_num: float
     unit: Optional[str] = None
-    context_json: Optional[str] = None
+    context_json: Optional[str] = None# JSON string (usiamo TEXT per compatibilità)
     computed_at: datetime = Field(default_factory=datetime.utcnow, nullable=False)
 
 #vincoli
@@ -104,6 +104,7 @@ class KpiValue(SQLModel, table=True):
     context_json: Optional[str] = None
     computed_at: datetime = Field(default_factory=datetime.utcnow, nullable=False)
 
+#vincoli
     __table_args__ = (
         sa.UniqueConstraint(
             "run_type", "run_id", "kpi_code", "context_json",

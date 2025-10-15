@@ -138,7 +138,7 @@ class ProductApplication(SQLModel, table=True):
 
 # --------------- KPI MODELS --------------------------
 
-class FormulaType(str, Enum):
+"""class FormulaType(str, Enum):
     SQL = "SQL"
     PY  = "PY"
     AGG = "AGG"
@@ -221,7 +221,7 @@ class KpiValue(SQLModel, table=True):
     __table_args__ = (
         sa.UniqueConstraint("run_type", "run_id", "kpi_code", "context_json",
                             name="ux_kpi_values_unique"),
-    )
+    )"""
 
 # ---------- TPP run ----------
 class TppRun(SQLModel, table=True):

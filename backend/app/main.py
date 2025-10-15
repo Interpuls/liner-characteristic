@@ -19,8 +19,8 @@ from datetime import datetime
 import sqlalchemy as sa
 
 from .db import init_db, get_session
-from .models import KpiDef, FormulaType, TppRun, TestMetric, KpiValue, KpiScale, MassageRun, MassagePoint, TestMetric, KpiValue, SpeedRun, SmtHoodRun, SmtHoodPoint
-from .schemas import Token, KpiDefIn, KpiDefOut, TppRunIn, TppRunOut, KpiScaleUpsertIn, KpiScaleBandIn, KpiValueOut, MassageRunIn, MassageRunOut, KpiValueOut, MassagePointOut, MassagePointIn, SpeedRunIn, SpeedRunOut, SmtHoodPointIn, SmtHoodPointOut, SmtHoodRunIn, SmtHoodRunOut
+from .models import TppRun, MassageRun, MassagePoint, SpeedRun, SmtHoodRun, SmtHoodPoint
+from .schemas import Token, TppRunIn, TppRunOut, MassageRunIn, MassageRunOut, MassagePointOut, MassagePointIn, SpeedRunIn, SpeedRunOut, SmtHoodPointIn, SmtHoodPointOut, SmtHoodRunIn, SmtHoodRunOut
 from .auth import hash_password, verify_password, create_access_token, get_current_user, require_role
 from .deps import apply_cors
 from .services.kpi_engine import score_from_scales, massage_compute_derivatives
@@ -30,10 +30,12 @@ from .model.user import User
 from .model.product import Product, ProductApplication
 from .model.search import SearchPreference
 from .model.testType import TestType
+from .model.kpi import KpiDef, FormulaType, TestKind, KpiScale, TestMetric, KpiValue                                                                    
 
 from .schema.user import UserCreate, UserRead
 from .schema.product import ProductBase, ProductIn, ProductOut, ProductMetaOut, ProductPreferenceIn, ProductPreferenceOut, ProductApplicationIn, ProductApplicationOut, SIZE_LABELS
 from .schema.testType import TestTypeIn, TestTypeOut
+from .schema.kpi import KpiDefIn, KpiDefOut, KpiScaleUpsertIn, KpiScaleBandIn, KpiValueOut, KpiDefBase
 
 ALLOWED_EMAIL_DOMAIN = os.getenv("ALLOWED_EMAIL_DOMAIN", "milkrite.com")
 
