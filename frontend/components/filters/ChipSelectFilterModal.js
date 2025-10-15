@@ -32,19 +32,22 @@ export default function ChipSelectFilterModal({
   return (
     <Modal isOpen={isOpen} onClose={onClose} isCentered size="lg">
       <ModalOverlay />
-      <ModalContent>
-        <ModalHeader>{title}</ModalHeader>
-        <ModalCloseButton />
+      <ModalContent backgroundColor="rgba(4, 6, 20, 1)" color="gray.300">
+        <ModalHeader color="gray.300">{title}</ModalHeader>
+        <ModalCloseButton color="gray.300" _hover={{ color: "gray.200" }} />
         <ModalBody pb={4}>
           <Wrap spacing={2}>
             {options.map((opt) => (
               <WrapItem key={opt}>
                 <Tag
                   size="lg"
-                  variant={local.includes(opt) ? "solid" : "subtle"}
-                  colorScheme={local.includes(opt) ? "blue" : undefined}
+                  bg={local.includes(opt) ? "white" : "whiteAlpha.100"}
+                  color={local.includes(opt) ? "#0c1a3a" : "gray.300"}
+                  borderWidth={local.includes(opt) ? "0" : "1px"}
+                  borderColor={local.includes(opt) ? "transparent" : "whiteAlpha.300"}
                   cursor="pointer"
                   onClick={() => toggle(opt)}
+                  _hover={{ bg: local.includes(opt) ? "white" : "whiteAlpha.200" }}
                 >
                   <TagLabel>{opt}</TagLabel>
                 </Tag>
@@ -52,11 +55,11 @@ export default function ChipSelectFilterModal({
             ))}
           </Wrap>
 
-          <Box position="sticky" bottom={0} bg="white" pt={4} mt={4}>
-            <Divider mb={3} />
+          <Box position="sticky" bottom={0} bg="rgba(4, 6, 20, 0.98)" pt={4} mt={4}>
+            <Divider mb={3} borderColor="whiteAlpha.200" />
             <HStack justify="space-between">
-              <Button variant="ghost" onClick={handleReset}>Reset</Button>
-              <Button colorScheme="blue" onClick={handleApply} isLoading={loading}>Conferma</Button>
+              <Button variant="ghost" color="gray.300" _hover={{ color: "gray.200", bg: "whiteAlpha.100" }} onClick={handleReset}>Reset</Button>
+              <Button backgroundColor="rgba(28, 31, 54, 1)" color="white" _hover={{ bg: "rgba(32, 35, 60, 1)" }} onClick={handleApply} isLoading={loading}>Conferma</Button>
             </HStack>
           </Box>
         </ModalBody>

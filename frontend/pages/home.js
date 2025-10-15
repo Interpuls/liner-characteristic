@@ -234,7 +234,7 @@ export default function Home() {
                 </>
               ) : (
                 <>
-                  <Button as={NextLink} href="/settings" variant="ghost" onClick={menuCtrl.onClose}>Settings</Button>
+                  <Button as={NextLink} href="/settings" variant="ghost" color="gray.300" _hover={{ color: "gray.200" }} onClick={menuCtrl.onClose}>Settings</Button>
                 </>
               )}
               <CkDivider />

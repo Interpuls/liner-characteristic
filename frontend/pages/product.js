@@ -148,6 +148,7 @@ export default function Products() {
                 _hover={{ bg: "#0b1f45" }}
                 _active={{ bg: "#0b1f45" }}
                 transition="background 0.15s ease"
+                menuColorMode="dark"
               />
             </HStack>
             <ProductFilters meta={meta} onSelectionsChange={setSelection} onConfirm={onConfirm} value={loadedPref} />

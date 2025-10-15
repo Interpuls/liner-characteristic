@@ -42,23 +42,37 @@ export default function ReferenceAreaFilterModal({ isOpen, onClose, value = [], 
   return (
     <Modal isOpen={isOpen} onClose={onClose} isCentered size="lg">
       <ModalOverlay />
-      <ModalContent>
-        <ModalHeader>Reference Area</ModalHeader>
-        <ModalCloseButton />
+      <ModalContent backgroundColor="rgba(4, 6, 20, 1)" color="gray.300">
+        <ModalHeader color="gray.300">Reference Area</ModalHeader>
+        <ModalCloseButton color="gray.300" _hover={{ color: "gray.200" }} />
         <ModalBody pb={4}>
           <CheckboxGroup value={local} onChange={handleToggle}>
             <Stack spacing={3}>
               {options.map((o) => (
-                <Checkbox key={o} value={o} isDisabled={isGlobal && o !== "Global"}>{o}</Checkbox>
+                <Checkbox
+                  key={o}
+                  value={o}
+                  isDisabled={isGlobal && o !== "Global"}
+                  iconColor="#0c1a3a"
+                  sx={{
+                    '.chakra-checkbox__control': {
+                      bg: 'transparent',
+                      borderColor: 'gray.500',
+                      _checked: { bg: 'white', borderColor: 'white' },
+                    },
+                  }}
+                >
+                  {o}
+                </Checkbox>
               ))}
             </Stack>
           </CheckboxGroup>
 
-          <Box position="sticky" bottom={0} bg="white" pt={4} mt={4}>
-            <Divider mb={3} />
+          <Box position="sticky" bottom={0} bg="rgba(4, 6, 20, 0.98)" pt={4} mt={4}>
+            <Divider mb={3} borderColor="whiteAlpha.200" />
             <HStack justify="space-between">
-              <Button variant="ghost" onClick={handleReset}>Reset</Button>
-              <Button colorScheme="blue" onClick={handleApply} isLoading={loading}>
+              <Button variant="ghost" color="gray.300" _hover={{ color: "gray.200", bg: "whiteAlpha.100" }} onClick={handleReset}>Reset</Button>
+              <Button backgroundColor="rgba(28, 31, 54, 1)" color="white" _hover={{ bg: "rgba(32, 35, 60, 1)" }} onClick={handleApply} isLoading={loading}>
                 Conferma
               </Button>
             </HStack>
