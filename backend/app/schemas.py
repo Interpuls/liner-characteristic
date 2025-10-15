@@ -52,7 +52,7 @@ class TestTypeOut(BaseModel):
 
 # --------------- KPI SCHEMAS ----------------------------------
 
-class FormulaType(str, Enum):
+"""class FormulaType(str, Enum):
     SQL = "SQL"
     PY  = "PY"
     AGG = "AGG"
@@ -121,7 +121,7 @@ class KpiValueOut(BaseModel):
     unit: Optional[str] = None
     context_json: Optional[str] = None
     computed_at: datetime
-
+"""
 
 # MASSAGE schemas
 class MassagePointIn(BaseModel):

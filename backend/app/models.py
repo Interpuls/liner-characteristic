@@ -138,7 +138,7 @@ class ProductApplication(SQLModel, table=True):
 
 # --------------- KPI MODELS --------------------------
 
-class FormulaType(str, Enum):
+"""class FormulaType(str, Enum):
     SQL = "SQL"
     PY  = "PY"
     AGG = "AGG"
@@ -183,6 +183,7 @@ class KpiScale(SQLModel, table=True):
     band_max: float
     score: int = Field(index=True)     # 1..4
     label: Optional[str] = None
+    
     created_at: datetime = Field(default_factory=datetime.utcnow, nullable=False)
 
 # ---------- Metriche derivate generiche ----------
@@ -220,7 +221,7 @@ class KpiValue(SQLModel, table=True):
     __table_args__ = (
         sa.UniqueConstraint("run_type", "run_id", "kpi_code", "context_json",
                             name="ux_kpi_values_unique"),
-    )
+    )"""
 
 # ---------- TPP run ----------
 class TppRun(SQLModel, table=True):

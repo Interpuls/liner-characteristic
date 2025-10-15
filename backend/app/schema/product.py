@@ -3,6 +3,7 @@ from typing import List, Optional, Dict, Any, ClassVar
 from pydantic import BaseModel, validator, Field
 from enum import Enum
 
+
 #product schemas
 class ProductBase(BaseModel):
     code: str
@@ -42,11 +43,7 @@ class ProductBase(BaseModel):
 
     # nuovi campi
     robot_liner: Optional[bool] = False
-    # enum per coerenza con FE
-    class BarrelShape(str, Enum):
-        round = "round"
-        triangular = "triangular"
-        squared = "squared"
+    
 
     barrel_shape: Optional["ProductBase.BarrelShape"] = None
     reference_areas: Optional[List[str]] = None
