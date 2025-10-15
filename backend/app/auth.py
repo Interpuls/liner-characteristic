@@ -51,7 +51,8 @@ def get_current_user(token: str = Depends(oauth2_scheme), session: Session = Dep
 
 def require_role(required: str):
     def checker(user: User = Depends(get_current_user)) -> User:
-        if user.role != required:
+        role_value = getattr(user.role, "value", user.role)
+        if role_value != required:
             raise HTTPException(status_code=403, detail="Forbidden")
         return user
     return checker

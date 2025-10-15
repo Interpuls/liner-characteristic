@@ -1,12 +1,12 @@
 from datetime import datetime
 from typing import Optional
 from pydantic import BaseModel, EmailStr
-from app.model.user import UserRole
+from ..model.user import UserRole
 
 #user schemas
 class UserBase(BaseModel):
     email: EmailStr
-    role: Optional[UserRole] = UserRole.user
+    role: Optional[UserRole] = UserRole.USER
     is_active: Optional[bool] = True
 
 #user create che eredita da UserBase

@@ -3,18 +3,7 @@ from typing import List, Optional
 from enum import Enum
 from sqlmodel import SQLModel, Field, Relationship, Column, JSON, UniqueConstraint, Index
 import sqlalchemy as sa
-
-#enums
-class FormulaType(str, Enum):
-    SQL = "SQL"
-    PY = "PY"
-    AGG = "AGG"
-
-class TestKind(str, Enum):
-    TPP = "TPP"
-    MASSAGE = "MASSAGE"
-    SPEED = "SPEED"
-    SMT_HOOD = "SMT_HOOD"
+from app.common.enums import FormulaType, TestKind
 
 #--------------- KPI MODELS --------------------------
 

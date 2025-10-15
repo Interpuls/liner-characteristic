@@ -2,19 +2,8 @@ from datetime import datetime
 from typing import List, Optional, Dict, Any
 from pydantic import BaseModel, EmailStr
 from enum import Enum
-
-# --------------- ENUM ----------------------------------
-
-class FormulaType(str, Enum):
-    SQL = "SQL"
-    PY  = "PY"
-    AGG = "AGG"
-
-class TestKind(str, Enum):
-    TPP = "TPP"
-    MASSAGE = "MASSAGE"
-    SPEED = "SPEED"
-    SMT_HOOD = "SMT_HOOD"
+# Use the same enums as the ORM models to avoid mismatch
+from ..model.kpi import FormulaType, TestKind
 
 # --------------- KPI DEFINITIONS ----------------------
 

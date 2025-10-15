@@ -3,11 +3,8 @@ from typing import Optional
 from enum import Enum
 from sqlmodel import SQLModel, Field
 from sqlalchemy import UniqueConstraint, Index
-
-#Ruoli utente
-class UserRole(str, Enum):
-    admin = "admin"
-    user = "user"
+import sqlalchemy as sa
+from app.common.enums import UserRole
 
 #Modello Tabella USER
 class User(SQLModel, table=True):
@@ -17,7 +14,14 @@ class User(SQLModel, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
     email: str = Field(index=True, nullable=False, unique=True)
     hashed_password: str
-    role: UserRole = Field(default=UserRole.user)
+    role: UserRole = Field(
+        default=UserRole.USER,
+        sa_column=sa.Column(
+            sa.Enum(UserRole, values_callable=lambda x: [e.value for e in x]),
+            nullable=False,
+            default=UserRole.USER.value,
+        ),
+    )
     is_active: bool = Field(default=True)
     created_at: datetime = Field(default_factory=datetime.utcnow, nullable=False)
 
