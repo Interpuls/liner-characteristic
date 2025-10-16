@@ -82,7 +82,7 @@ export default function Home() {
   );
 
   const HeroUser = () => (
-    <Box position="relative" overflow="hidden" py={{ base: 16, md: 24 }}>
+    <Box position="relative" overflow="hidden" py={{ base: 24, md: 24 }}>
       {/* Mobile burger inside hero */}
       <Show below="md">
         <IconButton
@@ -163,15 +163,15 @@ export default function Home() {
             mx="auto"
             px={{ base: 4, md: 8 }}
             pb={16}
-            pt={{ base: 6, md: 8 }}
+            pt={{ base: 8, md: 8 }}
             bg="rgba(12, 26, 58, 0.55)"
             borderTopLeftRadius={{ base: "2xl", md: "3xl" }}
             borderTopRightRadius={{ base: "2xl", md: "3xl" }}
             boxShadow="0 -10px 30px rgba(0,0,0,0.35)"
             backdropFilter="saturate(120%) blur(6px)"
           >
-            <Heading size="md" color="gray.300" mb={4} mt={2}>Performance Rankings</Heading>
-            <SimpleGrid columns={{ base: 1 }} gap={8}>
+            <Heading size="md" color="gray.300" mb={4} mt={0}>Performance Rankings</Heading>
+            <SimpleGrid columns={{ base: 1 }} gap={6}>
               <SectionRow title="40" />
               <SectionRow title="50" />
               <SectionRow title="60" />
@@ -185,17 +185,17 @@ export default function Home() {
       {/* Mobile Drawer menu */}
       <Drawer isOpen={menuCtrl.isOpen} placement="left" onClose={menuCtrl.onClose} size="xs">
         <DrawerOverlay />
-        <DrawerContent>
+        <DrawerContent backgroundColor="rgba(4, 6, 20, 1)">
           <DrawerCloseButton />
-          <DrawerHeader>Menu</DrawerHeader>
+          <DrawerHeader color="gray.100">Menu</DrawerHeader>
           <DrawerBody>
             <Stack spacing={3} mt={2}>
               {isAdmin ? (
                 <>
-                  <Button as={NextLink} href="/admin/product" variant="ghost" onClick={menuCtrl.onClose}>Manage Product</Button>
-                  <Button as={NextLink} href="/admin/tests" variant="ghost" onClick={menuCtrl.onClose}>Test Campaign</Button>
-                  <Button as={NextLink} href="/admin/kpis" variant="ghost" onClick={menuCtrl.onClose}>KPI Scales</Button>
-                  <Button as={NextLink} href="/settings" variant="ghost" onClick={menuCtrl.onClose}>Settings</Button>
+                  <Button as={NextLink} href="/admin/product" variant="ghost" color="gray.300" onClick={menuCtrl.onClose}>Manage Product</Button>
+                  <Button as={NextLink} href="/admin/tests" variant="ghost" color="gray.300" onClick={menuCtrl.onClose}>Test Campaign</Button>
+                  <Button as={NextLink} href="/admin/kpis" variant="ghost" color="gray.300" onClick={menuCtrl.onClose}>KPI Scales</Button>
+                  <Button as={NextLink} href="/settings" variant="ghost" color="gray.300" onClick={menuCtrl.onClose}>Settings</Button>
                 </>
               ) : (
                 <>

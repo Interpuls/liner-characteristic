@@ -14,10 +14,20 @@ import { FiPlus, FiTrash2, FiSave, FiRefreshCcw, FiBarChart2 } from "react-icons
 import { MdScreenRotation } from "react-icons/md";
 
 import AppHeader from "@/components/AppHeader";
+import FancySelect from "@/components/ui/FancySelect";
 
 import { getToken } from "../../lib/auth";
 import { listKpis, getKpiScales, putKpiScales } from "../../lib/api";
 import { BackHomeIcon } from "../../components/ui/BackHomeIcon";
+
+// Piccolo riquadro informativo, come nella UI dei test
+function InfoBox({ children }) {
+  return (
+    <Box mt={3} p={3} borderWidth="1px" borderRadius="md" bg="gray.50">
+      {children}
+    </Box>
+  );
+}
 
 // --- fallback se /kpis non fosse ancora disponibile ---
 const FALLBACK_KPIS = [
@@ -217,23 +227,14 @@ export default function AdminKpis() {
           <HStack align="start" w="100%">
             <Box>
               <Text fontSize="xs" color="gray.500" mb={1}>KPI</Text>
-              <Select
+              <FancySelect
+                options={kpis.map((k) => ({ label: k.name || k.code, value: k.code }))}
                 value={code}
-                onChange={(e) => setCode(e.target.value)}
-                maxW="sm"
-              >
-                {kpis.map((k) => (
-                  <option key={k.code} value={k.code}>
-                    {k.name || k.code}
-                  </option>
-                ))}
-              </Select>
+                onChange={(val) => setCode(val)}
+                placeholder="Choose KPI"
+                w={{ base: "full", md: "sm" }}
+              />
             </Box>
-            {!!headerKpi && (
-              <Badge colorScheme="blue" ml={2} borderRadius={4}>
-                {headerKpi}
-              </Badge>
-            )}
             <Spacer />
             <Tooltip label="Reset 4 bands template">
               <IconButton
@@ -267,10 +268,15 @@ export default function AdminKpis() {
           </HStack>
 
           {/* Descrizione KPI dal DB */}
-          {selectedKpi?.description ? (
-            <Text mt={3} fontSize="sm" color="gray.600">
-              {selectedKpi.description}
-            </Text>
+          {selectedKpi ? (
+            <InfoBox>
+              {!!headerKpi && (
+                <Badge colorScheme="blue" variant="subtle" borderRadius="md">{headerKpi}</Badge>
+              )}
+              {selectedKpi?.description ? (
+                <Text mt={2} fontSize="sm" color="gray.700">{selectedKpi.description}</Text>
+              ) : null}
+            </InfoBox>
           ) : null}
         </CardHeader>
 

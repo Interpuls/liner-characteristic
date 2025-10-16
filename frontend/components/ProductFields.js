@@ -60,7 +60,7 @@ export default function ProductFields({ values, meta, onChange, onNumberChange, 
   return (
     <>
       {/* Product details */}
-      <Text fontSize="m" color="gray.600" mb={2} fontWeight="medium">Product details</Text>
+      <Text fontSize="m" color="gray.600" mb={2} fontWeight="normal">Product details</Text>
       <SimpleGrid columns={{ base:1, md:3 }} gap={4} mb={6}>
         {/* Brand */}
         <FormControl isRequired mb={2}>
@@ -138,7 +138,7 @@ export default function ProductFields({ values, meta, onChange, onNumberChange, 
       <Divider my={2} mb={6}/>
 
       {/* Additional attributes */}
-      <Text fontSize="m" color="gray.600" mb={2} fontWeight="medium">Additional</Text>
+      <Text fontSize="m" color="gray.600" mb={2} fontWeight="normal">Additional</Text>
       <SimpleGrid columns={{ base:1, md:2 }} templateColumns={{ base: '1fr', md: '2fr 1fr' }} gap={6} mb={6} alignItems="start">
         {/* Left side: selects + three numeric fields in a nested grid */}
         <Box>
@@ -154,7 +154,6 @@ export default function ProductFields({ values, meta, onChange, onNumberChange, 
                 value={v.robot_liner ? "robot" : "conventional"}
                 onChange={(val)=>onChange("robot_liner", val === "robot")}
                 placeholder="Select parlour type"
-                clearable={false}
               />
             </FormControl>
             {/* Barrel shape with outline icons */}
@@ -169,7 +168,6 @@ export default function ProductFields({ values, meta, onChange, onNumberChange, 
                 value={v.barrel_shape || ""}
                 onChange={(val)=>onChange("barrel_shape", val || null)}
                 placeholder="Select barrel shape"
-                clearable={false}
               />
             </FormControl>
           </SimpleGrid>
@@ -231,7 +229,7 @@ export default function ProductFields({ values, meta, onChange, onNumberChange, 
 
       <Divider my={2} mb={6}/>
 
-      <Text fontSize="m" color="gray.600" mb={2} fontWeight="medium">Technical specifications</Text>
+      <Text fontSize="m" color="gray.600" mb={2} fontWeight="normal">Technical specifications</Text>
       <Box mb={4} display="flex" justifyContent="center">
         <Image
           src={techImageUrl || "/liner.png"}
