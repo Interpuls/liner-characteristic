@@ -45,7 +45,8 @@ class ProductBase(BaseModel):
     robot_liner: Optional[bool] = False
     
 
-    barrel_shape: Optional["ProductBase.BarrelShape"] = None
+    # barrel shape: one of "round" | "triangular" | "squared"
+    barrel_shape: Optional[str] = None
     reference_areas: Optional[List[str]] = None
 
     # allowed reference areas (include Global as special)
@@ -61,6 +62,13 @@ class ProductBase(BaseModel):
         "Global",
     ]
 
+    # allowed barrel shapes (normalized to lowercase)
+    BARREL_SHAPES_ALLOWED: ClassVar[List[str]] = [
+        "round",
+        "triangular",
+        "squared",
+    ]
+
     @validator("reference_areas")
     def _validate_reference_areas(cls, v):
         if v is None:
@@ -70,6 +78,15 @@ class ProductBase(BaseModel):
         if "Global" in v and len(v) > 1:
             raise ValueError("If 'Global' is set, it must be the only value")
         return v
+
+    @validator("barrel_shape")
+    def _validate_barrel_shape(cls, v):
+        if v is None:
+            return v
+        s = str(v).strip().lower()
+        if s not in cls.BARREL_SHAPES_ALLOWED:
+            raise ValueError("Invalid barrel_shape value")
+        return s
 
 
 

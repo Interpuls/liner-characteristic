@@ -9,7 +9,7 @@ from fastapi.security import OAuth2PasswordBearer
 from sqlmodel import Session, select
 
 from app.model.user import User
-from .schemas import TokenData
+from .schema.auth import TokenData
 from .db import get_session
 
 JWT_SECRET = os.getenv("JWT_SECRET", "changeme")
@@ -51,7 +51,8 @@ def get_current_user(token: str = Depends(oauth2_scheme), session: Session = Dep
 
 def require_role(required: str):
     def checker(user: User = Depends(get_current_user)) -> User:
-        if user.role != required:
+        role_value = getattr(user.role, "value", user.role)
+        if role_value != required:
             raise HTTPException(status_code=403, detail="Forbidden")
         return user
     return checker

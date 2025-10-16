@@ -9,10 +9,10 @@ class SearchPreference(SQLModel, table=True):
 
     id: Optional[int] = Field(default=None, primary_key=True)
     user_id: int = Field(
-        sa_column=sa.Column(sa.Integer, 
-        sa.ForeignKey("users.id", ondelete="CASCADE"),
-        nullable=False,
-        index=True)
+        sa_column=sa.Column(sa.Integer,
+                             sa.ForeignKey("users.id", ondelete="CASCADE"), 
+                             index=True,
+                            nullable=False),
         
     )
     name: str = Field(index=True)  #nome del preset salvato

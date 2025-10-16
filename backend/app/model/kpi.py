@@ -3,18 +3,7 @@ from typing import List, Optional
 from enum import Enum
 from sqlmodel import SQLModel, Field, Relationship, Column, JSON, UniqueConstraint, Index
 import sqlalchemy as sa
-
-#enums
-class FormulaType(str, Enum):
-    SQL = "SQL"
-    PY = "PY"
-    AGG = "AGG"
-
-class TestKind(str, Enum):
-    TPP = "TPP"
-    MASSAGE = "MASSAGE"
-    SPEED = "SPEED"
-    SMT_HOOD = "SMT_HOOD"
+from app.common.enums import FormulaType, TestKind
 
 #--------------- KPI MODELS --------------------------
 
@@ -45,14 +34,14 @@ class KpiDef(SQLModel, table=True):
 
 # --------------- KPI SCALE --------------------------
 
-    class KpiScale(SQLModel, table=True):
-        _tablename__ = "kpi_scales"
+class KpiScale(SQLModel, table=True):
+    __tablename__ = "kpi_scales"
 
     id: Optional[int] = Field(default=None, primary_key=True)
     kpi_code: str = Field(index=True)
     band_min: float
     band_max: float
-    score: int = Field(index=True) #1..4
+    score: int = Field(index=True)  # 1..4
     label: Optional[str] = None
 
     created_at: datetime = Field(default_factory=datetime.utcnow, nullable=False)
