@@ -3,14 +3,18 @@ import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/router";
 import {
   Box, Heading, Text, HStack, VStack, Stack, Tag, TagLabel, Button,
-  Card, CardHeader, CardBody, SimpleGrid, useToast, Badge,
-  useDisclosure, Modal, ModalOverlay, ModalContent, ModalHeader, ModalCloseButton, ModalBody, ModalFooter, Input
+  Card, CardHeader, CardBody, SimpleGrid, useToast, Badge, Spinner,
+  useDisclosure, Modal, ModalOverlay, ModalContent, ModalHeader, ModalCloseButton, ModalBody, ModalFooter, Input,
 } from "@chakra-ui/react";
-import { RepeatIcon, StarIcon } from "@chakra-ui/icons";
+import { StarIcon } from "@chakra-ui/icons";
 import AppHeader from "../../components/AppHeader";
 import AppFooter from "../../components/AppFooter";
+import ProductApplicationCard from "../../components/ProductApplicationCard";
+import FiltersSummaryCard from "../../components/result/FiltersSummaryCard";
+import ApplicationsHeader from "../../components/result/ApplicationsHeader";
+import PaginationBar from "../../components/result/PaginationBar";
 import { getToken } from "../../lib/auth";
-import { listProducts, saveProductPref } from "../../lib/api";
+import { listProducts, saveProductPref, listProductApplications, getKpiValuesByPA } from "../../lib/api";
 
 export default function ProductsSearchPage() {
   const router = useRouter();
@@ -21,7 +25,21 @@ export default function ProductsSearchPage() {
 
   // Placeholder risultati (collega quando vuoi)
   const [loading, setLoading] = useState(false);
-  const [items, setItems] = useState([]); // app-level items: [{key, brand, model, size_mm}]
+  const [items, setItems] = useState([]); // app-level items: [{key, product_id, brand, model, size_mm}]
+  const [appIdByKey, setAppIdByKey] = useState({}); // key -> application_id
+  const [kpiScores, setKpiScores] = useState({}); // key -> { [kpi_code]: { score, value_num } }
+  const [sortingBusy, setSortingBusy] = useState(false);
+  const [sortKpi, setSortKpi] = useState(null); // e.g., 'CLOSURE'
+  const [sortDir, setSortDir] = useState('desc'); // 'asc' | 'desc'
+  const KPI_ORDER = [
+    'CLOSURE','FITTING','CONGESTION_RISK','HYPERKERATOSIS_RISK','SPEED','RESPRAY','FLUYDODINAMIC','SLIPPAGE','RINGING_RISK'
+  ];
+  const PAGE_SIZE = 10;
+  const initialPage = useMemo(() => {
+    const p = Number(router.query.page || 1);
+    return Number.isFinite(p) && p >= 1 ? p : 1;
+  }, [router.query.page]);
+  const [page, setPage] = useState(initialPage);
 
   // Leggo i filtri dalla query
   const { brand, model, teat_size, barrel_shape, parlor, areas, ...rest } = router.query;
@@ -63,11 +81,18 @@ export default function ProductsSearchPage() {
     }
   };
 
+  const filterSig = useMemo(() => {
+    const { page: _page, ...rest } = router.query || {};
+    const keys = Object.keys(rest).sort();
+    return JSON.stringify(keys.map(k => [k, rest[k]]));
+  }, [router.query]);
+
   useEffect(() => {
     const run = async () => {
       if (!router.isReady) return;
       const t = getToken();
       if (!t) return;
+      setLoading(true);
       // fetch products (brand/model filtering supported by backend)
       const base = await listProducts(t, {
         limit: 500,
@@ -99,13 +124,107 @@ export default function ProductsSearchPage() {
       const apps = [];
       filtered.forEach((p) => {
         sizes.forEach((s) => {
-          apps.push({ key: `${p.id}-${s}`, brand: p.brand, model: p.model, size_mm: s });
+          apps.push({ key: `${p.id}-${s}`,
+                      product_id: p.id,
+                      brand: p.brand,
+                      model: p.model,
+                      size_mm: s });
         });
       });
       setItems(apps);
+      // reset sorting caches only when filters change (not on page change)
+      setAppIdByKey({});
+      setKpiScores({});
+      setLoading(false);
     };
     run();
-  }, [router.isReady, router.query]);
+  }, [router.isReady, filterSig]);
+
+  // keep page in sync with query
+  useEffect(() => { setPage(initialPage); }, [initialPage]);
+
+  const totalPages = useMemo(() => Math.max(1, Math.ceil(items.length / PAGE_SIZE)), [items.length]);
+  const start = (page - 1) * PAGE_SIZE;
+  const end = start + PAGE_SIZE;
+  // sort items if a KPI is selected
+  const sortedItems = useMemo(() => {
+    if (!sortKpi) return items;
+    const dir = sortDir === 'asc' ? 1 : -1;
+    const copy = [...items];
+    copy.sort((a, b) => {
+      const sa = kpiScores[a.key]?.[sortKpi]?.score ?? -Infinity;
+      const sb = kpiScores[b.key]?.[sortKpi]?.score ?? -Infinity;
+      if (sa === sb) return 0;
+      return sa < sb ? 1 * dir : -1 * dir;
+    });
+    return copy;
+  }, [items, kpiScores, sortKpi, sortDir]);
+  const pagedItems = useMemo(() => sortedItems.slice(start, end), [sortedItems, start, end]);
+
+  const goToPage = (p) => {
+    const next = Math.min(Math.max(1, p), totalPages);
+    setPage(next);
+    const q = new URLSearchParams({ ...router.query, page: String(next) });
+    router.replace(`/product/result?${q.toString()}`, undefined, { shallow: true });
+  };
+
+  // Build product application map (size -> app id) for all products
+  const buildApplicationsMap = async (token, list) => {
+    const byKey = {};
+    const byProduct = new Map();
+    const uniqProducts = [...new Set(list.map(i => i.product_id))];
+    await Promise.all(uniqProducts.map(async (pid) => {
+      try {
+        const apps = await listProductApplications(token, pid);
+        byProduct.set(pid, apps || []);
+      } catch {}
+    }));
+    for (const it of list) {
+      const apps = byProduct.get(it.product_id) || [];
+      const found = apps.find(a => Number(a.size_mm) === Number(it.size_mm));
+      if (found) byKey[it.key] = found.id;
+    }
+    return byKey;
+  };
+
+  async function ensureScoresFor(sortCode) {
+    const token = getToken();
+    if (!token) return;
+    setSortingBusy(true);
+    try {
+      // applications map
+      let appMap = appIdByKey;
+      if (!Object.keys(appMap).length) {
+        appMap = await buildApplicationsMap(token, items);
+        setAppIdByKey(appMap);
+      }
+
+      // fetch KPI values for keys missing this sortCode
+      const missingKeys = items.filter(i => !(kpiScores[i.key]?.[sortCode])).map(i => i.key);
+      const newScores = { ...kpiScores };
+      await Promise.all(missingKeys.map(async (key) => {
+        const appId = appMap[key];
+        if (!appId) return;
+        try {
+          const values = await getKpiValuesByPA(token, appId);
+          const byCode = Object.fromEntries((values || []).map(v => [v.kpi_code, { score: v.score, value_num: v.value_num }]));
+          newScores[key] = { ...(newScores[key] || {}), ...byCode };
+        } catch {}
+      }));
+      setKpiScores(newScores);
+    } finally {
+      setSortingBusy(false);
+    }
+  }
+
+  const onSelectSortKpi = async (code) => {
+    // Default to descending when a KPI is selected
+    setSortDir('desc');
+    setSortKpi(code);
+    await ensureScoresFor(code);
+  };
+
+  const toggleSortDir = () => setSortDir(d => (d === 'asc' ? 'desc' : 'asc'));
 
   // Quando vorrai collegare il backend:
   // 1) scommenta la useEffect sotto
@@ -127,94 +246,72 @@ export default function ProductsSearchPage() {
   //     .finally(() => setLoading(false));
   // }, [router.isReady, router.query, toast]);
 
-  if (!me) return <Box p={6}>Caricamento…</Box>;
+  if (!me) return (
+    <Box minH="60vh" display="flex" alignItems="center" justifyContent="center">
+      <Spinner size="xl" thickness="4px" color="blue.500" />
+    </Box>
+  );
 
   return (
     <>
       <AppHeader
         title="Search Results"
-        subtitle="Riepilogo filtri e risultati della ricerca prodotti."
+        subtitle="Filters summary and product search results."
         backHref="/product"
       />
 
-      <Box as="main" maxW="6xl" mx="auto" px={{ base: 4, md: 8 }} pt={{ base: 4, md: 6 }}>
-        {/* Riepilogo Filtri */}
-        <Card mb={4}>
-          <CardHeader py={3}><Heading size="sm">Filtri attivi</Heading></CardHeader>
-          <CardBody pt={0}>
-            <Stack direction={{ base: "column", md: "row" }} gap={3} align="flex-start" flexWrap="wrap">
-              {brand ? (
-                <Tag size="md" colorScheme="blue"><TagLabel>Brand: {brand}</TagLabel></Tag>
-              ) : null}
-              {model ? (
-                <Tag size="md" colorScheme="blue"><TagLabel>Model: {model}</TagLabel></Tag>
-              ) : null}
-              {teat_size ? (
-                <Tag size="md" colorScheme="blue"><TagLabel>Teat size: {teat_size}</TagLabel></Tag>
-              ) : null}
-              {kpis.length ? (
-                <HStack gap={2} wrap="wrap">
-                  {kpis.map((k, i) => (
-                    <Tag key={i} size="md" colorScheme="purple"><TagLabel>KPI: {k}</TagLabel></Tag>
-                  ))}
-                </HStack>
-              ) : null}
-
-              {(!brand && !model && !teat_size && kpis.length === 0) && (
-                <Text color="gray.500" fontSize="sm">Nessun filtro selezionato.</Text>
-              )}
-            </Stack>
-
-            <HStack mt={4} gap={3}>
-              <Button onClick={() => router.push("/product")} variant="outline">
-                Modifica filtri
-              </Button>
-              <Button onClick={saveCtrl.onOpen} size="sm" leftIcon={<StarIcon />} variant="outline" color="#12305f" borderColor="gray.300" _hover={{ bg: "gray.50" }}>
-                Save
-              </Button>
-              <Button
-                leftIcon={<RepeatIcon />}
-                onClick={() => {
-                  toast({ status: "info", title: "Ricerca non ancora collegata al backend" });
-                }}
-                isLoading={loading}
-                loadingText="Ricerca in corso…"
-                colorScheme="blue"
-              >
-                Riesegui ricerca
-              </Button>
-            </HStack>
-          </CardBody>
-        </Card>
+      <Box as="main" maxW={{ base: "100%", md: "6xl" }} mx="auto" px={{ base: 4, md: 8 }} pt={{ base: 4, md: 6 }}>
+        <FiltersSummaryCard
+          brand={brand}
+          model={model}
+          teat_size={teat_size}
+          kpis={kpis}
+          onEdit={() => router.push("/product")}
+          onSave={saveCtrl.onOpen}
+        />
 
         {/* Risultati */}
-        <Card>
+        <Card mx={{ base: -4, md: 0 }}>
           <CardHeader py={3}>
-            <HStack justify="space-between" align="center">
-              <Heading size="sm">Applications</Heading>
-              <Tag size="sm" variant="subtle"><TagLabel>{items.length} trovate</TagLabel></Tag>
-            </HStack>
+            <ApplicationsHeader
+              total={items.length}
+              sortKpi={sortKpi}
+              sortDir={sortDir}
+              sortingBusy={sortingBusy}
+              onSelectSortKpi={onSelectSortKpi}
+              onToggleDir={toggleSortDir}
+            />
           </CardHeader>
           <CardBody pt={0}>
-            {items.length === 0 ? (
+            {loading ? (
+              <VStack py={10} spacing={3}>
+                <Spinner />
+                <Text color="gray.600">Loading applications…</Text>
+              </VStack>
+            ) : items.length === 0 ? (
               <VStack py={8} spacing={2}>
-                <Text color="gray.600">Nessun risultato.</Text>
+                <Text color="gray.600">No results.</Text>
               </VStack>
             ) : (
-              <SimpleGrid columns={{ base: 1, md: 2 }} gap={4}>
-                {items.map((a) => (
-                  <Box key={a.key} borderWidth="1px" rounded="md" p={4}>
-                    <HStack justify="space-between">
-                      <Stack spacing={0}>
-                        <Text fontWeight="semibold">{a.brand || "-"} • {a.model || "-"}</Text>
-                        <HStack>
-                          <Badge colorScheme="blue">Teat size: {a.size_mm}</Badge>
-                        </HStack>
-                      </Stack>
-                    </HStack>
-                  </Box>
-                ))}
-              </SimpleGrid>
+              <>
+                <SimpleGrid columns={{ base: 1, md: 2 }} gap={4}>
+                  {pagedItems.map((a) => (
+                    <ProductApplicationCard
+                      key={a.key}
+                      productId={a.product_id}
+                      brand={a.brand}
+                      model={a.model}
+                      sizeMm={a.size_mm}
+                    />
+                  ))}
+                </SimpleGrid>
+                <PaginationBar
+                  page={page}
+                  totalPages={totalPages}
+                  onPrev={() => goToPage(page - 1)}
+                  onNext={() => goToPage(page + 1)}
+                />
+              </>
             )}
           </CardBody>
         </Card>
