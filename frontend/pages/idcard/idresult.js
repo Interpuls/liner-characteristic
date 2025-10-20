@@ -17,7 +17,7 @@ export default function IdResultPage() {
   const [loading, setLoading] = useState(true);
   const [product, setProduct] = useState(null);
 
-  const { brand, model } = router.query;
+  const { brand, model, teat_size } = router.query;
 
   // piccola util per label leggibili
   const labelize = (k) =>
@@ -70,10 +70,10 @@ export default function IdResultPage() {
   if (!me) return <Box p={6}>Caricamento…</Box>;
 
   return (
-    <>
+    <Box minH="100vh" display="flex" flexDirection="column">
       <AppHeader title="Liner ID Result" subtitle="Dettaglio prodotto selezionato" backHref="/idcard" />
 
-      <Box as="main" maxW="6xl" mx="auto" px={{ base:4, md:8 }} pt={{ base:4, md:6 }}>
+      <Box as="main" flex="1" maxW="6xl" mx="auto" px={{ base:4, md:8 }} pt={{ base:4, md:6 }}>
         {/* Riepilogo filtri */}
         <Card mb={4}>
           <CardHeader py={3}><Heading size="sm">Filtri</Heading></CardHeader>
@@ -81,6 +81,7 @@ export default function IdResultPage() {
             <Stack direction={{ base: "column", md: "row" }} gap={3} align="flex-start" flexWrap="wrap">
               {brand ? <Tag size="md" colorScheme="blue"><TagLabel>Brand: {brand}</TagLabel></Tag> : null}
               {model ? <Tag size="md" colorScheme="blue"><TagLabel>Model: {model}</TagLabel></Tag> : null}
+              {teat_size ? <Tag size="md" colorScheme="blue"><TagLabel>Teat size: {teat_size} mm</TagLabel></Tag> : null}
             </Stack>
           </CardBody>
         </Card>
@@ -157,6 +158,6 @@ export default function IdResultPage() {
       </Box>
 
       <AppFooter appName="Liner Characteristic App" />
-    </>
+    </Box>
   );
 }

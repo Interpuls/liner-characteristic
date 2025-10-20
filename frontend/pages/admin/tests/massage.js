@@ -3,7 +3,7 @@ import {
   Box, SimpleGrid, Card, CardHeader, CardBody, Text,
   HStack, VStack, Input, Button, Divider, Spinner,
   Stat, StatNumber, Tooltip, Heading, Tag, TagLabel,
-  InputGroup, InputLeftAddon
+  InputGroup, InputLeftAddon, useToast
 } from "@chakra-ui/react";
 import {
   getKpiValuesByPA, getLatestMassageRun,
@@ -50,6 +50,7 @@ export default function AdminMassageTest({ token, pid, product, apps }) {
 }
 
 function MassageCard({ token, application }) {
+  const toast = useToast();
   const [inputs, setInputs] = useState(() =>
     Object.fromEntries(PRESSURES.map(k => [k, { min_val: "", max_val: "" }]))
   );
@@ -130,6 +131,11 @@ function MassageCard({ token, application }) {
       const values = await getKpiValuesByPA(token, application.id);
       const map = Object.fromEntries((values || []).map(v => [v.kpi_code, v]));
       setKpis(map);
+
+      toast({ title: "Salvato e calcolato", status: "success" });
+    } catch (e) {
+      const msg = e?.message || "Errore salvataggio/calcolo";
+      toast({ title: `Errore: ${msg}`, status: "error" });
     } finally {
       setSaving(false);
     }

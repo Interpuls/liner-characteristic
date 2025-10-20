@@ -1,17 +1,14 @@
 // pages/products.js
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/router";
-import {
-  Box, Heading, Text, Button, Select, Input, HStack, Stack, IconButton,
-  FormControl, FormLabel, SimpleGrid, useToast, Divider, Card, CardBody, CardHeader,
-  Tag, TagLabel, Show
-} from "@chakra-ui/react";
-import { AddIcon, MinusIcon, StarIcon } from "@chakra-ui/icons";
+import NextLink from "next/link";
+import { Box, Heading, Button, HStack, useToast, Card, CardBody, CardHeader, Show, IconButton } from "@chakra-ui/react";
+import { ChevronLeftIcon } from "@chakra-ui/icons";
 import { getToken } from "../lib/auth";
-import { getMe, getProductsMeta, listProductPrefs } from "../lib/api";
+import { getMe, getProductsMeta, listProductPrefs, saveProductPref } from "../lib/api";
 
-import AppHeader from "../components/AppHeader";
-import AppFooter from "../components/AppFooter";
+import ProductFilters from "../components/filters/ProductFilters";
+import FancySelect from "../components/ui/FancySelect";
 
 export default function Products() {
   const toast = useToast();
@@ -20,15 +17,10 @@ export default function Products() {
   const [me, setMe] = useState(null);
   const [meta, setMeta] = useState({ brands:[], models:[], teat_sizes:[], kpis:[] });
   const [prefs, setPrefs] = useState([]);
-
-  // filtri base (senza productType)
-  const [brand, setBrand] = useState("");
-  const [model, setModel] = useState("");
-  const [teatSize, setTeatSize] = useState("");
-
-  // KPI multipli: solo code
-  const [kpiFilters, setKpiFilters] = useState([]);
-  const kpiChoices = useMemo(() => meta.kpis || [], [meta.kpis]);
+  const [selection, setSelection] = useState({ count: 0 });
+  const [prefId, setPrefId] = useState("");
+  const [loadedPref, setLoadedPref] = useState(null);
+  const [presetFromQuery, setPresetFromQuery] = useState(null);
 
   useEffect(() => {
     const t = getToken();
@@ -41,137 +33,157 @@ export default function Products() {
     listProductPrefs(t).then(setPrefs).catch(()=>{});
   }, [toast]);
 
-  // KPI handlers: solo code
-  const addKpi = () => setKpiFilters((prev) => [...prev, { code:"" }]);
-  const removeKpi = (i) => setKpiFilters((prev) => prev.filter((_, idx) => idx !== i));
-  const updateKpi = (i, patch) => setKpiFilters((prev) => prev.map((k, idx) => idx === i ? { ...k, ...patch } : k));
+  // when a preference is selected, load its saved filters into ProductFilters
+  useEffect(() => {
+    if (!prefId) { setLoadedPref(null); return; }
+    const sel = prefs.find(p => String(p.id) === String(prefId));
+    if (!sel) { setLoadedPref(null); return; }
+    setLoadedPref(sel.filters || null);
+  }, [prefId, prefs]);
+
+  // If results page passes a preset via query, prefill filters for editing
+  useEffect(() => {
+    if (!router.isReady) return;
+    try {
+      const raw = router.query?.preset;
+      if (!raw || typeof raw !== 'string') { setPresetFromQuery(null); return; }
+      const obj = JSON.parse(decodeURIComponent(raw));
+      if (obj && typeof obj === 'object') setPresetFromQuery(obj);
+    } catch {
+      setPresetFromQuery(null);
+    }
+  }, [router.isReady, router.query?.preset]);
 
   const onConfirm = () => {
     const params = new URLSearchParams();
-    if (brand) params.set("brand", brand);
-    if (model) params.set("model", model);
-    if (teatSize) params.set("teat_size", teatSize);
+    const { brandModel, teatSizes, shapes, parlor, areas } = selection || {};
 
-    // Solo KPI code -> kpi1, kpi2, ... (niente op/val per non toccare il backend dei filtri numerici)
-    kpiFilters.forEach((k, i) => {
-      if (k.code) {
-        params.set(`kpi${i+1}`, k.code);
-      }
-    });
+    // Single-value params preserved for backend filtering compatibility
+    if (brandModel?.brands && brandModel.brands.length === 1) params.set("brand", brandModel.brands[0]);
+    const allModels = Object.values(brandModel?.models || {}).flat();
+    if (allModels.length === 1) params.set("model", allModels[0]);
+    if (teatSizes && teatSizes.length === 1) params.set("teat_size", teatSizes[0]);
+
+    // Multi-value params for UI summary (display-only)
+    if (brandModel?.brands && brandModel.brands.length > 1) params.set("brands", brandModel.brands.join(","));
+    if (allModels.length > 1) params.set("models", allModels.join(","));
+    if (teatSizes && teatSizes.length > 1) params.set("teat_sizes", teatSizes.join(","));
+
+    // Shapes used only client-side -> can always pass as CSV
+    if (shapes && shapes.length > 0) params.set("barrel_shape", shapes.join(","));
+
+    if (parlor && parlor[0]) params.set("parlor", parlor[0]);
+    if (areas && areas.length) params.set("areas", areas.join(","));
 
     router.push(`/product/result?${params.toString()}`);
   };
+
+  const onResetLocal = () => {
+    // ProductFilters owns state and provides bottom Reset; nothing to do here.
+  };
+
+  // save is now handled in results page
 
   if (!me) return <Box p="6">Caricamento…</Box>;
 
   return (
     <>
-      {/* Header: back → Home  */}
-      <AppHeader
-        title="Liner Search"
-        backHref="/home"
-      />
+      <Box as="main" position="relative" overflow="hidden" bg="#0b1f45" minH="100vh">
+        {/* Blue gradient background + soft blur glows (like Home) */}
+        <Box position="absolute" inset={0} zIndex={0}
+             bgGradient="linear(180deg, rgba(13,39,82,1) 0%, rgba(18,48,95,1) 35%, rgba(5,21,49,1) 100%)" />
+        <Box
+          position="absolute"
+          top={{ base: "-60%", md: "-20%" }}
+          left="50%"
+          transform="translateX(-50%)"
+          w={{ base: "120vw", md: "1200px" }}
+          h={{ base: "120vw", md: "1200px" }}
+          borderRadius="full"
+          bgGradient="radial(closest-side, rgba(72,118,255,0.45), transparent 70%)"
+          filter={{ base: "blur(40px)", md: "blur(70px)" }}
+        />
+        <Box
+          position="absolute"
+          top={{ base: "-10%", md: "10%" }}
+          left="50%"
+          transform="translateX(-50%)"
+          w={{ base: "80vw", md: "800px" }}
+          h={{ base: "80vw", md: "800px" }}
+          borderRadius="full"
+          bgGradient="radial(closest-side, rgba(88,140,255,0.25), transparent 70%)"
+          filter={{ base: "blur(40px)", md: "blur(60px)" }}
+          display={{ base: "none", md: "block" }}
+        />
 
-      <Box as="main" maxW="6xl" mx="auto" px={{ base:4, md:8 }} pt={{ base:4, md:6 }}>
-        {/* CardHeader: SOLO Preference research */}
-        <Card mb={4} variant="outline" borderColor="gray.200" overflow="hidden">
-          <CardHeader bg="#12305f" color="white" py={{ base:3, md:4 }}>
-            <HStack gap={2} w={{ base:"full", md:"auto" }}>
-              <StarIcon boxSize={4} />
-              <Select
-                placeholder="Preference research"
+        {/* Content container */}
+        <Box maxW="6xl" mx="auto" px={{ base:0, md:8 }} pt={{ base:0, md:6 }} position="relative" zIndex={1}>
+          {/* Header: Back + Filters title */}
+          <Card mb={4} overflow="hidden"
+          mx={{ base: 0, md: 0 }} borderRadius={{ base: 0, md: 0 }}
+          borderWidth={{ base: 0, md: 0 }} borderColor="transparent" border="0"
+          position="sticky" top={0} zIndex={2}
+          boxShadow={{ base: "0 10px 24px rgba(0,0,0,0.40)", md: "0 16px 36px rgba(0,0,0,0.50)" }}
+          borderBottomWidth="1px" borderBottomColor="whiteAlpha.200"
+        >
+          <CardHeader bg="rgba(12,26,58,0.96)" color="white" py={{ base:4, md:4 }} px={{ base:4, md:6 }} backdropFilter="saturate(120%) blur(6px)">
+            <HStack gap={3} w={{ base:"full", md:"auto" }}>
+              <IconButton
+                as={NextLink}
+                href="/"
+                aria-label="Back to home"
+                icon={<ChevronLeftIcon boxSize={6} />}
+                variant="ghost"
+                color="white"
+                _hover={{ bg: "whiteAlpha.200" }}
                 size="sm"
-                variant="filled"
-                w={{ base:"full", md:"320px" }}
-                bg="white"
-                color="black"
-              >
-                {prefs.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
-              </Select>
+              />
+              <Heading size={{ base: "xl", md: "xl" }} color="white">Filters</Heading>
             </HStack>
           </CardHeader>
         </Card>
 
-        <Text color="gray.600" mb={4}>Seleziona i filtri e conferma per vedere i risultati.</Text>
-
-        {/* Riquadro Filters */}
-        <Card>
-          <CardHeader py="3"><Heading size="sm">Filters</Heading></CardHeader>
-          <CardBody pt="0">
-            {/* colonne: brand/model/teat_size (rimosso product_type) */}
-            <SimpleGrid columns={{ base:1, md:2, lg:3 }} gap={4} mb={4}>
-              <FormControl>
-                <FormLabel fontSize="sm" color="gray.500" mb={1}>Brand</FormLabel>
-                <Select placeholder="Tutti" value={brand} onChange={e=>setBrand(e.target.value)} variant="filled" size="md">
-                  {(meta.brands || []).map(v => <option key={v} value={v}>{v}</option>)}
-                </Select>
-              </FormControl>
-
-              <FormControl>
-                <FormLabel fontSize="sm" color="gray.500" mb={1}>Model</FormLabel>
-                <Select placeholder="Tutti" value={model} onChange={e=>setModel(e.target.value)} variant="filled" size="md">
-                  {(meta.models || []).map(v => <option key={v} value={v}>{v}</option>)}
-                </Select>
-              </FormControl>
-
-              <FormControl>
-                <FormLabel fontSize="sm" color="gray.500" mb={1}>Teat size</FormLabel>
-                <Select placeholder="Tutte" value={teatSize} onChange={e=>setTeatSize(e.target.value)} variant="filled" size="md">
-                  {(meta.teat_sizes || []).map(v => <option key={v} value={v}>{v}</option>)}
-                </Select>
-              </FormControl>
-            </SimpleGrid>
-
-            <Divider my={4} />
-
-            {/* KPI multipli: solo selezione KPI */}
-            <Stack gap={3}>
-              <HStack justify="space-between">
-                <Heading size="sm">KPI</Heading>
-                <Tag size="sm" variant="subtle"><TagLabel>{kpiFilters.length} selezionati</TagLabel></Tag>
-              </HStack>
-
-              {kpiFilters.map((k, idx) => (
-                <SimpleGrid key={idx} columns={{ base:1, md:2 }} gap={3} alignItems="end">
-                  <FormControl>
-                    <FormLabel fontSize="sm" color="gray.500" mb={1}>KPI</FormLabel>
-                    <Select
-                      placeholder="Seleziona KPI"
-                      value={k.code}
-                      onChange={e=>updateKpi(idx, { code:e.target.value })}
-                      variant="filled"
-                    >
-                      {kpiChoices.map(kp => (
-                        <option key={kp.id} value={kp.code}>{kp.name}</option>
-                      ))}
-                    </Select>
-                  </FormControl>
-
-                  <HStack justify={{ base:"flex-end", md:"flex-start" }}>
-                    <IconButton aria-label="Rimuovi KPI" icon={<MinusIcon />} onClick={()=>removeKpi(idx)} variant="outline" size="sm" />
-                  </HStack>
-                </SimpleGrid>
-              ))}
-
-              <HStack>
-                <IconButton aria-label="Aggiungi KPI" icon={<AddIcon />} onClick={addKpi} size="sm" />
-                <Text color="gray.500" fontSize="sm">Aggiungi un KPI</Text>
-              </HStack>
-            </Stack>
+        <Card
+          mx={{ base: 0, md: 0 }}
+          borderRadius={{ base: 0, md: "md" }}
+          borderWidth={{ base: 0, md: "1px" }}
+          borderColor={{ base: "transparent", md: "whiteAlpha.300" }}
+          boxShadow={{ base: "none", md: "sm" }}
+          bg={{ base: "transparent", md: "rgba(12, 26, 58, 0.55)" }}
+          backdropFilter={{ base: undefined, md: "saturate(120%) blur(6px)" }}
+        >
+          <CardBody pt={{ base: 6, md: 6 }} px={{ base:4, md:6 }}>
+            {/* Preference research selector below header, no back icon */}
+            <HStack justify="flex-start" mb={{ base: 5, md: 6 }} align="center">
+              <FancySelect
+                options={prefs.map(p => ({ label: p.name, value: String(p.id) }))}
+                value={prefId}
+                onChange={setPrefId}
+                placeholder="Preference research"
+                size="sm"
+                w={{ base:"full", md:"320px" }}
+                variant="solid"
+                bg="#0c1f44"
+                color="white"
+                iconColor="white"
+                _hover={{ bg: "#0b1f45" }}
+                _active={{ bg: "#0b1f45" }}
+                transition="background 0.15s ease"
+                menuColorMode="dark"
+              />
+            </HStack>
+            <ProductFilters meta={meta} onSelectionsChange={setSelection} onConfirm={onConfirm} value={presetFromQuery || loadedPref} />
           </CardBody>
         </Card>
 
-        <HStack mt={6} justify="center">
-          <Button colorScheme="blue" onClick={onConfirm}>Confirm</Button>
-        </HStack>
-
-        {/* Mobile: nessun logout in questa pagina */}
-        <Show below="md">
-          {/* niente */}
-        </Show>
+          {/* Mobile: nessun logout in questa pagina */}
+          <Show below="md">
+            {/* niente */}
+          </Show>
+        </Box>
       </Box>
 
-      <AppFooter appName="Liner Characteristic App" />
+      {/* Save modal removed; Save action lives in results page */}
     </>
   );
 }

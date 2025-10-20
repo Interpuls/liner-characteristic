@@ -20,6 +20,8 @@ export default function FancySelect({
   disabled = false,
   menuPlacement = "bottom-start",
   menuZIndex = 1600,
+  iconColor = "currentColor",
+  menuColorMode = "light",
   ...btnProps
 }) {
   const [query, setQuery] = useState("");
@@ -39,6 +41,8 @@ export default function FancySelect({
   const currentLabel = current?.label ?? "";
   const isNode = React.isValidElement(currentLabel);
 
+  const isDarkMenu = menuColorMode === "dark";
+
   return (
     <Menu isLazy placement={menuPlacement}>
       <MenuButton
@@ -46,7 +50,7 @@ export default function FancySelect({
         w={w}
         variant="outline"
         fontWeight="normal"
-        rightIcon={<ChevronDownIcon />}
+        rightIcon={<ChevronDownIcon color={iconColor} />}
         justifyContent="space-between"
         isDisabled={disabled}
         {...btnProps}
@@ -69,24 +73,33 @@ export default function FancySelect({
 
       {/* Portal evita che il menu venga tagliato dai container */}
       <Portal>
-        <MenuList p={0} shadow="lg" zIndex={menuZIndex}>
-          <Box p={2} borderBottom="1px" borderColor="gray.100">
+        <MenuList
+          p={0}
+          shadow="lg"
+          zIndex={menuZIndex}
+          bg={isDarkMenu ? "rgba(4, 6, 20, 1)" : undefined}
+          color={isDarkMenu ? "gray.200" : undefined}
+          borderColor={isDarkMenu ? "whiteAlpha.200" : undefined}
+        >
+          <Box p={2} borderBottom="1px" borderColor={isDarkMenu ? "whiteAlpha.200" : "gray.100"} bg={isDarkMenu ? "rgba(4, 6, 20, 0.98)" : undefined}>
             <HStack>
-              <Icon as={SearchIcon} color="gray.400" />
+              <Icon as={SearchIcon} color={isDarkMenu ? "gray.400" : "gray.400"} />
               <Input
                 size="sm"
                 variant="unstyled"
                 placeholder="Cerca…"
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
+                color={isDarkMenu ? "gray.200" : undefined}
+                _placeholder={{ color: isDarkMenu ? "gray.500" : undefined }}
               />
             </HStack>
           </Box>
 
-          <Box maxH={maxH} overflowY="auto" py={1}>
+          <Box maxH={maxH} overflowY="auto" py={1} bg={isDarkMenu ? "rgba(4, 6, 20, 1)" : undefined}>
             {filtered.length === 0 ? (
               <Box px={3} py={2}>
-                <Text fontSize="sm" color="gray.500">Nessun risultato</Text>
+                <Text fontSize="sm" color={isDarkMenu ? "gray.400" : "gray.500"}>Nessun risultato</Text>
               </Box>
             ) : (
               filtered.map((o) => (
@@ -94,6 +107,9 @@ export default function FancySelect({
                   key={o.value}
                   onClick={() => onChange(o.value)}
                   icon={value === o.value ? <CheckIcon /> : undefined}
+                  bg={isDarkMenu ? "transparent" : undefined}
+                  color={isDarkMenu ? "gray.200" : undefined}
+                  _hover={isDarkMenu ? { bg: "whiteAlpha.100" } : undefined}
                 >
                   {o.label}
                 </MenuItem>

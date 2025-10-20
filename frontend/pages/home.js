@@ -129,8 +129,43 @@ export default function Home() {
         <Image src="/favicon.ico" alt="Logo" width={72} height={72} />
         <Heading size={{ base: "xl", md: "2xl" }} color="white" textAlign="center" letterSpacing="wide">Liner Characteristic</Heading>
         <Text color="whiteAlpha.800" textAlign="center" maxW="2xl">Explore liners, compare KPIs and find the best fit.</Text>
-        <HStack>
-          <Button as={NextLink} href="/product" size="lg" colorScheme="blue" bg="#2b6cb0" _hover={{ bg: "#2c5282" }}>Start Search</Button>
+        <HStack mt={{ base: 6, md: 8 }}>
+          <Button
+            as={NextLink}
+            href="/product"
+            size="lg"
+            borderRadius="9999px"
+            position="relative"
+            overflow="hidden"
+            color="#0c1a3a"
+            borderWidth="1px"
+            borderColor="whiteAlpha.400"
+            bgGradient="linear(135deg, rgba(255,255,255,0.10) 0%, rgba(43,108,176,0.42) 50%, rgba(255,255,255,0.08) 100%)"
+            backdropFilter={{ base: "saturate(130%) blur(6px)", md: "saturate(150%) blur(10px)" }}
+            boxShadow="0 10px 24px rgba(0,0,0,0.28), inset 0 1px 0 rgba(255,255,255,0.18)"
+            _hover={{
+              bgGradient: "linear(135deg, rgba(255,255,255,0.14) 0%, rgba(49,130,206,0.52) 50%, rgba(255,255,255,0.12) 100%)",
+              borderColor: "whiteAlpha.600",
+              boxShadow: "0 12px 28px rgba(0,0,0,0.34), inset 0 1px 0 rgba(255,255,255,0.22)",
+              transform: "translateY(-1px)",
+            }}
+            _active={{
+              transform: "translateY(0)",
+              bgGradient: "linear(135deg, rgba(255,255,255,0.10) 0%, rgba(43,108,176,0.36) 50%, rgba(255,255,255,0.08) 100%)",
+            }}
+            transition="all 0.2s ease"
+            sx={{
+              _before: {
+                content: '""',
+                position: 'absolute',
+                inset: 0,
+                background: 'radial-gradient(80% 140% at 20% 0%, rgba(255,255,255,0.35) 0%, rgba(255,255,255,0.05) 40%, transparent 60%)',
+                pointerEvents: 'none',
+              },
+            }}
+          >
+            Start Search
+          </Button>
         </HStack>
       </VStack>
     </Box>
@@ -186,7 +221,7 @@ export default function Home() {
       <Drawer isOpen={menuCtrl.isOpen} placement="left" onClose={menuCtrl.onClose} size="xs">
         <DrawerOverlay />
         <DrawerContent backgroundColor="rgba(4, 6, 20, 1)">
-          <DrawerCloseButton />
+          <DrawerCloseButton color="gray.400" _hover={{ color: "gray.300" }} />
           <DrawerHeader color="gray.100">Menu</DrawerHeader>
           <DrawerBody>
             <Stack spacing={3} mt={2}>
@@ -199,7 +234,7 @@ export default function Home() {
                 </>
               ) : (
                 <>
-                  <Button as={NextLink} href="/settings" variant="ghost" onClick={menuCtrl.onClose}>Settings</Button>
+                  <Button as={NextLink} href="/settings" variant="ghost" color="gray.300" _hover={{ color: "gray.200" }} onClick={menuCtrl.onClose}>Settings</Button>
                 </>
               )}
               <CkDivider />
