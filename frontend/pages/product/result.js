@@ -15,6 +15,7 @@ import ApplicationsHeader from "../../components/result/ApplicationsHeader";
 import PaginationBar from "../../components/result/PaginationBar";
 import { getToken } from "../../lib/auth";
 import { listProducts, saveProductPref, listProductApplications, getKpiValuesByPA } from "../../lib/api";
+import { FaChartLine, FaFlask } from "react-icons/fa";
 
 export default function ProductsSearchPage() {
   const router = useRouter();
@@ -26,6 +27,7 @@ export default function ProductsSearchPage() {
   // Placeholder risultati (collega quando vuoi)
   const [loading, setLoading] = useState(false);
   const [items, setItems] = useState([]); // app-level items: [{key, product_id, brand, model, size_mm}]
+  // Application-level items already live in `items`. Use them for tool selections.
   const [appIdByKey, setAppIdByKey] = useState({}); // key -> application_id
   const [kpiScores, setKpiScores] = useState({}); // key -> { [kpi_code]: { score, value_num } }
   const [sortingBusy, setSortingBusy] = useState(false);
@@ -253,6 +255,52 @@ export default function ProductsSearchPage() {
 
   const toggleSortDir = () => setSortDir(d => (d === 'asc' ? 'desc' : 'asc'));
 
+  // Reusable selection modal state (for action buttons)
+  const [selOpen, setSelOpen] = useState(false);
+  const [selConfig, setSelConfig] = useState({ title: "", min: 1, max: 5, route: "/tools/radar-map" });
+  const [selSearch, setSelSearch] = useState("");
+  const [selSelected, setSelSelected] = useState(new Set()); // stores application keys
+  const filteredList = useMemo(() => {
+    const q = (selSearch || "").toLowerCase();
+    const base = Array.isArray(items) ? items : [];
+    if (!q) return base;
+    return base.filter(it => (`${it.brand || ""} ${it.model || ""}`).toLowerCase().includes(q));
+  }, [items, selSearch]);
+  const selCount = selSelected.size;
+  const exact = selConfig.min === selConfig.max;
+  const isValidSel = exact ? (selCount === selConfig.min) : (selCount >= selConfig.min && selCount <= selConfig.max);
+  const selTitle = exact ? `Select exactly ${selConfig.min} products` : `Select ${selConfig.min}-${selConfig.max} products`;
+  const openAction = (cfg) => {
+    setSelConfig(cfg);
+    setSelSelected(new Set());
+    setSelSearch("");
+    setSelOpen(true);
+  };
+  const toggleSel = (key) => {
+    setSelSelected(prev => {
+      const next = new Set(prev);
+      if (next.has(key)) next.delete(key); else next.add(key);
+      return next;
+    });
+  };
+  const confirmSel = async () => {
+    if (!isValidSel) return;
+    // Ensure we have an applications map (key -> application_id)
+    let appMap = appIdByKey;
+    if (!Object.keys(appMap).length) {
+      const token = getToken();
+      if (token) {
+        appMap = await buildApplicationsMap(token, items);
+        setAppIdByKey(appMap);
+      }
+    }
+    const keys = Array.from(selSelected);
+    const appIds = keys.map(k => appMap[k]).filter(Boolean);
+    const param = appIds.length ? `app_ids=${appIds.join(',')}` : `keys=${keys.join(',')}`;
+    router.push(`${selConfig.route}?${param}`);
+    setSelOpen(false);
+  };
+
   // Quando vorrai collegare il backend:
   // 1) scommenta la useEffect sotto
   // 2) implementa la fetch verso il tuo endpoint di ricerca
@@ -331,6 +379,52 @@ export default function ProductsSearchPage() {
           );
         })()}
 
+        {/* Action buttons */}
+        <SimpleGrid columns={{ base: 3, md: 3 }} gap={3} mb={4}>
+          <Button
+            variant="outline"
+            px={{ base: 2, md: 3 }}
+            pt={{ base: 4, md: 2 }}
+            pb={{ base: 4, md: 2 }}
+            minH={{ base: 14, md: 'auto' }}
+            onClick={() => openAction({ title: "Radar Map", min: 1, max: 5, route: "/tools/radar-map" })}
+          >
+            <Stack direction={{ base: 'column', md: 'row' }} align="center" spacing={{ base: 1, md: 2 }}>
+              <Box as={FaChartLine} boxSize={{ base: 5, md: 4 }} color="#12305f" />
+              <Text fontSize={{ base: 'xs', md: 'sm' }} color="gray.600">Radar Map</Text>
+            </Stack>
+          </Button>
+          <Button
+            variant="outline"
+            px={{ base: 2, md: 3 }}
+            pt={{ base: 4, md: 2 }}
+            pb={{ base: 4, md: 2 }}
+            minH={{ base: 14, md: 'auto' }}
+            onClick={() => openAction({ title: "Tests Detail", min: 1, max: 5, route: "/tools/tests-detail" })}
+          >
+            <Stack direction={{ base: 'column', md: 'row' }} align="center" spacing={{ base: 1, md: 2 }}>
+              <Box as={FaFlask} boxSize={{ base: 5, md: 4 }} color="#12305f" />
+              <Text fontSize={{ base: 'xs', md: 'sm' }} color="gray.600">Tests Detail</Text>
+            </Stack>
+          </Button>
+          <Button
+            variant="outline"
+            px={{ base: 2, md: 3 }}
+            pt={{ base: 4, md: 2 }}
+            pb={{ base: 4, md: 2 }}
+            minH={{ base: 14, md: 'auto' }}
+            onClick={() => openAction({ title: "Setting Calculator", min: 2, max: 2, route: "/tools/setting-calculator" })}
+          >
+            <Stack direction={{ base: 'column', md: 'row' }} align="center" spacing={{ base: 1, md: 2 }}>
+              {/* Custom VS icon */}
+              <Box w={{ base: 6, md: 6 }} h={{ base: 6, md: 6 }} borderRadius="full" borderWidth="1px" borderColor="#12305f" color="#12305f" display="flex" alignItems="center" justifyContent="center" fontWeight="bold" fontSize={{ base: 'xs', md: 'sm' }}>
+                VS
+              </Box>
+              <Text fontSize={{ base: 'xs', md: 'sm' }} color="gray.600">Setting Calculator</Text>
+            </Stack>
+          </Button>
+        </SimpleGrid>
+
         {/* Risultati */}
         <Card mx={{ base: -4, md: 0 }}>
           <CardHeader py={3}>
@@ -393,6 +487,47 @@ export default function ProductsSearchPage() {
             <HStack w="full" justify="space-between"> 
               <Button variant="ghost" onClick={saveCtrl.onClose}>Cancel</Button>
               <Button colorScheme="blue" onClick={onSaveSearch}>Save</Button>
+            </HStack>
+          </ModalFooter>
+        </ModalContent>
+      </Modal>
+
+      {/* Selection modal (reusable for the three actions) */}
+      <Modal isOpen={selOpen} onClose={() => setSelOpen(false)} size="lg" isCentered>
+        <ModalOverlay />
+        <ModalContent>
+          <ModalHeader>{selTitle}</ModalHeader>
+          <ModalCloseButton />
+          <ModalBody>
+            <VStack align="stretch" spacing={3}>
+              <Input placeholder="Search brand or model" value={selSearch} onChange={(e)=>setSelSearch(e.target.value)} />
+              <Box maxH="320px" overflowY="auto" borderWidth="1px" borderRadius="md" p={2}>
+                <VStack align="stretch" spacing={2}>
+                  {filteredList.map(it => (
+                    <HStack key={it.key} justify="space-between">
+                      <Text fontSize="sm">{it.brand} {it.model} • {it.size_mm} mm</Text>
+                      <input type="checkbox" checked={selSelected.has(it.key)} onChange={() => toggleSel(it.key)} />
+                    </HStack>
+                  ))}
+                  {filteredList.length === 0 && (
+                    <Text fontSize="sm" color="gray.500">No products found.</Text>
+                  )}
+                </VStack>
+              </Box>
+              <HStack justify="space-between">
+                <Text fontSize="sm">Selected: {selCount}</Text>
+                {!isValidSel && (
+                  <Text fontSize="sm" color="red.500">
+                    {exact ? `Select exactly ${selConfig.min} products` : `Select between ${selConfig.min} and ${selConfig.max} products`}
+                  </Text>
+                )}
+              </HStack>
+            </VStack>
+          </ModalBody>
+          <ModalFooter>
+            <HStack w="full" justify="space-between">
+              <Button variant="ghost" onClick={() => setSelOpen(false)}>Cancel</Button>
+              <Button colorScheme="blue" onClick={confirmSel} isDisabled={!isValidSel}>Confirm</Button>
             </HStack>
           </ModalFooter>
         </ModalContent>
