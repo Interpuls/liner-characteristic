@@ -42,7 +42,7 @@ export default function ProductsSearchPage() {
   const [page, setPage] = useState(initialPage);
 
   // Leggo i filtri dalla query
-  const { brand, model, teat_size, barrel_shape, parlor, areas, ...rest } = router.query;
+  const { brand, brands, model, models, teat_size, teat_sizes, barrel_shape, parlor, areas, ...rest } = router.query;
 
   const kpis = useMemo(() => {
     // tutti i parametri che iniziano con kpi e hanno un valore
@@ -65,11 +65,23 @@ export default function ProductsSearchPage() {
       // Build filters object compatible with ProductFilters
       const areasSel = typeof areas === "string" && areas ? String(areas).split(",") : [];
       const brandModelFilters = brand ? { brands: [String(brand)], models: (model ? { [String(brand)]: [String(model)] } : {}) } : { brands: [], models: {} };
+      const teatSel = (() => {
+        const acc = [];
+        if (Array.isArray(teat_sizes)) acc.push(...teat_sizes.map(String));
+        else if (typeof teat_sizes === 'string') acc.push(...teat_sizes.split(',').map(s=>s.trim()).filter(Boolean));
+        if (teat_size) acc.push(String(teat_size));
+        return [...new Set(acc)];
+      })();
+      const shapesSel = (() => {
+        if (Array.isArray(barrel_shape)) return barrel_shape.map(String);
+        if (typeof barrel_shape === 'string' && barrel_shape.includes(',')) return barrel_shape.split(',').map(s=>s.trim()).filter(Boolean);
+        return barrel_shape ? [String(barrel_shape)] : [];
+      })();
       const payload = {
         areas: areasSel,
         brandModel: brandModelFilters,
-        teatSizes: teat_size ? [String(teat_size)] : [],
-        shapes: barrel_shape ? [String(barrel_shape)] : [],
+        teatSizes: teatSel,
+        shapes: shapesSel,
         parlor: parlor ? [String(parlor)] : [],
       };
       await saveProductPref(t, saveName.trim(), payload);
@@ -101,7 +113,11 @@ export default function ProductsSearchPage() {
       }).catch(() => []);
 
       // filter client-side for shape/parlor/areas
-      const shapes = barrel_shape ? [String(barrel_shape)] : [];
+      const shapes = (() => {
+        if (Array.isArray(barrel_shape)) return barrel_shape.map(String);
+        if (typeof barrel_shape === 'string' && barrel_shape.includes(',')) return barrel_shape.split(',').map(s => s.trim()).filter(Boolean);
+        return barrel_shape ? [String(barrel_shape)] : [];
+      })();
       const parlorSel = parlor ? [String(parlor)] : [];
       const areasSel = typeof areas === "string" && areas ? String(areas).split(",") : [];
 
@@ -119,8 +135,19 @@ export default function ProductsSearchPage() {
         return okShape && okParlor && okArea;
       });
 
-      // expand by teat sizes
-      const sizes = teat_size ? [String(teat_size)] : ["40","50","60","70"];
+      // expand by teat sizes (support single, CSV, or teat_sizes param)
+      const sizes = (() => {
+        const acc = [];
+        if (Array.isArray(teat_size)) acc.push(...teat_size.map(String));
+        else if (typeof teat_size === 'string') {
+          if (teat_size.includes(',')) acc.push(...teat_size.split(',').map(s=>s.trim()).filter(Boolean));
+          else acc.push(String(teat_size));
+        }
+        if (Array.isArray(teat_sizes)) acc.push(...teat_sizes.map(String));
+        else if (typeof teat_sizes === 'string') acc.push(...teat_sizes.split(',').map(s=>s.trim()).filter(Boolean));
+        const uniq = [...new Set(acc)];
+        return uniq.length ? uniq : ["40","50","60","70"];
+      })();
       const apps = [];
       filtered.forEach((p) => {
         sizes.forEach((s) => {
@@ -252,6 +279,12 @@ export default function ProductsSearchPage() {
     </Box>
   );
 
+  // Build display lists for summary (brand/model/teat sizes may arrive as CSV under different keys)
+  const toList = (v) => Array.isArray(v) ? v.map(String) : (typeof v === 'string' ? v.split(',').map(s=>s.trim()).filter(Boolean) : []);
+  const brandsList = (toList(brands).length ? toList(brands) : toList(brand));
+  const modelsList = (toList(models).length ? toList(models) : toList(model));
+  const teatsList = (toList(teat_sizes).length ? toList(teat_sizes) : toList(teat_size));
+
   return (
     <>
       <AppHeader
@@ -261,14 +294,22 @@ export default function ProductsSearchPage() {
       />
 
       <Box as="main" maxW={{ base: "100%", md: "6xl" }} mx="auto" px={{ base: 4, md: 8 }} pt={{ base: 4, md: 6 }}>
-        <FiltersSummaryCard
-          brand={brand}
-          model={model}
-          teat_size={teat_size}
-          kpis={kpis}
-          onEdit={() => router.push("/product")}
-          onSave={saveCtrl.onOpen}
-        />
+        {(() => {
+          const areasSel = typeof areas === "string" && areas ? String(areas).split(",") : [];
+          return (
+            <FiltersSummaryCard
+              brand={brandsList}
+              model={modelsList}
+              teat_size={teatsList}
+              areas={areasSel}
+              barrel_shape={barrel_shape}
+              parlor={parlor}
+              kpis={kpis}
+              onEdit={() => router.push("/product")}
+              onSave={saveCtrl.onOpen}
+            />
+          );
+        })()}
 
         {/* Risultati */}
         <Card mx={{ base: -4, md: 0 }}>

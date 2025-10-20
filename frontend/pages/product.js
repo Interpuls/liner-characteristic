@@ -42,15 +42,22 @@ export default function Products() {
 
   const onConfirm = () => {
     const params = new URLSearchParams();
-    // Map multi-selections to a minimal query supported by current results page
     const { brandModel, teatSizes, shapes, parlor, areas } = selection || {};
-    // If exactly one brand
+
+    // Single-value params preserved for backend filtering compatibility
     if (brandModel?.brands && brandModel.brands.length === 1) params.set("brand", brandModel.brands[0]);
-    // If exactly one model across all brands
     const allModels = Object.values(brandModel?.models || {}).flat();
     if (allModels.length === 1) params.set("model", allModels[0]);
     if (teatSizes && teatSizes.length === 1) params.set("teat_size", teatSizes[0]);
-    if (shapes && shapes.length === 1) params.set("barrel_shape", shapes[0]);
+
+    // Multi-value params for UI summary (display-only)
+    if (brandModel?.brands && brandModel.brands.length > 1) params.set("brands", brandModel.brands.join(","));
+    if (allModels.length > 1) params.set("models", allModels.join(","));
+    if (teatSizes && teatSizes.length > 1) params.set("teat_sizes", teatSizes.join(","));
+
+    // Shapes used only client-side -> can always pass as CSV
+    if (shapes && shapes.length > 0) params.set("barrel_shape", shapes.join(","));
+
     if (parlor && parlor[0]) params.set("parlor", parlor[0]);
     if (areas && areas.length) params.set("areas", areas.join(","));
 

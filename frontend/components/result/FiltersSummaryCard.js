@@ -1,6 +1,17 @@
 import { Card, CardHeader, CardBody, Heading, Stack, HStack, Tag, TagLabel, Button, Text } from "@chakra-ui/react";
 
-export default function FiltersSummaryCard({ brand, model, teat_size, kpis = [], onEdit, onSave }) {
+function toList(val) {
+  if (Array.isArray(val)) return val.filter(Boolean).map(String);
+  if (typeof val === "string") return val.split(",").map(s => s.trim()).filter(Boolean);
+  return [];
+}
+
+export default function FiltersSummaryCard({ brand, model, teat_size, areas = [], barrel_shape, parlor, kpis = [], onEdit, onSave }) {
+  const brandsList = toList(brand);
+  const modelsList = toList(model);
+  const teatList = toList(teat_size);
+  const areasList = Array.isArray(areas) ? areas : toList(areas);
+  const shapesList = toList(barrel_shape);
   return (
     <Card mb={4}>
       <CardHeader py={3}>
@@ -13,14 +24,23 @@ export default function FiltersSummaryCard({ brand, model, teat_size, kpis = [],
       </CardHeader>
       <CardBody pt={0}>
         <Stack direction={{ base: "column", md: "row" }} gap={3} align="flex-start" flexWrap="wrap">
-          {brand ? (
-            <Tag size="md" colorScheme="blue"><TagLabel>Brand: {brand}</TagLabel></Tag>
+          {brandsList.length > 0 ? (
+            <Tag size="md" colorScheme="blue"><TagLabel>Brand: {brandsList.join(", ")}</TagLabel></Tag>
           ) : null}
-          {model ? (
-            <Tag size="md" colorScheme="blue"><TagLabel>Model: {model}</TagLabel></Tag>
+          {modelsList.length > 0 ? (
+            <Tag size="md" colorScheme="blue"><TagLabel>Model: {modelsList.join(", ")}</TagLabel></Tag>
           ) : null}
-          {teat_size ? (
-            <Tag size="md" colorScheme="blue"><TagLabel>Teat size: {teat_size}</TagLabel></Tag>
+          {teatList.length > 0 ? (
+            <Tag size="md" colorScheme="blue"><TagLabel>Teat size: {teatList.join(", ")}</TagLabel></Tag>
+          ) : null}
+          {areasList.length > 0 ? (
+            <Tag size="md" colorScheme="cyan"><TagLabel>Reference area: {areasList.join(", ")}</TagLabel></Tag>
+          ) : null}
+          {shapesList.length > 0 ? (
+            <Tag size="md" colorScheme="orange"><TagLabel>Barrel shape: {shapesList.join(", ")}</TagLabel></Tag>
+          ) : null}
+          {parlor ? (
+            <Tag size="md" colorScheme="pink"><TagLabel>Parlor: {parlor}</TagLabel></Tag>
           ) : null}
           {kpis.length ? (
             <HStack gap={2} wrap="wrap">
@@ -30,7 +50,7 @@ export default function FiltersSummaryCard({ brand, model, teat_size, kpis = [],
             </HStack>
           ) : null}
 
-          {(!brand && !model && !teat_size && kpis.length === 0) && (
+          {(brandsList.length === 0 && modelsList.length === 0 && teatList.length === 0 && areasList.length === 0 && shapesList.length === 0 && !parlor && kpis.length === 0) && (
             <Text color="gray.500" fontSize="sm">No filters selected.</Text>
           )}
         </Stack>
@@ -44,4 +64,3 @@ export default function FiltersSummaryCard({ brand, model, teat_size, kpis = [],
     </Card>
   );
 }
-
