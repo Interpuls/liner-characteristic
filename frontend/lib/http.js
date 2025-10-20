@@ -1,6 +1,9 @@
 export async function http(path, { method = "GET", token, body } = {}) {
-  const base = process.env.NEXT_PUBLIC_API_URL;
-  const res = await fetch(`${base}${path}`, {
+  const rawBase = process.env.NEXT_PUBLIC_API_URL || "";
+  const base = rawBase.replace(/\/+$/, "");
+  const normPath = typeof path === "string" && path ? (path.startsWith("/") ? path : "/" + path) : "/";
+  const url = `${base}${normPath}`;
+  const res = await fetch(url, {
     method,
     headers: {
       "Content-Type": "application/json",
@@ -42,7 +45,7 @@ export async function http(path, { method = "GET", token, body } = {}) {
     const err = new Error(msg);
     err.status = res.status;
     err.payload = json ?? raw ?? null;
-    err.url = `${base}${path}`;
+    err.url = url;
     throw err;
   }
 
