@@ -70,10 +70,10 @@ export default function IdResultPage() {
   if (!me) return <Box p={6}>Caricamento…</Box>;
 
   return (
-    <>
+    <Box minH="100vh" display="flex" flexDirection="column">
       <AppHeader title="Liner ID Result" subtitle="Dettaglio prodotto selezionato" backHref="/idcard" />
 
-      <Box as="main" maxW="6xl" mx="auto" px={{ base:4, md:8 }} pt={{ base:4, md:6 }}>
+      <Box as="main" flex="1" maxW="6xl" mx="auto" px={{ base:4, md:8 }} pt={{ base:4, md:6 }}>
         {/* Riepilogo filtri */}
         <Card mb={4}>
           <CardHeader py={3}><Heading size="sm">Filtri</Heading></CardHeader>
@@ -158,6 +158,6 @@ export default function IdResultPage() {
       </Box>
 
       <AppFooter appName="Liner Characteristic App" />
-    </>
+    </Box>
   );
 }

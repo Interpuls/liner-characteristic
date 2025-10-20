@@ -8,7 +8,7 @@ const KPI_ORDER = [
 export default function ApplicationsHeader({ total = 0, sortKpi, sortDir = 'desc', sortingBusy = false, onSelectSortKpi, onToggleDir }) {
   return (
     <HStack justify="space-between" align="center">
-      <Heading size="sm">Applications</Heading>
+      <Heading size="lg" color="#12305f">Liners</Heading>
       <HStack gap={2}>
         <Menu>
           <Tooltip label={sortKpi ? `Sorting by ${sortKpi} (${sortDir})` : "Sort by KPI"} hasArrow>
@@ -28,4 +28,3 @@ export default function ApplicationsHeader({ total = 0, sortKpi, sortDir = 'desc
     </HStack>
   );
 }
-

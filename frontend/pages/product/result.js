@@ -286,14 +286,14 @@ export default function ProductsSearchPage() {
   const teatsList = (toList(teat_sizes).length ? toList(teat_sizes) : toList(teat_size));
 
   return (
-    <>
+    <Box minH="100vh" display="flex" flexDirection="column">
       <AppHeader
         title="Search Results"
         subtitle="Filters summary and product search results."
         backHref="/product"
       />
 
-      <Box as="main" maxW={{ base: "100%", md: "6xl" }} mx="auto" px={{ base: 4, md: 8 }} pt={{ base: 4, md: 6 }}>
+      <Box as="main" flex="1" maxW={{ base: "100%", md: "6xl" }} mx="auto" px={{ base: 4, md: 8 }} pt={{ base: 4, md: 6 }}>
         {(() => {
           const areasSel = typeof areas === "string" && areas ? String(areas).split(",") : [];
           const shapesList = (() => {
@@ -397,6 +397,6 @@ export default function ProductsSearchPage() {
           </ModalFooter>
         </ModalContent>
       </Modal>
-    </>
+    </Box>
   );
 }
