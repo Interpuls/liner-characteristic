@@ -1,4 +1,6 @@
-import { Card, CardHeader, CardBody, Heading, Stack, HStack, Tag, TagLabel, Button, Text } from "@chakra-ui/react";
+import { useState } from "react";
+import { Card, CardHeader, CardBody, Heading, Stack, HStack, Tag, TagLabel, Button, Text, IconButton, Spacer } from "@chakra-ui/react";
+import { ChevronDownIcon } from "@chakra-ui/icons";
 
 function toList(val) {
   if (Array.isArray(val)) return val.filter(Boolean).map(String);
@@ -7,6 +9,7 @@ function toList(val) {
 }
 
 export default function FiltersSummaryCard({ brand, model, teat_size, areas = [], barrel_shape, parlor, kpis = [], onEdit, onSave }) {
+  const [open, setOpen] = useState(false);
   const brandsList = toList(brand);
   const modelsList = toList(model);
   const teatList = toList(teat_size);
@@ -15,15 +18,24 @@ export default function FiltersSummaryCard({ brand, model, teat_size, areas = []
   return (
     <Card mb={4}>
       <CardHeader py={3}>
-        <HStack justify="space-between" align="center">
-          <Heading size="sm">Active filters</Heading>
-          <Button onClick={onSave} size="sm" variant="outline" color="#12305f" borderColor="gray.300" _hover={{ bg: "gray.50" }}>
-            Save
+        <HStack align="center">
+          <IconButton
+            aria-label={open ? "Collapse" : "Expand"}
+            icon={<ChevronDownIcon transform={open ? undefined : "rotate(-90deg)"} />}
+            size="sm"
+            variant="ghost"
+            onClick={() => setOpen(v => !v)}
+          />
+          <Heading size="sm" color="#12305f">Active Filters</Heading>
+          <Spacer />
+          <Button onClick={onEdit} size="sm" variant="outline" color="#12305f" borderColor="gray.300" _hover={{ bg: "gray.50" }}>
+            Edit
           </Button>
         </HStack>
       </CardHeader>
-      <CardBody pt={0}>
-        <Stack direction={{ base: "column", md: "row" }} gap={3} align="flex-start" flexWrap="wrap">
+      {open && (
+        <CardBody pt={0}>
+          <Stack direction={{ base: "column", md: "row" }} gap={3} align="flex-start" flexWrap="wrap">
           {brandsList.length > 0 ? (
             <Tag size="md" colorScheme="blue"><TagLabel>Brand: {brandsList.join(", ")}</TagLabel></Tag>
           ) : null}
@@ -53,14 +65,14 @@ export default function FiltersSummaryCard({ brand, model, teat_size, areas = []
           {(brandsList.length === 0 && modelsList.length === 0 && teatList.length === 0 && areasList.length === 0 && shapesList.length === 0 && !parlor && kpis.length === 0) && (
             <Text color="gray.500" fontSize="sm">No filters selected.</Text>
           )}
-        </Stack>
-
-        <HStack mt={4} gap={3}>
-          <Button onClick={onEdit} variant="outline">
-            Edit filters
-          </Button>
-        </HStack>
-      </CardBody>
+          </Stack>
+          <HStack mt={3} justify="flex-end">
+            <Button colorScheme="blue" onClick={onSave} size="sm">
+              Save
+            </Button>
+          </HStack>
+        </CardBody>
+      )}
     </Card>
   );
 }

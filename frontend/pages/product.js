@@ -20,6 +20,7 @@ export default function Products() {
   const [selection, setSelection] = useState({ count: 0 });
   const [prefId, setPrefId] = useState("");
   const [loadedPref, setLoadedPref] = useState(null);
+  const [presetFromQuery, setPresetFromQuery] = useState(null);
 
   useEffect(() => {
     const t = getToken();
@@ -39,6 +40,19 @@ export default function Products() {
     if (!sel) { setLoadedPref(null); return; }
     setLoadedPref(sel.filters || null);
   }, [prefId, prefs]);
+
+  // If results page passes a preset via query, prefill filters for editing
+  useEffect(() => {
+    if (!router.isReady) return;
+    try {
+      const raw = router.query?.preset;
+      if (!raw || typeof raw !== 'string') { setPresetFromQuery(null); return; }
+      const obj = JSON.parse(decodeURIComponent(raw));
+      if (obj && typeof obj === 'object') setPresetFromQuery(obj);
+    } catch {
+      setPresetFromQuery(null);
+    }
+  }, [router.isReady, router.query?.preset]);
 
   const onConfirm = () => {
     const params = new URLSearchParams();
@@ -158,7 +172,7 @@ export default function Products() {
                 menuColorMode="dark"
               />
             </HStack>
-            <ProductFilters meta={meta} onSelectionsChange={setSelection} onConfirm={onConfirm} value={loadedPref} />
+            <ProductFilters meta={meta} onSelectionsChange={setSelection} onConfirm={onConfirm} value={presetFromQuery || loadedPref} />
           </CardBody>
         </Card>
 

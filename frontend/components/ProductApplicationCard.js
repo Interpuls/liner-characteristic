@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
-import { Box, HStack, Stack, Text, Tooltip, SimpleGrid, Stat, StatNumber, VStack, useToast } from "@chakra-ui/react";
+import { useRouter } from "next/router";
+import { Box, HStack, Stack, Text, Tooltip, SimpleGrid, Stat, StatNumber, VStack, useToast, Divider, Heading } from "@chakra-ui/react";
 import { getToken } from "../lib/auth";
 import { listProductApplications, getKpiValuesByPA } from "../lib/api";
 import { AppSizePill } from "./ui/AppSizePill";
@@ -45,12 +46,12 @@ function KpiChip({ code, value }) {
         {KPI_ABBR[code] || code}
       </Text>
       <Tooltip
-        label={score != null ? `${code}: score ${score}/4 — value: ${rawVal != null ? rawVal : "n/a"}` : `${code}: n/a`}
+        label={score != null ? `${code}: score ${score}/4 – value: ${rawVal != null ? rawVal : "n/a"}` : `${code}: n/a`}
         hasArrow
       >
         <Stat p={0.5} borderWidth="1px" borderRadius="md" bg={scoreColor(score)} w="28px" textAlign="center">
           <StatNumber fontSize="sm" color="white" lineHeight="short">
-            {score != null ? score : "—"}
+            {score != null ? score : "–"}
           </StatNumber>
         </Stat>
       </Tooltip>
@@ -60,6 +61,7 @@ function KpiChip({ code, value }) {
 
 export default function ProductApplicationCard({ productId, brand, model, sizeMm }) {
   const toast = useToast();
+  const router = useRouter();
   const [paId, setPaId] = useState(null);
   const [kpis, setKpis] = useState(null); // map by code
   const [loading, setLoading] = useState(true);
@@ -96,17 +98,33 @@ export default function ProductApplicationCard({ productId, brand, model, sizeMm
 
   const sizeLabel = useMemo(() => `${sizeMm} mm`, [sizeMm]);
 
+  const goToDetails = () => {
+    const q = new URLSearchParams({ brand: String(brand || ""), model: String(model || "") });
+    if (sizeMm != null) q.set("teat_size", String(sizeMm));
+    router.push(`/idcard/idresult?${q.toString()}`);
+  };
+
   return (
-    <Box borderWidth="1px" rounded="md" p={4}>
+    <Box
+      borderWidth="1px"
+      rounded="md"
+      p={4}
+      role="button"
+      tabIndex={0}
+      cursor="pointer"
+      _hover={{ shadow: "sm", borderColor: "blue.300" }}
+      onClick={goToDetails}
+      onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); goToDetails(); } }}
+    >
       <Stack spacing={2}>
-        <HStack justify="space-between" align="center">
-          <Text>
-            <Text as="span" fontWeight="normal">{brand || "-"}</Text>
-            {" • "}
-            <Text as="span" fontWeight="semibold">{model || "-"}</Text>
-          </Text>
+        <HStack justify="space-between" align="flex-start">
+          <VStack align="start" spacing={0}>
+            <Heading size="sm" fontWeight="bold">{model || "-"}</Heading>
+            <Text color="gray.600" fontWeight="normal">{brand || "-"}</Text>
+          </VStack>
           <AppSizePill color="blue" size="xs">{sizeLabel}</AppSizePill>
         </HStack>
+        <Divider my={1} />
         <SimpleGrid columns={{ base: 9, md: 9 }} gap={{ base: 1, md: 2 }}>
           {KPI_ORDER.map((code) => (
             <KpiChip key={code} code={code} value={kpis?.[code]} />
@@ -119,3 +137,4 @@ export default function ProductApplicationCard({ productId, brand, model, sizeMm
     </Box>
   );
 }
+

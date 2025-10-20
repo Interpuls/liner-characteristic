@@ -296,6 +296,26 @@ export default function ProductsSearchPage() {
       <Box as="main" maxW={{ base: "100%", md: "6xl" }} mx="auto" px={{ base: 4, md: 8 }} pt={{ base: 4, md: 6 }}>
         {(() => {
           const areasSel = typeof areas === "string" && areas ? String(areas).split(",") : [];
+          const shapesList = (() => {
+            if (Array.isArray(barrel_shape)) return barrel_shape.map(String);
+            if (typeof barrel_shape === 'string' && barrel_shape.includes(',')) return barrel_shape.split(',').map(s => s.trim()).filter(Boolean);
+            return barrel_shape ? [String(barrel_shape)] : [];
+          })();
+
+          const onEditFilters = () => {
+            const preset = {
+              areas: areasSel,
+              brandModel: {
+                brands: brandsList,
+                models: (brandsList.length === 1 && modelsList.length > 0) ? { [brandsList[0]]: modelsList } : {},
+              },
+              teatSizes: teatsList,
+              shapes: shapesList,
+              parlor: parlor ? [String(parlor)] : [],
+            };
+            const encoded = encodeURIComponent(JSON.stringify(preset));
+            router.push(`/product?preset=${encoded}`);
+          };
           return (
             <FiltersSummaryCard
               brand={brandsList}
@@ -305,7 +325,7 @@ export default function ProductsSearchPage() {
               barrel_shape={barrel_shape}
               parlor={parlor}
               kpis={kpis}
-              onEdit={() => router.push("/product")}
+              onEdit={onEditFilters}
               onSave={saveCtrl.onOpen}
             />
           );
