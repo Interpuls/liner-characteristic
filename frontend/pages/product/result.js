@@ -149,13 +149,13 @@ export default function ProductsSearchPage() {
   // sort items if a KPI is selected
   const sortedItems = useMemo(() => {
     if (!sortKpi) return items;
-    const dir = sortDir === 'asc' ? 1 : -1;
+    const dir = sortDir === 'asc' ? 1 : -1; // asc: low→high, desc: high→low
     const copy = [...items];
     copy.sort((a, b) => {
       const sa = kpiScores[a.key]?.[sortKpi]?.score ?? -Infinity;
       const sb = kpiScores[b.key]?.[sortKpi]?.score ?? -Infinity;
-      if (sa === sb) return 0;
-      return sa < sb ? 1 * dir : -1 * dir;
+      // numeric compare of scores with direction
+      return (sa - sb) * dir;
     });
     return copy;
   }, [items, kpiScores, sortKpi, sortDir]);

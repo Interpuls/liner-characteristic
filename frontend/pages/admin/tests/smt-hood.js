@@ -155,7 +155,8 @@ function SmtHoodCard({ token, application }) {
 
       toast({ title: "Salvato e calcolato", status: "success" });
     } catch (e) {
-      toast({ title: "Errore salvataggio/calcolo", status: "error" });
+      const msg = e?.message || "Errore salvataggio/calcolo";
+      toast({ title: `Errore: ${msg}`, status: "error" });
     } finally {
       setSaving(false);
     }
