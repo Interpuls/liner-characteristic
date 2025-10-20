@@ -47,9 +47,7 @@ from app.schema.auth import Token, TokenData, LoginInput
 
 #routers
 from app.routers import auth_router
-
-
-#ALLOWED_EMAIL_DOMAIN = os.getenv("ALLOWED_EMAIL_DOMAIN", "milkrite.com")
+from app.routers import user_router
 
 app = FastAPI(title="Liner Characteristic API")
 
@@ -64,7 +62,7 @@ def on_startup():
 
 # -------------------------- Include Routers ------------------------------------
 app.include_router(auth_router.router, prefix="/auth", tags=["auth"])
-
+app.include_router(user_router.router, prefix="/users", tags=["users"])
 # -------------------------- Routes ----------------------------------------------
 
 @app.get("/", include_in_schema=False)
@@ -99,46 +97,6 @@ async def log_requests(request, call_next):
     resp = await call_next(request)
     logger.info("%s %s -> %s", request.method, request.url.path, resp.status_code)
     return resp
-
-
-# --------------------------- Auth ----------------------------------------------
-"""
-@app.post("/auth/register", response_model=UserRead)
-def register(payload: UserCreate, session: Session = Depends(get_session)):
-    # consenti solo email del dominio aziendale
-    if not payload.email.endswith(f"@{ALLOWED_EMAIL_DOMAIN}"):
-        raise HTTPException(status_code=400, detail="Email domain not allowed")
-
-    exists = session.exec(select(User).where(User.email == payload.email)).first()
-    if exists:
-        raise HTTPException(status_code=400, detail="User already exists")
-
-    user = User(
-        email=payload.email,
-        hashed_password=hash_password(payload.password),
-        role=payload.role or UserRole.USER,
-    )
-    session.add(user)
-    session.commit()
-    session.refresh(user)
-    return user
-
-
-@app.post("/auth/login", response_model=Token)
-def login(form: OAuth2PasswordRequestForm = Depends(), session: Session = Depends(get_session)):
-    user = session.exec(select(User).where(User.email == form.username)).first()
-    if not user or not verify_password(form.password, user.hashed_password):
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid credentials")
-    token = create_access_token(sub=user.email, role=getattr(user.role, "value", user.role))
-    return Token(access_token=token)
-"""
-
-# --------------------------- Users (me) ---------------------------------------
-
-@app.get("/me", response_model=UserRead)
-def me(user=Depends(get_current_user)):
-    return user
-
 
 # ---------------------------- Health ------------------------------------------
 
