@@ -45,8 +45,11 @@ from .schema.speed import SpeedRunBase, SpeedRunIn, SpeedRunOut
 from .schema.smthood import SmtHoodRunBase, SmtHoodRunIn, SmtHoodRunOut, SmtHoodPointIn, SmtHoodPointOut
 from app.schema.auth import Token, TokenData, LoginInput
 
+#routers
+from app.routers import auth_router
 
-ALLOWED_EMAIL_DOMAIN = os.getenv("ALLOWED_EMAIL_DOMAIN", "milkrite.com")
+
+#ALLOWED_EMAIL_DOMAIN = os.getenv("ALLOWED_EMAIL_DOMAIN", "milkrite.com")
 
 app = FastAPI(title="Liner Characteristic API")
 
@@ -54,10 +57,13 @@ logger = logging.getLogger("liner-backend")
 logging.basicConfig(level=logging.INFO)
 
 
-
 @app.on_event("startup")
 def on_startup():
     init_db()
+
+
+# -------------------------- Include Routers ------------------------------------
+app.include_router(auth_router.router, prefix="/auth", tags=["auth"])
 
 # -------------------------- Routes ----------------------------------------------
 
@@ -96,7 +102,7 @@ async def log_requests(request, call_next):
 
 
 # --------------------------- Auth ----------------------------------------------
-
+"""
 @app.post("/auth/register", response_model=UserRead)
 def register(payload: UserCreate, session: Session = Depends(get_session)):
     # consenti solo email del dominio aziendale
@@ -125,7 +131,7 @@ def login(form: OAuth2PasswordRequestForm = Depends(), session: Session = Depend
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid credentials")
     token = create_access_token(sub=user.email, role=getattr(user.role, "value", user.role))
     return Token(access_token=token)
-
+"""
 
 # --------------------------- Users (me) ---------------------------------------
 
