@@ -3,6 +3,7 @@ import { useRouter } from "next/router";
 import { Box, HStack, Stack, Text, Tooltip, SimpleGrid, Stat, StatNumber, VStack, useToast, Divider, Heading } from "@chakra-ui/react";
 import { getToken } from "../lib/auth";
 import { listProductApplications, getKpiValuesByPA } from "../lib/api";
+import { latestKpiByCode } from "../lib/kpi";
 import { AppSizePill } from "./ui/AppSizePill";
 
 // Small helper for score color
@@ -84,8 +85,8 @@ export default function ProductApplicationCard({ productId, brand, model, sizeMm
         if (alive) setPaId(found.id);
         // fetch KPI values for that application
         const values = await getKpiValuesByPA(t, found.id);
-        const map = Object.fromEntries((values || []).map(v => [v.kpi_code, v]));
-        if (alive) setKpis(map);
+        const latest = latestKpiByCode(values);
+        if (alive) setKpis(latest);
       } catch (e) {
         // silent; optionally show toast
         // toast({ status: "error", title: "Cannot load KPIs" });
@@ -101,7 +102,8 @@ export default function ProductApplicationCard({ productId, brand, model, sizeMm
   const goToDetails = () => {
     const q = new URLSearchParams({ brand: String(brand || ""), model: String(model || "") });
     if (sizeMm != null) q.set("teat_size", String(sizeMm));
-    router.push(`/idcard/idresult?${q.toString()}`);
+    const from = encodeURIComponent(router.asPath || "/product/result");
+    router.push(`/idcard/idresult?${q.toString()}&from=${from}`);
   };
 
   return (

@@ -10,6 +10,7 @@ import {
   createSmtHoodRun, computeSmtHoodRun, getLatestSmtHoodRun, upsertSmtHoodPoints
 } from "@/lib/api";
 import { FaCalculator } from "react-icons/fa";
+import { latestKpiByCode } from "@/lib/kpi";
 import { AppSizePill } from "../../../components/ui/AppSizePill";
 
 const FLOWS = [0.5, 1.9, 3.6];
@@ -71,7 +72,7 @@ function SmtHoodCard({ token, application }) {
       try {
         // KPI finali correnti per questa application
         const values = await getKpiValuesByPA(token, application.id);
-        const map = Object.fromEntries((values || []).map(v => [v.kpi_code, v]));
+        const map = latestKpiByCode(values);
         setKpis(map);
 
         // Ultimo run per prefill inputs
@@ -150,7 +151,7 @@ function SmtHoodCard({ token, application }) {
 
       // refresh KPI finali (media)
       const values = await getKpiValuesByPA(token, application.id);
-      const map = Object.fromEntries((values || []).map(v => [v.kpi_code, v]));
+      const map = latestKpiByCode(values);
       setKpis(map);
 
       toast({ title: "Salvato e calcolato", status: "success" });

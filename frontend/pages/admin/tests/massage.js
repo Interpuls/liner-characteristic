@@ -10,6 +10,7 @@ import {
   createMassageRun, computeMassageRun, updateMassagePoints
 } from "@/lib/api";
 import { FaCalculator } from "react-icons/fa";
+import { latestKpiByCode } from "@/lib/kpi";
 import { AppSizePill } from "../../../components/ui/AppSizePill";
 
 const PRESSURES = [45, 40, 35];
@@ -67,7 +68,7 @@ function MassageCard({ token, application }) {
       setBusy(true);
       try {
         const values = await getKpiValuesByPA(token, application.id);
-        const map = Object.fromEntries((values || []).map(v => [v.kpi_code, v]));
+        const map = latestKpiByCode(values);
         setKpis(map);
 
         const latest = await getLatestMassageRun(token, application.id);
@@ -129,7 +130,7 @@ function MassageCard({ token, application }) {
       setMetrics(res.metrics || null);
 
       const values = await getKpiValuesByPA(token, application.id);
-      const map = Object.fromEntries((values || []).map(v => [v.kpi_code, v]));
+      const map = latestKpiByCode(values);
       setKpis(map);
 
       toast({ title: "Salvato e calcolato", status: "success" });

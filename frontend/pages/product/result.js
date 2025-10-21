@@ -15,6 +15,7 @@ import ApplicationsHeader from "../../components/result/ApplicationsHeader";
 import PaginationBar from "../../components/result/PaginationBar";
 import { getToken } from "../../lib/auth";
 import { listProducts, saveProductPref, listProductApplications, getKpiValuesByPA } from "../../lib/api";
+import { latestKpiByCode } from "../../lib/kpi";
 import { FaChartLine, FaFlask } from "react-icons/fa";
 
 export default function ProductsSearchPage() {
@@ -236,7 +237,8 @@ export default function ProductsSearchPage() {
         if (!appId) return;
         try {
           const values = await getKpiValuesByPA(token, appId);
-          const byCode = Object.fromEntries((values || []).map(v => [v.kpi_code, { score: v.score, value_num: v.value_num }]));
+          const latest = latestKpiByCode(values);
+          const byCode = Object.fromEntries(Object.entries(latest).map(([code, v]) => [code, { score: v.score, value_num: v.value_num }]));
           newScores[key] = { ...(newScores[key] || {}), ...byCode };
         } catch {}
       }));
@@ -297,7 +299,8 @@ export default function ProductsSearchPage() {
     const keys = Array.from(selSelected);
     const appIds = keys.map(k => appMap[k]).filter(Boolean);
     const param = appIds.length ? `app_ids=${appIds.join(',')}` : `keys=${keys.join(',')}`;
-    router.push(`${selConfig.route}?${param}`);
+    const from = encodeURIComponent(router.asPath || "/product/result");
+    router.push(`${selConfig.route}?${param}&from=${from}`);
     setSelOpen(false);
   };
 

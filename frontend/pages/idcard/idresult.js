@@ -2,8 +2,9 @@
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/router";
 import {
-  Box, Heading, Text, HStack, VStack, Stack, Tag, TagLabel, Button,
-  Card, CardHeader, CardBody, Table, Thead, Tbody, Tr, Th, Td, useToast, Divider
+  Box, Heading, Text, HStack, VStack, Button,
+  Card, CardHeader, CardBody, Table, Thead, Tbody, Tr, Th, Td, useToast,
+  Tag, TagLabel, Tabs, TabList, TabPanels, Tab, TabPanel
 } from "@chakra-ui/react";
 import AppHeader from "../../components/AppHeader";
 import AppFooter from "../../components/AppFooter";
@@ -17,7 +18,8 @@ export default function IdResultPage() {
   const [loading, setLoading] = useState(true);
   const [product, setProduct] = useState(null);
 
-  const { brand, model, teat_size } = router.query;
+  const { brand, model, teat_size, from } = router.query;
+  const backHref = typeof from === 'string' && from ? decodeURIComponent(from) : "/product/result";
 
   // piccola util per label leggibili
   const labelize = (k) =>
@@ -28,7 +30,7 @@ export default function IdResultPage() {
   // quali campi saltare nella tabella “specs”
   const OMIT = new Set([
     "id", "created_at", "updated_at",
-    "product_type", // lo puoi mostrare sopra se vuoi
+    "product_type",
   ]);
 
   useEffect(() => {
@@ -47,7 +49,7 @@ export default function IdResultPage() {
 
       if (!model) {
         toast({ status: "warning", title: "Nessun modello selezionato." });
-        router.replace("/idcard");
+        router.replace("/product/result");
         return;
       }
 
@@ -71,35 +73,23 @@ export default function IdResultPage() {
 
   return (
     <Box minH="100vh" display="flex" flexDirection="column">
-      <AppHeader title="Liner ID Result" subtitle="Dettaglio prodotto selezionato" backHref="/idcard" />
+      <AppHeader title="Liner ID Result" subtitle="Dettaglio prodotto selezionato" backHref={backHref} />
 
-      <Box as="main" flex="1" maxW="6xl" mx="auto" px={{ base:4, md:8 }} pt={{ base:4, md:6 }}>
-        {/* Riepilogo filtri */}
-        <Card mb={4}>
-          <CardHeader py={3}><Heading size="sm">Filtri</Heading></CardHeader>
-          <CardBody pt={0}>
-            <Stack direction={{ base: "column", md: "row" }} gap={3} align="flex-start" flexWrap="wrap">
-              {brand ? <Tag size="md" colorScheme="blue"><TagLabel>Brand: {brand}</TagLabel></Tag> : null}
-              {model ? <Tag size="md" colorScheme="blue"><TagLabel>Model: {model}</TagLabel></Tag> : null}
-              {teat_size ? <Tag size="md" colorScheme="blue"><TagLabel>Teat size: {teat_size} mm</TagLabel></Tag> : null}
-            </Stack>
-          </CardBody>
-        </Card>
-
+      <Box as="main" flex="1" maxW={{ base: "100%", md: "6xl" }} mx="auto" px={{ base:4, md:8 }} pt={{ base:4, md:6 }} w="100%">
         {/* Dettaglio prodotto */}
-        <Card>
+        <Card w="100%">
           <CardHeader py={3}>
-            <HStack justify="space-between" align="center">
-              {product ? (
-                <Heading size="md"> {product.model} </Heading>
-              ) : null}
-              
-              {product ? (
-                <Tag size="sm" variant="subtle">
-                  <TagLabel>{product.brand}</TagLabel>
-                </Tag>
-              ) : null}
-            </HStack>
+            <VStack align="start" spacing={1}>
+              {product ? <Heading size="md">{product.model}</Heading> : null}
+              <HStack>
+                {product?.brand ? (
+                  <Tag size="sm" variant="subtle"><TagLabel>{product.brand}</TagLabel></Tag>
+                ) : null}
+                {product?.compound ? (
+                  <Tag size="sm" variant="subtle"><TagLabel>Compound: {product.compound}</TagLabel></Tag>
+                ) : null}
+              </HStack>
+            </VStack>
           </CardHeader>
 
           <CardBody pt={0}>
@@ -108,49 +98,49 @@ export default function IdResultPage() {
             ) : !product ? (
               <VStack py={8} spacing={2}>
                 <Text color="gray.600">Nessun prodotto corrispondente.</Text>
-                <Button onClick={() => router.push("/idcard")} variant="outline">Torna ai filtri</Button>
+                <Button onClick={() => router.push(backHref)} variant="outline">Torna ai risultati</Button>
               </VStack>
             ) : (
               <>
-                {/* Header breve prodotto */}
-                <VStack align="start" spacing={1} mb={4}>
-                  
-                  {product.product_type ? (
-                    <Text color="gray.600" fontSize="sm">Type: {product.product_type}</Text>
-                  ) : null}
-                  {product.compound ? (
-                    <Text color="gray.600" fontSize="sm">Compound: {product.compound}</Text>
-                  ) : null}
-                </VStack>
-
-                <Divider my={3} />
-
-                {/* Tabella specifiche (auto) */}
-                <Box overflowX="auto">
-                  <Table size="sm" variant="simple">
-                    <Thead>
-                      <Tr>
-                        <Th>Proprietà</Th>
-                        <Th>Valore</Th>
-                      </Tr>
-                    </Thead>
-                    <Tbody>
-                      {Object.entries(product)
-                        .filter(([k, v]) => !OMIT.has(k) && v !== null && v !== undefined && v !== "")
-                        .map(([k, v]) => (
-                          <Tr key={k}>
-                            <Td w="40%">{labelize(k)}</Td>
-                            <Td>{typeof v === "boolean" ? (v ? "Yes" : "No") : String(v)}</Td>
-                          </Tr>
-                        ))}
-                    </Tbody>
-                  </Table>
-                </Box>
-
-                <HStack mt={6} gap={3}>
-                  <Button onClick={() => router.push("/idcard")} variant="outline">Modifica filtri</Button>
-                  {/* Se in futuro vorrai un pulsante "Crea ID Card" o "Esporta", mettilo qui */}
-                </HStack>
+                {/* Tabs: Details | KPIs | Tests */}
+                <Tabs colorScheme="blue" mt={2} w="100%" isFitted>
+                  <TabList>
+                    <Tab>Details</Tab>
+                    <Tab>KPIs</Tab>
+                    <Tab>Tests</Tab>
+                  </TabList>
+                  <TabPanels w="100%">
+                    <TabPanel px={0} w="100%">
+                      {/* Tabella specifiche (auto) */}
+                      <Box overflowX="auto" w="100%">
+                        <Table size="sm" variant="simple">
+                          <Thead>
+                            <Tr>
+                              <Th>Proprietà</Th>
+                              <Th>Valore</Th>
+                            </Tr>
+                          </Thead>
+                          <Tbody>
+                            {Object.entries(product)
+                              .filter(([k, v]) => !OMIT.has(k) && v !== null && v !== undefined && v !== "")
+                              .map(([k, v]) => (
+                                <Tr key={k}>
+                                  <Td w="40%">{labelize(k)}</Td>
+                                  <Td>{typeof v === "boolean" ? (v ? "Yes" : "No") : String(v)}</Td>
+                                </Tr>
+                              ))}
+                          </Tbody>
+                        </Table>
+                      </Box>
+                    </TabPanel>
+                    <TabPanel w="100%">
+                      <Text color="gray.600">KPIs coming soon.</Text>
+                    </TabPanel>
+                    <TabPanel w="100%">
+                      <Text color="gray.600">Tests coming soon.</Text>
+                    </TabPanel>
+                  </TabPanels>
+                </Tabs>
               </>
             )}
           </CardBody>
