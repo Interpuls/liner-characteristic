@@ -77,11 +77,18 @@ export default function IdResultPage() {
 
       <Box as="main" flex="1" maxW={{ base: "100%", md: "6xl" }} mx="auto" px={{ base:4, md:8 }} pt={{ base:4, md:6 }} w="100%">
         {/* Dettaglio prodotto */}
-        <Card w="100%">
+        <Card
+          w="100%"
+          ml={{ base: -4, md: 0 }}
+          mr={{ base: -4, md: 0 }}
+          borderWidth={{ base: 0, md: "1px" }}
+          rounded={{ base: "none", md: "md" }}
+          boxShadow={{ base: "none", md: "sm" }}
+        >
           <CardHeader py={3}>
-            <VStack align="start" spacing={1}>
+            <VStack align="start" spacing={2}>
               {product ? <Heading size="md">{product.model}</Heading> : null}
-              <HStack>
+              <HStack mt={1}>
                 {product?.brand ? (
                   <Tag size="sm" variant="subtle"><TagLabel>{product.brand}</TagLabel></Tag>
                 ) : null}
