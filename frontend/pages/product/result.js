@@ -14,7 +14,7 @@ import FiltersSummaryCard from "../../components/result/FiltersSummaryCard";
 import ApplicationsHeader from "../../components/result/ApplicationsHeader";
 import PaginationBar from "../../components/result/PaginationBar";
 import { getToken } from "../../lib/auth";
-import { listProducts, saveProductPref, listProductApplications, getKpiValuesByPA } from "../../lib/api";
+import { getMe, listProducts, saveProductPref, listProductApplications, getKpiValuesByPA } from "../../lib/api";
 import { latestKpiByCode } from "../../lib/kpi";
 import { FaChartLine, FaFlask } from "react-icons/fa";
 
@@ -57,7 +57,11 @@ export default function ProductsSearchPage() {
   useEffect(() => {
     const t = getToken();
     if (!t) { window.location.replace("/login"); return; }
-    setMe({ ok: true });
+    getMe(t)
+      .then((u) => setMe(u))
+      .catch(() => {
+        window.location.replace("/login");
+      });
   }, []);
 
   const onSaveSearch = async () => {
@@ -158,6 +162,7 @@ export default function ProductsSearchPage() {
                       product_id: p.id,
                       brand: p.brand,
                       model: p.model,
+                      compound: p.compound,
                       size_mm: s });
         });
       });
@@ -344,7 +349,7 @@ export default function ProductsSearchPage() {
         backHref="/product"
       />
 
-      <Box as="main" flex="1" maxW={{ base: "100%", md: "6xl" }} mx="auto" px={{ base: 4, md: 8 }} pt={{ base: 4, md: 6 }}>
+      <Box as="main" flex="1" maxW={{ base: "100%", md: "100%" }} mx="auto" px={{ base: 4, md: 0 }} pt={{ base: 4, md: 6 }}>
         {(() => {
           const areasSel = typeof areas === "string" && areas ? String(areas).split(",") : [];
           const shapesList = (() => {
@@ -452,13 +457,15 @@ export default function ProductsSearchPage() {
               </VStack>
             ) : (
               <>
-                <SimpleGrid columns={{ base: 1, md: 2 }} gap={4}>
+                <SimpleGrid columns={{ base: 1, md: 1 }} gap={4}>
                   {pagedItems.map((a) => (
                     <ProductApplicationCard
                       key={a.key}
                       productId={a.product_id}
                       brand={a.brand}
                       model={a.model}
+                      compound={a.compound}
+                      isAdmin={me?.role === 'admin'}
                       sizeMm={a.size_mm}
                     />
                   ))}

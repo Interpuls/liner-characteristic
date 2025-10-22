@@ -1,7 +1,7 @@
 import { HStack, Box, Text, Icon, Button, Spacer } from "@chakra-ui/react";
 import { FiChevronRight } from "react-icons/fi";
 
-export default function FilterRow({ icon, label, summary, onClick }) {
+export default function FilterRow({ icon, label, summary, onClick, labelSize = "md" }) {
   const IconComp = icon;
   return (
     <Button
@@ -16,7 +16,7 @@ export default function FilterRow({ icon, label, summary, onClick }) {
     >
       <HStack w="full" spacing={3}>
         {IconComp ? <Icon as={IconComp} boxSize={5} color="gray.200" /> : null}
-        <Text fontWeight="medium" color="gray.200">{label}</Text>
+        <Text fontWeight="medium" color="gray.200" fontSize={labelSize}>{label}</Text>
         <Spacer />
         {summary ? (
           <Text color="gray.300" fontSize="sm" noOfLines={1} maxW="50%" textAlign="right">
