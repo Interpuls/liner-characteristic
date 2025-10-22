@@ -50,7 +50,7 @@ from app.routers import auth_router
 from app.routers import user_router
 from app.routers import product_router
 from app.routers import product_application_router
-
+from app.routers import kpi_router
 app = FastAPI(title="Liner Characteristic API")
 
 logger = logging.getLogger("liner-backend")
@@ -67,6 +67,7 @@ app.include_router(auth_router.router, prefix="/auth", tags=["auth"])
 app.include_router(user_router.router, prefix="/users", tags=["users"])
 app.include_router(product_router.router, prefix="/products", tags=["products"])
 app.include_router(product_application_router.router, prefix="/products", tags=["product_applications"])
+app.include_router(kpi_router.router, prefix="/kpis", tags=["kpis"])
 # -------------------------- Routes ----------------------------------------------
 
 @app.get("/", include_in_schema=False)
@@ -104,105 +105,10 @@ async def log_requests(request, call_next):
 
 # ---------------------------- Health ------------------------------------------
 
+
 @app.get("/healthz")
 def healthz():
     return {"ok": True}
-
-# ---------------------------------------------------------------------------
-# ---------------------------- KPI DEF --------------------------------------
-# ---------------------------------------------------------------------------
-
-@app.get("/kpis", response_model=list[KpiDefOut])
-def list_kpis(session: Session = Depends(get_session), user=Depends(get_current_user)):
-    rows = session.exec(
-        select(KpiDef).order_by(KpiDef.created_at.asc())
-    ).all()
-    return rows
-
-# GET /kpis?product_application_id=26
-@app.get("/kpis/values", response_model=list[dict])
-def list_kpis_for_application(
-    product_application_id: int = Query(..., ge=1),
-    session: Session = Depends(get_session),
-    user = Depends(get_current_user),
-):
-    rows = session.exec(
-        select(KpiValue)
-        .where(KpiValue.product_application_id == product_application_id)
-        .order_by(KpiValue.kpi_code.asc(), KpiValue.computed_at.desc())
-    ).all()
-
-    return [
-        {
-            "kpi_code": r.kpi_code,
-            "value_num": r.value_num,
-            "score": r.score,
-            "run_type": r.run_type,
-            "run_id": r.run_id,
-            "unit": r.unit,
-            "context": r.context_json,  # è una stringa JSON; se vuoi, parse lato FE
-            "computed_at": r.computed_at,
-        }
-        for r in rows
-    ]
-
-# Create/Upsert (solo admin)
-@app.post("/kpis", response_model=KpiDefOut, dependencies=[Depends(require_role("admin"))])
-def create_or_update_kpi(payload: KpiDefIn, session: Session = Depends(get_session)):
-    existing = session.exec(select(KpiDef).where(KpiDef.code == payload.code)).first()
-    if existing:
-        for k, v in payload.dict().items():
-            setattr(existing, k, v)
-        session.add(existing); session.commit(); session.refresh(existing)
-        return existing
-    item = KpiDef(**payload.dict())
-    session.add(item); session.commit(); session.refresh(item)
-    return item
-
-# Delete (solo admin)
-@app.delete("/kpis/{kpi_id}", status_code=204, dependencies=[Depends(require_role("admin"))])
-def delete_kpi(kpi_id: int, session: Session = Depends(get_session)):
-    item = session.get(KpiDef, kpi_id)
-    if not item: raise HTTPException(status_code=404, detail="Not found")
-    session.delete(item); session.commit()
-
-
-# Upsert KPI Scales (solo admin)
-@app.put("/kpis/{kpi_code}/scales")
-def upsert_kpi_scales(kpi_code: str, payload: KpiScaleUpsertIn, session: Session = Depends(get_session), user=Depends(require_role("admin"))):
-    # pulizia e reinserimento (semplice e idempotente)
-    session.exec(sa.delete(KpiScale).where(KpiScale.kpi_code == kpi_code))
-    for band in payload.bands:
-        obj = KpiScale(
-            kpi_code=kpi_code,
-            band_min=band.band_min,
-            band_max=band.band_max,
-            score=band.score,
-            label=band.label
-        )
-        session.add(obj)
-    session.commit()
-    return {"ok": True}
-
-@app.get("/kpis/{code}/scales")
-def get_kpi_scales(code: str, session: Session = Depends(get_session), user=Depends(get_current_user)):
-    bands = session.exec(
-        select(KpiScale)
-        .where(KpiScale.kpi_code == code)
-        .order_by(KpiScale.band_min.asc(), KpiScale.band_max.asc())
-    ).all()
-    # normalizza output come quello che si aspetta il FE
-    return {
-        "bands": [
-            {
-                "band_min": float(b.band_min),
-                "band_max": float(b.band_max),
-                "score": int(b.score),
-                "label": b.label or "",
-            } for b in bands
-        ]
-    }
-
 
 # ---------------------------- TPP Runs --------------------------------------
 @app.post("/tpp/runs", response_model=TppRunOut)
