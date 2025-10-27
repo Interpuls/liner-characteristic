@@ -154,7 +154,7 @@ function SmtHoodCard({ token, application }) {
       const map = latestKpiByCode(values);
       setKpis(map);
 
-      toast({ title: "Salvato e calcolato", status: "success" });
+      toast({ title: "Saved and Computed", status: "success" });
     } catch (e) {
       const msg = e?.message || "Errore salvataggio/calcolo";
       toast({ title: `Errore: ${msg}`, status: "error" });
