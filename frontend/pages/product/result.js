@@ -336,9 +336,13 @@ export default function ProductsSearchPage() {
     }
     const keys = Array.from(selSelected);
     const appIds = keys.map(k => appMap[k]).filter(Boolean);
-    const param = appIds.length ? `app_ids=${appIds.join(',')}` : `keys=${keys.join(',')}`;
+    // Prefer passing both when we can (ids for precision, keys for labels)
+    const params = new URLSearchParams();
+    if (appIds.length) params.set('app_ids', appIds.join(','));
+    if (keys.length) params.set('keys', keys.join(','));
     const from = encodeURIComponent(router.asPath || "/product/result");
-    router.push(`${selConfig.route}?${param}&from=${from}`);
+    params.set('from', from);
+    router.push(`${selConfig.route}?${params.toString()}`);
     setSelOpen(false);
   };
 
