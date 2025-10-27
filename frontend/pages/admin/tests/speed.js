@@ -66,7 +66,7 @@ function SpeedRow({ pa, product, token, onDone }) {
       const kpis = await computeSpeedRun(token, run.id);
       const speed = kpis?.find?.(k => k.kpi_code === "SPEED");
       if (speed) setScore(speed.score);
-      toast({ title: "Salvato e calcolato", status: "success" });
+      toast({ title: "Saved and Computed", status: "success" });
       onDone?.();
     } catch (err) {
       toast({ title: "Errore salvataggio/calcolo", description: err?.message, status: "error" });

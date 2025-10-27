@@ -16,7 +16,8 @@ import PaginationBar from "../../components/result/PaginationBar";
 import { getToken } from "../../lib/auth";
 import { getMe, listProducts, saveProductPref, listProductApplications, getKpiValuesByPA } from "../../lib/api";
 import { latestKpiByCode } from "../../lib/kpi";
-import { FaChartLine, FaFlask } from "react-icons/fa";
+import { RiFlaskLine } from "react-icons/ri";
+import { TbChartRadar, TbArrowsRightLeft } from "react-icons/tb";
 
 export default function ProductsSearchPage() {
   const router = useRouter();
@@ -336,9 +337,13 @@ export default function ProductsSearchPage() {
     }
     const keys = Array.from(selSelected);
     const appIds = keys.map(k => appMap[k]).filter(Boolean);
-    const param = appIds.length ? `app_ids=${appIds.join(',')}` : `keys=${keys.join(',')}`;
+    // Prefer passing both when we can (ids for precision, keys for labels)
+    const params = new URLSearchParams();
+    if (appIds.length) params.set('app_ids', appIds.join(','));
+    if (keys.length) params.set('keys', keys.join(','));
     const from = encodeURIComponent(router.asPath || "/product/result");
-    router.push(`${selConfig.route}?${param}&from=${from}`);
+    params.set('from', from);
+    router.push(`${selConfig.route}?${params.toString()}`);
     setSelOpen(false);
   };
 
@@ -431,7 +436,7 @@ export default function ProductsSearchPage() {
             onClick={() => openAction({ title: "Radar Map", min: 1, max: 5, route: "/tools/radar-map" })}
           >
             <Stack direction={{ base: 'column', md: 'row' }} align="center" spacing={{ base: 1, md: 2 }}>
-              <Box as={FaChartLine} boxSize={{ base: 5, md: 4 }} color="#12305f" />
+              <Box as={TbChartRadar} boxSize={{ base: 6, md: 5 }} color="#12305f" />
               <Text fontSize={{ base: 'xs', md: 'sm' }} color="gray.600">Radar Map</Text>
             </Stack>
           </Button>
@@ -444,7 +449,7 @@ export default function ProductsSearchPage() {
             onClick={() => openAction({ title: "Tests Detail", min: 1, max: 5, route: "/tools/tests-detail" })}
           >
             <Stack direction={{ base: 'column', md: 'row' }} align="center" spacing={{ base: 1, md: 2 }}>
-              <Box as={FaFlask} boxSize={{ base: 5, md: 4 }} color="#12305f" />
+              <Box as={RiFlaskLine} boxSize={{ base: 6, md: 5 }} color="#12305f" />
               <Text fontSize={{ base: 'xs', md: 'sm' }} color="gray.600">Tests Detail</Text>
             </Stack>
           </Button>
@@ -457,10 +462,7 @@ export default function ProductsSearchPage() {
             onClick={() => openAction({ title: "Setting Calculator", min: 2, max: 2, route: "/tools/setting-calculator" })}
           >
             <Stack direction={{ base: 'column', md: 'row' }} align="center" spacing={{ base: 1, md: 2 }}>
-              {/* Custom VS icon */}
-              <Box w={{ base: 6, md: 6 }} h={{ base: 6, md: 6 }} borderRadius="full" borderWidth="1px" borderColor="#12305f" color="#12305f" display="flex" alignItems="center" justifyContent="center" fontWeight="bold" fontSize={{ base: 'xs', md: 'sm' }}>
-                VS
-              </Box>
+              <Box as={TbArrowsRightLeft} boxSize={{ base: 6, md: 5 }} color="#12305f" />
               <Text fontSize={{ base: 'xs', md: 'sm' }} color="gray.600">Setting Calculator</Text>
             </Stack>
           </Button>
