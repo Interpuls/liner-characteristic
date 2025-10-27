@@ -4,7 +4,8 @@ import { useRouter } from "next/router";
 import {
   Box, Heading, Text, HStack, VStack, Button,
   Card, CardHeader, CardBody, Table, Thead, Tbody, Tr, Th, Td, useToast,
-  Tag, TagLabel, Tabs, TabList, TabPanels, Tab, TabPanel, Divider
+  Tag, TagLabel, Tabs, TabList, TabPanels, Tab, TabPanel, Divider,
+  useDisclosure, Modal, ModalOverlay, ModalContent, ModalBody, ModalCloseButton
 } from "@chakra-ui/react";
 import { TbListDetails, TbGauge } from "react-icons/tb";
 import { RiFlaskLine } from "react-icons/ri";
@@ -19,6 +20,7 @@ export default function IdResultPage() {
   const [me, setMe] = useState(null);
   const [loading, setLoading] = useState(true);
   const [product, setProduct] = useState(null);
+  const imgModal = useDisclosure();
 
   const { brand, model, teat_size, from } = router.query;
   const backHref = typeof from === 'string' && from ? decodeURIComponent(from) : "/product/result";
@@ -82,7 +84,7 @@ export default function IdResultPage() {
         showInfo={false}
       />
 
-      <Box as="main" flex="1" maxW={{ base: "100%", md: "6xl" }} mx="auto" px={{ base:4, md:8 }} pt={{ base:4, md:6 }} w="100%">
+      <Box as="main" flex="1" maxW={{ base: "100%", md: "6xl" }} mx="auto" px={{ base:2, md:8 }} pt={{ base:2, md:6 }} w="100%">
         {/* Dettaglio prodotto */}
         <Card
           w="100%"
@@ -92,7 +94,7 @@ export default function IdResultPage() {
           rounded={{ base: "none", md: "md" }}
           boxShadow={{ base: "none", md: "sm" }}
         >
-          <CardBody pt={3}>
+          <CardBody pt={{ base: 2, md: 3 }}>
             {loading ? (
               <Text py={8} color="gray.600">Caricamento…</Text>
             ) : !product ? (
@@ -102,13 +104,8 @@ export default function IdResultPage() {
               </VStack>
             ) : (
               <>
-                {/* Product image */}
-                <Box w="100%" display="flex" justifyContent="center" mb={4}>
-                  <Box as="img" src="/liner.png" alt="Liner" maxH="180px" objectFit="contain" />
-                </Box>
-
                 {/* Tabs: Details | KPIs | Tests */}
-                <Tabs colorScheme="blue" mt={2} w="100%" isFitted variant="enclosed">
+                <Tabs colorScheme="blue" mt={{ base: 1, md: 2 }} w="100%" isFitted variant="enclosed">
                   <TabList borderRadius="md" borderWidth="1px" overflow="hidden" bg="gray.50">
                     <Tab fontWeight="semibold">
                       <HStack spacing={2}><Box as={TbListDetails} /> <Text>Details</Text></HStack>
@@ -122,24 +119,51 @@ export default function IdResultPage() {
                   </TabList>
                   <TabPanels w="100%">
                     <TabPanel px={0} w="100%">
-                      {/* Specifications table */}
+                      {/* Product image (only in Details) */}
+                      <Box w="100%" display="flex" justifyContent="center" mb={4}>
+                        <Box
+                          as="img"
+                          src="/liner.png"
+                          alt="Liner"
+                          maxH="180px"
+                          objectFit="contain"
+                          cursor="zoom-in"
+                          onClick={imgModal.onOpen}
+                          tabIndex={0}
+                          onKeyDown={(e)=>{ if (e.key === 'Enter' || e.key === ' ') { imgModal.onOpen(); e.preventDefault(); } }}
+                        />
+                      </Box>
+                      {/* Legend table (liner dimensions) */}
                       <Box overflowX="auto" w="100%" borderWidth="1px" borderRadius="md" bg="white">
                         <Table size="sm" variant="striped" colorScheme="gray">
                           <Thead>
-                            <Tr>
-                              <Th w="40%">Property</Th>
-                              <Th>Value</Th>
+                            <Tr bg="blue.400">
+                              <Th colSpan={2} color="white">Liner dimension</Th>
                             </Tr>
                           </Thead>
                           <Tbody>
-                            {Object.entries(product)
-                              .filter(([k, v]) => !OMIT.has(k) && v !== null && v !== undefined && v !== "")
-                              .map(([k, v]) => (
-                                <Tr key={k}>
-                                  <Td w="40%">{labelize(k)}</Td>
-                                  <Td>{typeof v === "boolean" ? (v ? "Yes" : "No") : String(v)}</Td>
+                            {(() => {
+                              const dims = [
+                                { addon: 'A', label: 'Liner length', value: product?.liner_length },
+                                { addon: 'B', label: 'Hoodcup diameter (mm)', value: product?.hoodcup_diameter },
+                                { addon: 'C', label: 'Orifice diameter (mm)', value: product?.orifice_diameter },
+                                { addon: 'D', label: 'Barrel diameter at 75mm', value: product?.barrel_diameter },
+                                { addon: 'E', label: 'Return to lockring (mm)', value: product?.return_to_lockring },
+                                { addon: 'F', label: 'Lockring diameter (mm)', value: product?.lockring_diameter },
+                                { addon: 'G', label: 'Milk tube ID (mm)', value: product?.milk_tube_id },
+                              ];
+                              return dims.map((d) => (
+                                <Tr key={d.addon}>
+                                  <Td w="60%">
+                                    <HStack spacing={2}>
+                                      <Tag size="sm" colorScheme="blue" borderRadius="full"><TagLabel>{d.addon}</TagLabel></Tag>
+                                      <Text>{d.label}</Text>
+                                    </HStack>
+                                  </Td>
+                                  <Td>{d.value != null && d.value !== '' ? `${d.value} mm` : '—'}</Td>
                                 </Tr>
-                              ))}
+                              ));
+                            })()}
                           </Tbody>
                         </Table>
                       </Box>
@@ -165,6 +189,17 @@ export default function IdResultPage() {
       </Box>
 
       <AppFooter appName="Liner Characteristic App" />
+
+      {/* Full image modal */}
+      <Modal isOpen={imgModal.isOpen} onClose={imgModal.onClose} size="6xl" isCentered>
+        <ModalOverlay />
+        <ModalContent bg="transparent" boxShadow="none">
+          <ModalCloseButton color="white" />
+          <ModalBody p={0} display="flex" alignItems="center" justifyContent="center">
+            <Box as="img" src="/liner.png" alt="Liner" maxH="85vh" maxW="95vw" objectFit="contain" />
+          </ModalBody>
+        </ModalContent>
+      </Modal>
     </Box>
   );
 }
