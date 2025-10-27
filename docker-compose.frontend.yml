@@ -1,0 +1,21 @@
+version: "3.9"
+
+services:
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      args:
+        # Override at build time as needed
+        NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL-http://127.0.0.1:8000}
+    image: liner-frontend:latest
+    container_name: liner-frontend
+    ports:
+      - "3000:3000"
+    # Uncomment to enable Live Reload with bind mount in dev (then adjust Dockerfile)
+    # volumes:
+    #   - ./frontend:/app
+    # environment:
+    #   - NODE_ENV=production
+    restart: unless-stopped
+

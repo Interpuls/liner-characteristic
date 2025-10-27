@@ -35,14 +35,19 @@ def upgrade():
                 break
 
         # 2) Crea la nuova FK con ON DELETE CASCADE
-        op.create_foreign_key(
-            "product_applications_product_id_fkey",
-            "product_applications",
-            "products",
-            ["product_id"],
-            ["id"],
-            ondelete="CASCADE",
-        )
+        # Evita collisioni col nome di default già esistente scegliendo un nome specifico
+        try:
+            op.create_foreign_key(
+                "fk_product_applications_product_id_products_id_cascade",
+                "product_applications",
+                "products",
+                ["product_id"],
+                ["id"],
+                ondelete="CASCADE",
+            )
+        except sa_exc.DBAPIError:
+            # Se esiste già (o la transazione è sporca per un tentativo precedente), prosegui
+            pass
 
         # 3) Indici/unique (creali solo se mancanti)
         def idx_names(table):
@@ -55,27 +60,40 @@ def upgrade():
         pidx = idx_names("products")
         if "ix_products_name" not in pidx:
             op.create_index("ix_products_name", "products", ["name"], unique=False)
+        # Evita duplicare unique su code se già presente come constraint
         if "ux_products_code" not in pidx:
-            op.create_index("ux_products_code", "products", ["code"], unique=True)
+            try:
+                op.create_index("ux_products_code", "products", ["code"], unique=True)
+            except sa_exc.DBAPIError:
+                pass
         if "ux_products_brand_model" not in pidx:
-            op.create_index("ux_products_brand_model", "products", ["brand", "model"], unique=True)
+            try:
+                op.create_index("ux_products_brand_model", "products", ["brand", "model"], unique=True)
+            except sa_exc.DBAPIError:
+                pass
 
         # product_applications: unique su (product_id,size_mm), index su size_mm
         paidx = idx_names("product_applications")
         if "ux_product_applications_product_size" not in paidx:
-            op.create_index(
-                "ux_product_applications_product_size",
-                "product_applications",
-                ["product_id", "size_mm"],
-                unique=True,
-            )
+            try:
+                op.create_index(
+                    "ux_product_applications_product_size",
+                    "product_applications",
+                    ["product_id", "size_mm"],
+                    unique=True,
+                )
+            except sa_exc.DBAPIError:
+                pass
         if "ix_product_applications_size_mm" not in paidx:
-            op.create_index(
-                "ix_product_applications_size_mm",
-                "product_applications",
-                ["size_mm"],
-                unique=False,
-            )
+            try:
+                op.create_index(
+                    "ix_product_applications_size_mm",
+                    "product_applications",
+                    ["size_mm"],
+                    unique=False,
+                )
+            except sa_exc.DBAPIError:
+                pass
         return  # fine percorso Postgres
 
     # --------- SQLITE: percorso “copy & rename” (come in dev) ---------
