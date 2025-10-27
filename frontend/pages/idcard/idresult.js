@@ -4,8 +4,10 @@ import { useRouter } from "next/router";
 import {
   Box, Heading, Text, HStack, VStack, Button,
   Card, CardHeader, CardBody, Table, Thead, Tbody, Tr, Th, Td, useToast,
-  Tag, TagLabel, Tabs, TabList, TabPanels, Tab, TabPanel
+  Tag, TagLabel, Tabs, TabList, TabPanels, Tab, TabPanel, Divider
 } from "@chakra-ui/react";
+import { TbListDetails, TbGauge } from "react-icons/tb";
+import { RiFlaskLine } from "react-icons/ri";
 import AppHeader from "../../components/AppHeader";
 import AppFooter from "../../components/AppFooter";
 import { getToken } from "../../lib/auth";
@@ -48,7 +50,7 @@ export default function IdResultPage() {
       const t = getToken(); if (!t) return;
 
       if (!model) {
-        toast({ status: "warning", title: "Nessun modello selezionato." });
+        toast({ status: "warning", title: "No model selected." });
         router.replace("/product/result");
         return;
       }
@@ -58,11 +60,11 @@ export default function IdResultPage() {
         const items = await listProducts(t, { brand, model, limit: 1 });
         const p = Array.isArray(items) ? items[0] : null;
         if (!p) {
-          toast({ status: "info", title: "Nessun prodotto trovato per i filtri selezionati." });
+          toast({ status: "info", title: "No products found for the selected filters." });
         }
         setProduct(p || null);
       } catch (e) {
-        toast({ status: "error", title: "Errore nel caricamento del prodotto." });
+        toast({ status: "error", title: "Error loading product." });
       } finally {
         setLoading(false);
       }
@@ -73,33 +75,24 @@ export default function IdResultPage() {
 
   return (
     <Box minH="100vh" display="flex" flexDirection="column">
-      <AppHeader title="Liner ID Result" subtitle="Dettaglio prodotto selezionato" backHref={backHref} />
+      <AppHeader
+        title={product?.model || ""}
+        subtitle={product?.brand ? `Product belonging to the ${product.brand} brand` : ""}
+        backHref={backHref}
+        showInfo={false}
+      />
 
       <Box as="main" flex="1" maxW={{ base: "100%", md: "6xl" }} mx="auto" px={{ base:4, md:8 }} pt={{ base:4, md:6 }} w="100%">
         {/* Dettaglio prodotto */}
         <Card
           w="100%"
-          ml={{ base: -4, md: 0 }}
-          mr={{ base: -4, md: 0 }}
-          borderWidth={{ base: 0, md: "1px" }}
+          ml={{ base: 0, md: 0 }}
+          mr={{ base: 0, md: 0 }}
+          borderWidth={0}
           rounded={{ base: "none", md: "md" }}
           boxShadow={{ base: "none", md: "sm" }}
         >
-          <CardHeader py={3}>
-            <VStack align="start" spacing={2}>
-              {product ? <Heading size="md">{product.model}</Heading> : null}
-              <HStack mt={1}>
-                {product?.brand ? (
-                  <Tag size="sm" variant="subtle"><TagLabel>{product.brand}</TagLabel></Tag>
-                ) : null}
-                {product?.compound ? (
-                  <Tag size="sm" variant="subtle"><TagLabel>Compound: {product.compound}</TagLabel></Tag>
-                ) : null}
-              </HStack>
-            </VStack>
-          </CardHeader>
-
-          <CardBody pt={0}>
+          <CardBody pt={3}>
             {loading ? (
               <Text py={8} color="gray.600">Caricamento…</Text>
             ) : !product ? (
@@ -109,22 +102,33 @@ export default function IdResultPage() {
               </VStack>
             ) : (
               <>
+                {/* Product image */}
+                <Box w="100%" display="flex" justifyContent="center" mb={4}>
+                  <Box as="img" src="/liner.png" alt="Liner" maxH="180px" objectFit="contain" />
+                </Box>
+
                 {/* Tabs: Details | KPIs | Tests */}
-                <Tabs colorScheme="blue" mt={2} w="100%" isFitted>
-                  <TabList>
-                    <Tab>Details</Tab>
-                    <Tab>KPIs</Tab>
-                    <Tab>Tests</Tab>
+                <Tabs colorScheme="blue" mt={2} w="100%" isFitted variant="enclosed">
+                  <TabList borderRadius="md" borderWidth="1px" overflow="hidden" bg="gray.50">
+                    <Tab fontWeight="semibold">
+                      <HStack spacing={2}><Box as={TbListDetails} /> <Text>Details</Text></HStack>
+                    </Tab>
+                    <Tab fontWeight="semibold">
+                      <HStack spacing={2}><Box as={TbGauge} /> <Text>KPIs</Text></HStack>
+                    </Tab>
+                    <Tab fontWeight="semibold">
+                      <HStack spacing={2}><Box as={RiFlaskLine} /> <Text>Tests</Text></HStack>
+                    </Tab>
                   </TabList>
                   <TabPanels w="100%">
                     <TabPanel px={0} w="100%">
-                      {/* Tabella specifiche (auto) */}
-                      <Box overflowX="auto" w="100%">
-                        <Table size="sm" variant="simple">
+                      {/* Specifications table */}
+                      <Box overflowX="auto" w="100%" borderWidth="1px" borderRadius="md" bg="white">
+                        <Table size="sm" variant="striped" colorScheme="gray">
                           <Thead>
                             <Tr>
-                              <Th>Proprietà</Th>
-                              <Th>Valore</Th>
+                              <Th w="40%">Property</Th>
+                              <Th>Value</Th>
                             </Tr>
                           </Thead>
                           <Tbody>
@@ -141,10 +145,16 @@ export default function IdResultPage() {
                       </Box>
                     </TabPanel>
                     <TabPanel w="100%">
-                      <Text color="gray.600">KPIs coming soon.</Text>
+                      <VStack spacing={3} py={2} align="center" color="gray.600">
+                        <Box as={TbGauge} boxSize={8} />
+                        <Text>KPIs coming soon.</Text>
+                      </VStack>
                     </TabPanel>
                     <TabPanel w="100%">
-                      <Text color="gray.600">Tests coming soon.</Text>
+                      <VStack spacing={3} py={2} align="center" color="gray.600">
+                        <Box as={RiFlaskLine} boxSize={8} />
+                        <Text>Tests coming soon.</Text>
+                      </VStack>
                     </TabPanel>
                   </TabPanels>
                 </Tabs>
