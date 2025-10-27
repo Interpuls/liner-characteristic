@@ -1,5 +1,5 @@
 // pages/products/search.js
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/router";
 import {
   Box, Heading, Text, HStack, VStack, Stack, Tag, TagLabel, Button,
@@ -14,7 +14,8 @@ import FiltersSummaryCard from "../../components/result/FiltersSummaryCard";
 import ApplicationsHeader from "../../components/result/ApplicationsHeader";
 import PaginationBar from "../../components/result/PaginationBar";
 import { getToken } from "../../lib/auth";
-import { listProducts, saveProductPref, listProductApplications, getKpiValuesByPA } from "../../lib/api";
+import { getMe, listProducts, saveProductPref, listProductApplications, getKpiValuesByPA } from "../../lib/api";
+import { latestKpiByCode } from "../../lib/kpi";
 import { FaChartLine, FaFlask } from "react-icons/fa";
 
 export default function ProductsSearchPage() {
@@ -36,12 +37,43 @@ export default function ProductsSearchPage() {
   const KPI_ORDER = [
     'CLOSURE','FITTING','CONGESTION_RISK','HYPERKERATOSIS_RISK','SPEED','RESPRAY','FLUYDODINAMIC','SLIPPAGE','RINGING_RISK'
   ];
+  // Visible KPI filter removed for performance
   const PAGE_SIZE = 10;
   const initialPage = useMemo(() => {
     const p = Number(router.query.page || 1);
     return Number.isFinite(p) && p >= 1 ? p : 1;
   }, [router.query.page]);
   const [page, setPage] = useState(initialPage);
+
+  // Persist sort in sessionStorage (fast, no router churn)
+  const loadedSortFromSS = useRef(false);
+  useEffect(() => {
+    try {
+      if (typeof window === 'undefined') return;
+      const ss = window.sessionStorage;
+      const savedKpi = ss.getItem('results.sort_kpi');
+      const savedDir = ss.getItem('results.sort_dir');
+      if (savedKpi) { setSortKpi(savedKpi); loadedSortFromSS.current = true; }
+      if (savedDir === 'asc' || savedDir === 'desc') setSortDir(savedDir);
+    } catch {}
+  }, []);
+
+  // When applying saved sort the first time, ensure scores for that KPI
+  useEffect(() => {
+    if (loadedSortFromSS.current && sortKpi) {
+      (async () => { try { await ensureScoresFor(sortKpi); } catch {} finally { loadedSortFromSS.current = false; } })();
+    }
+  }, [sortKpi]);
+
+  // Write sort to sessionStorage when it changes
+  useEffect(() => {
+    try {
+      if (typeof window === 'undefined') return;
+      const ss = window.sessionStorage;
+      if (sortKpi) ss.setItem('results.sort_kpi', sortKpi); else ss.removeItem('results.sort_kpi');
+      if (sortDir) ss.setItem('results.sort_dir', sortDir);
+    } catch {}
+  }, [sortKpi, sortDir]);
 
   // Leggo i filtri dalla query
   const { brand, brands, model, models, teat_size, teat_sizes, barrel_shape, parlor, areas, ...rest } = router.query;
@@ -56,7 +88,11 @@ export default function ProductsSearchPage() {
   useEffect(() => {
     const t = getToken();
     if (!t) { window.location.replace("/login"); return; }
-    setMe({ ok: true });
+    getMe(t)
+      .then((u) => setMe(u))
+      .catch(() => {
+        window.location.replace("/login");
+      });
   }, []);
 
   const onSaveSearch = async () => {
@@ -157,6 +193,7 @@ export default function ProductsSearchPage() {
                       product_id: p.id,
                       brand: p.brand,
                       model: p.model,
+                      compound: p.compound,
                       size_mm: s });
         });
       });
@@ -196,6 +233,8 @@ export default function ProductsSearchPage() {
     const q = new URLSearchParams({ ...router.query, page: String(next) });
     router.replace(`/product/result?${q.toString()}`, undefined, { shallow: true });
   };
+  
+  // Removed URL sync of sort/visibility for performance
 
   // Build product application map (size -> app id) for all products
   const buildApplicationsMap = async (token, list) => {
@@ -236,7 +275,8 @@ export default function ProductsSearchPage() {
         if (!appId) return;
         try {
           const values = await getKpiValuesByPA(token, appId);
-          const byCode = Object.fromEntries((values || []).map(v => [v.kpi_code, { score: v.score, value_num: v.value_num }]));
+          const latest = latestKpiByCode(values);
+          const byCode = Object.fromEntries(Object.entries(latest).map(([code, v]) => [code, { score: v.score, value_num: v.value_num }]));
           newScores[key] = { ...(newScores[key] || {}), ...byCode };
         } catch {}
       }));
@@ -297,7 +337,8 @@ export default function ProductsSearchPage() {
     const keys = Array.from(selSelected);
     const appIds = keys.map(k => appMap[k]).filter(Boolean);
     const param = appIds.length ? `app_ids=${appIds.join(',')}` : `keys=${keys.join(',')}`;
-    router.push(`${selConfig.route}?${param}`);
+    const from = encodeURIComponent(router.asPath || "/product/result");
+    router.push(`${selConfig.route}?${param}&from=${from}`);
     setSelOpen(false);
   };
 
@@ -341,7 +382,7 @@ export default function ProductsSearchPage() {
         backHref="/product"
       />
 
-      <Box as="main" flex="1" maxW={{ base: "100%", md: "6xl" }} mx="auto" px={{ base: 4, md: 8 }} pt={{ base: 4, md: 6 }}>
+      <Box as="main" flex="1" maxW={{ base: "100%", md: "100%" }} mx="auto" px={{ base: 4, md: 0 }} pt={{ base: 4, md: 6 }}>
         {(() => {
           const areasSel = typeof areas === "string" && areas ? String(areas).split(",") : [];
           const shapesList = (() => {
@@ -449,13 +490,15 @@ export default function ProductsSearchPage() {
               </VStack>
             ) : (
               <>
-                <SimpleGrid columns={{ base: 1, md: 2 }} gap={4}>
+                <SimpleGrid columns={{ base: 1, md: 1 }} gap={4}>
                   {pagedItems.map((a) => (
                     <ProductApplicationCard
                       key={a.key}
                       productId={a.product_id}
                       brand={a.brand}
                       model={a.model}
+                      compound={a.compound}
+                      isAdmin={me?.role === 'admin'}
                       sizeMm={a.size_mm}
                     />
                   ))}

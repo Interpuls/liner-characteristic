@@ -117,6 +117,7 @@ export default function ProductFilters({ meta, onSelectionsChange, onConfirm, va
   }, [value]);
 
   const isMobile = useBreakpointValue({ base: true, md: false });
+  const isDesktop = !isMobile;
 
   return (
     <Box>
@@ -129,15 +130,13 @@ export default function ProductFilters({ meta, onSelectionsChange, onConfirm, va
           <FilterRow icon={FiCpu} label="Parlor Type" summary={parlorSummary || "Indifferent"} onClick={parlorType.onOpen} />
         </Stack>
       ) : (
-        <HStack spacing={2} wrap="wrap">
-          <FilterButton icon={FiGlobe} label="Reference Area" summary={refSummary} onClick={refArea.onOpen} />
-          <FilterButton icon={FiTag} label="Brand / Model" summary={bmSummary} onClick={brandModel.onOpen} />
-          <FilterButton icon={FiAperture} label="Teat Size" summary={tsSummary} onClick={teatSize.onOpen} />
-          <FilterButton icon={FiBox} label="Barrel Shape" summary={shapeSummary} onClick={barrelShape.onOpen} />
-          <FilterButton icon={FiCpu} label="Parlor Type" summary={parlorSummary} onClick={parlorType.onOpen} />
-          <Spacer />
-          <Text fontSize="sm" color="gray.300">{count} liners</Text>
-        </HStack>
+        <Stack divider={<Divider />} spacing={3}>
+          <FilterRow icon={FiGlobe} label="Reference Area" summary={refSummary || "Indifferent"} onClick={refArea.onOpen} labelSize={{ base: 'md', md: 'lg' }} />
+          <FilterRow icon={FiTag} label="Brand / Model" summary={bmSummary || "Indifferent"} onClick={brandModel.onOpen} labelSize={{ base: 'md', md: 'lg' }} />
+          <FilterRow icon={FiAperture} label="Teat Size" summary={tsSummary || "Indifferent"} onClick={teatSize.onOpen} labelSize={{ base: 'md', md: 'lg' }} />
+          <FilterRow icon={FiBox} label="Barrel Shape" summary={shapeSummary || "Indifferent"} onClick={barrelShape.onOpen} labelSize={{ base: 'md', md: 'lg' }} />
+          <FilterRow icon={FiCpu} label="Parlor Type" summary={parlorSummary || "Indifferent"} onClick={parlorType.onOpen} labelSize={{ base: 'md', md: 'lg' }} />
+        </Stack>
       )}
 
       {/* Bottom CTA: centered vertical buttons */}

@@ -124,7 +124,6 @@ export default function Products() {
           borderWidth={{ base: 0, md: 0 }} borderColor="transparent" border="0"
           position="sticky" top={0} zIndex={2}
           boxShadow={{ base: "0 10px 24px rgba(0,0,0,0.40)", md: "0 16px 36px rgba(0,0,0,0.50)" }}
-          borderBottomWidth="1px" borderBottomColor="whiteAlpha.200"
         >
           <CardHeader bg="rgba(12,26,58,0.96)" color="white" py={{ base:4, md:4 }} px={{ base:4, md:6 }} backdropFilter="saturate(120%) blur(6px)">
             <HStack gap={3} w={{ base:"full", md:"auto" }}>

@@ -1,8 +1,9 @@
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/router";
-import { Box, HStack, Stack, Text, Tooltip, SimpleGrid, Stat, StatNumber, VStack, useToast, Divider, Heading } from "@chakra-ui/react";
+import { Box, HStack, Stack, Text, Tooltip, SimpleGrid, Stat, StatNumber, VStack, useToast, Divider, Heading, Tag, TagLabel } from "@chakra-ui/react";
 import { getToken } from "../lib/auth";
 import { listProductApplications, getKpiValuesByPA } from "../lib/api";
+import { latestKpiByCode } from "../lib/kpi";
 import { AppSizePill } from "./ui/AppSizePill";
 
 // Small helper for score color
@@ -42,15 +43,15 @@ function KpiChip({ code, value }) {
   const rawVal = value?.value_num ?? null;
   return (
     <VStack spacing={1} align="center">
-      <Text fontSize="9px" color="gray.600" lineHeight="shorter" noOfLines={1}>
+      <Text fontSize={{ base: "9px", md: "12px" }} color="gray.600" lineHeight="shorter" noOfLines={1}>
         {KPI_ABBR[code] || code}
       </Text>
       <Tooltip
         label={score != null ? `${code}: score ${score}/4 – value: ${rawVal != null ? rawVal : "n/a"}` : `${code}: n/a`}
         hasArrow
       >
-        <Stat p={0.5} borderWidth="1px" borderRadius="md" bg={scoreColor(score)} w="28px" textAlign="center">
-          <StatNumber fontSize="sm" color="white" lineHeight="short">
+        <Stat p={{ base: 0.5, md: 2 }} borderWidth="1px" borderRadius="md" bg={scoreColor(score)} w={{ base: "28px", md: "40px" }} textAlign="center">
+          <StatNumber fontSize={{ base: "sm", md: "lg" }} color="white" lineHeight="short">
             {score != null ? score : "–"}
           </StatNumber>
         </Stat>
@@ -59,12 +60,13 @@ function KpiChip({ code, value }) {
   );
 }
 
-export default function ProductApplicationCard({ productId, brand, model, sizeMm }) {
+export default function ProductApplicationCard({ productId, brand, model, sizeMm, compound, isAdmin }) {
   const toast = useToast();
   const router = useRouter();
   const [paId, setPaId] = useState(null);
   const [kpis, setKpis] = useState(null); // map by code
   const [loading, setLoading] = useState(true);
+  // Fixed KPI list for performance
 
   useEffect(() => {
     const t = getToken();
@@ -84,8 +86,8 @@ export default function ProductApplicationCard({ productId, brand, model, sizeMm
         if (alive) setPaId(found.id);
         // fetch KPI values for that application
         const values = await getKpiValuesByPA(t, found.id);
-        const map = Object.fromEntries((values || []).map(v => [v.kpi_code, v]));
-        if (alive) setKpis(map);
+        const latest = latestKpiByCode(values);
+        if (alive) setKpis(latest);
       } catch (e) {
         // silent; optionally show toast
         // toast({ status: "error", title: "Cannot load KPIs" });
@@ -101,7 +103,8 @@ export default function ProductApplicationCard({ productId, brand, model, sizeMm
   const goToDetails = () => {
     const q = new URLSearchParams({ brand: String(brand || ""), model: String(model || "") });
     if (sizeMm != null) q.set("teat_size", String(sizeMm));
-    router.push(`/idcard/idresult?${q.toString()}`);
+    const from = encodeURIComponent(router.asPath || "/product/result");
+    router.push(`/idcard/idresult?${q.toString()}&from=${from}`);
   };
 
   return (
@@ -117,19 +120,34 @@ export default function ProductApplicationCard({ productId, brand, model, sizeMm
       onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); goToDetails(); } }}
     >
       <Stack spacing={2}>
-        <HStack justify="space-between" align="flex-start">
+        {/* Header: left details, right KPIs (desktop) */}
+        <Stack direction={{ base: 'column', md: 'row' }} justify="space-between" align={{ base: 'flex-start', md: 'center' }}>
           <VStack align="start" spacing={0}>
             <Heading size="sm" fontWeight="bold">{model || "-"}</Heading>
             <Text color="gray.600" fontWeight="normal">{brand || "-"}</Text>
+            <Stack direction={{ base: 'row', md: 'column' }} align="start" spacing={{ base: 1, md: 3 }} mt={1}>
+              <AppSizePill color="blue" size="xs">{sizeLabel}</AppSizePill>
+              {isAdmin && compound ? (
+                <Tag size="sm" variant="subtle"><TagLabel>Compound: {compound}</TagLabel></Tag>
+              ) : null}
+            </Stack>
           </VStack>
-          <AppSizePill color="blue" size="xs">{sizeLabel}</AppSizePill>
-        </HStack>
-        <Divider my={1} />
-        <SimpleGrid columns={{ base: 9, md: 9 }} gap={{ base: 1, md: 2 }}>
+          {/* KPIs inline on desktop */}
+          <HStack spacing={{ base: 1, md: 5 }} display={{ base: 'none', md: 'flex' }}>
+            {KPI_ORDER.map((code) => (
+              <KpiChip key={code} code={code} value={kpis?.[code]} />
+            ))}
+          </HStack>
+        </Stack>
+
+        {/* Divider + grid KPIs for mobile */}
+        <Divider my={1} display={{ base: 'block', md: 'none' }} />
+        <SimpleGrid display={{ base: 'grid', md: 'none' }} columns={{ base: 9, md: 9 }} gap={{ base: 1, md: 2 }}>
           {KPI_ORDER.map((code) => (
             <KpiChip key={code} code={code} value={kpis?.[code]} />
           ))}
         </SimpleGrid>
+
         {!paId && !loading && (
           <Text fontSize="xs" color="gray.500">No application found for this size.</Text>
         )}
@@ -137,4 +155,3 @@ export default function ProductApplicationCard({ productId, brand, model, sizeMm
     </Box>
   );
 }
-
