@@ -157,7 +157,7 @@ export default function ProductFields({ values, meta, onChange, onNumberChange, 
               />
             </FormControl>
             {/* Barrel shape with outline icons */}
-            <FormControl>
+            <FormControl isRequired>
               <FormLabel fontSize="sm" color="gray.500">Barrel shape</FormLabel>
               <FancySelect
                 options={[

@@ -1,5 +1,5 @@
 // pages/products/search.js
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/router";
 import {
   Box, Heading, Text, HStack, VStack, Stack, Tag, TagLabel, Button,
@@ -37,12 +37,43 @@ export default function ProductsSearchPage() {
   const KPI_ORDER = [
     'CLOSURE','FITTING','CONGESTION_RISK','HYPERKERATOSIS_RISK','SPEED','RESPRAY','FLUYDODINAMIC','SLIPPAGE','RINGING_RISK'
   ];
+  // Visible KPI filter removed for performance
   const PAGE_SIZE = 10;
   const initialPage = useMemo(() => {
     const p = Number(router.query.page || 1);
     return Number.isFinite(p) && p >= 1 ? p : 1;
   }, [router.query.page]);
   const [page, setPage] = useState(initialPage);
+
+  // Persist sort in sessionStorage (fast, no router churn)
+  const loadedSortFromSS = useRef(false);
+  useEffect(() => {
+    try {
+      if (typeof window === 'undefined') return;
+      const ss = window.sessionStorage;
+      const savedKpi = ss.getItem('results.sort_kpi');
+      const savedDir = ss.getItem('results.sort_dir');
+      if (savedKpi) { setSortKpi(savedKpi); loadedSortFromSS.current = true; }
+      if (savedDir === 'asc' || savedDir === 'desc') setSortDir(savedDir);
+    } catch {}
+  }, []);
+
+  // When applying saved sort the first time, ensure scores for that KPI
+  useEffect(() => {
+    if (loadedSortFromSS.current && sortKpi) {
+      (async () => { try { await ensureScoresFor(sortKpi); } catch {} finally { loadedSortFromSS.current = false; } })();
+    }
+  }, [sortKpi]);
+
+  // Write sort to sessionStorage when it changes
+  useEffect(() => {
+    try {
+      if (typeof window === 'undefined') return;
+      const ss = window.sessionStorage;
+      if (sortKpi) ss.setItem('results.sort_kpi', sortKpi); else ss.removeItem('results.sort_kpi');
+      if (sortDir) ss.setItem('results.sort_dir', sortDir);
+    } catch {}
+  }, [sortKpi, sortDir]);
 
   // Leggo i filtri dalla query
   const { brand, brands, model, models, teat_size, teat_sizes, barrel_shape, parlor, areas, ...rest } = router.query;
@@ -202,6 +233,8 @@ export default function ProductsSearchPage() {
     const q = new URLSearchParams({ ...router.query, page: String(next) });
     router.replace(`/product/result?${q.toString()}`, undefined, { shallow: true });
   };
+  
+  // Removed URL sync of sort/visibility for performance
 
   // Build product application map (size -> app id) for all products
   const buildApplicationsMap = async (token, list) => {

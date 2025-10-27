@@ -66,6 +66,7 @@ export default function ProductApplicationCard({ productId, brand, model, sizeMm
   const [paId, setPaId] = useState(null);
   const [kpis, setKpis] = useState(null); // map by code
   const [loading, setLoading] = useState(true);
+  // Fixed KPI list for performance
 
   useEffect(() => {
     const t = getToken();
