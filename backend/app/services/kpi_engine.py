@@ -4,18 +4,31 @@ from app.model.kpi import KpiScale
 from typing import Dict, Tuple
 import math
 
-def score_from_scales(session: Session, kpi_code: str, value: float) -> int:
+from sqlmodel import Session, select
+from app.model.kpi import KpiScale
+from fastapi import HTTPException
+
+#Ritorna lo score se trova una banda, altrimenti None (soft)
+def score_from_scales(session: Session, kpi_code: str, value: float) -> int | None:
     bands = session.exec(
-        select(KpiScale).where(KpiScale.kpi_code == kpi_code).order_by(KpiScale.band_min.asc())
+        select(KpiScale)
+        .where(KpiScale.kpi_code == kpi_code)
+        .order_by(KpiScale.band_min.asc(), KpiScale.band_max.asc())
     ).all()
     for b in bands:
-        if value >= b.band_min and value < b.band_max:
+        if b.band_min <= value <= b.band_max:
             return int(b.score)
-    # se fuori range, puoi decidere clamp o None; io clampo:
-    if bands:
-        if value < bands[0].band_min:  return int(bands[0].score)
-        if value >= bands[-1].band_max: return int(bands[-1].score)
-    return 0
+    return None
+
+#Come sopra ma se non trova una banda alza 422 (hard)
+def score_or_422(session: Session, kpi_code: str, value: float) -> int:
+    s = score_from_scales(session, kpi_code, value)
+    if s is None:
+        raise HTTPException(
+            status_code=422,
+            detail=f"No scale band for KPI {kpi_code} covering value {value}"
+        )
+    return s
 
 
 def massage_compute_derivatives(points: Dict[int, Tuple[float, float]]):
