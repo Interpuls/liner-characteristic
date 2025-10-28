@@ -54,6 +54,6 @@ def main():
 
         s.commit()
     print("KPI defs seeded.")
-
+ 
 if __name__ == "__main__":
     main()
