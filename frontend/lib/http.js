@@ -1,8 +1,10 @@
 export async function http(path, { method = "GET", token, body } = {}) {
-  const normPath = typeof path === "string" && path
-  ? (path.startsWith("/") ? path : "/" + path)
-  : "/";
-  const url = normPath;
+  const base = process.env.NEXT_PUBLIC_API_URL || "";
+  const normPath =
+    typeof path === "string" && path
+      ? (path.startsWith("/") ? path : "/" + path)
+      : "/";
+  const url = base + normPath;
   const res = await fetch(url, {
     method,
     headers: {
