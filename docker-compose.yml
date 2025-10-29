@@ -10,48 +10,65 @@ services:
       POSTGRES_DB: ${POSTGRES_DB:-linerdb}
     volumes:
       - pgdata:/var/lib/postgresql/data
-    ports:
-      - "5432:5432"
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
       interval: 5s
       timeout: 5s
       retries: 10
     restart: unless-stopped
+    networks:
+      - app-net
 
   backend:
     build:
       context: ./backend
-      dockerfile: dockerfile
+      dockerfile: dockerfile   # lascialo così solo se il tuo file si chiama davvero "dockerfile"
     image: liner-backend:latest
     container_name: liner-backend
     environment:
-      # SQLAlchemy URL for Postgres
       DATABASE_URL: postgresql+psycopg2://${POSTGRES_USER:-liner}:${POSTGRES_PASSWORD:-linerpass}@db:5432/${POSTGRES_DB:-linerdb}
-      # Auth / other envs can go here
-      CORS_ORIGINS: "*"
+      CORS_ORIGINS: "*"   # poi la stringiamo
       PORT: 8080
     depends_on:
       db:
         condition: service_healthy
-    ports:
-      - "8000:8080"
     restart: unless-stopped
+    networks:
+      - app-net
 
   frontend:
     build:
       context: ./frontend
       dockerfile: Dockerfile
       args:
-        # Expose backend on host 8000; browser must call host, not container name
-        NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL-http://localhost:8000}
+        # In produzione vogliamo chiamare il backend tramite lo stesso host (Caddy),
+        # quindi questa variabile NON deve puntare a :8000
+        NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL-http://46.62.208.162}
     image: liner-frontend:latest
     container_name: liner-frontend
     depends_on:
       - backend
-    ports:
-      - "3000:3000"
     restart: unless-stopped
+    networks:
+      - app-net
+
+  caddy:
+    image: caddy:2-alpine
+    container_name: liner-proxy
+    restart: unless-stopped
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+    ports:
+      - "80:80"
+    depends_on:
+      - frontend
+      - backend
+    networks:
+      - app-net
 
 volumes:
   pgdata:
+
+networks:
+  app-net:
+    driver: bridge
