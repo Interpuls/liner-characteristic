@@ -3,11 +3,10 @@ from dotenv import load_dotenv
 from logging.config import fileConfig
 
 from sqlmodel import SQLModel
-from app.models import *  
 
 from sqlalchemy import engine_from_config
 from sqlalchemy import pool
- 
+
 from alembic import context
 
 load_dotenv()
@@ -26,10 +25,7 @@ db_url = os.getenv("DATABASE_URL", "sqlite:///./app.db")
 if db_url:
     config.set_main_option("sqlalchemy.url", db_url)
 
-# add your model's MetaData object here
-# for 'autogenerate' support
-# from myapp import mymodel
-# target_metadata = mymodel.Base.metadata
+# Target metadata for autogenerate
 target_metadata = SQLModel.metadata
 # other values from the config, defined by the needs of env.py,
 # can be acquired:
@@ -76,7 +72,9 @@ def run_migrations_online() -> None:
 
     with connectable.connect() as connection:
         context.configure(
-            connection=connection, target_metadata=target_metadata
+            connection=connection,
+            target_metadata=target_metadata,
+            transaction_per_migration=True,
         )
 
         with context.begin_transaction():

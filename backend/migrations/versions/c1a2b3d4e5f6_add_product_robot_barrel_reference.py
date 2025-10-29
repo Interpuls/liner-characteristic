@@ -10,6 +10,7 @@ from typing import Sequence, Union
 from alembic import op
 import sqlalchemy as sa
 from sqlalchemy import JSON
+from sqlalchemy import exc as sa_exc
 
 
 # revision identifiers, used by Alembic.
@@ -20,28 +21,53 @@ depends_on: Union[str, Sequence[str], None] = None
 
 
 def upgrade() -> None:
-    # robot_liner: boolean default False
-    op.add_column(
-        "products",
-        sa.Column("robot_liner", sa.Boolean(), nullable=False, server_default=sa.text("0")),
-    )
+    bind = op.get_bind()
+    dialect = bind.dialect.name
+    insp = sa.inspect(bind)
+
+    # robot_liner: boolean default False (dialect-aware)
+    cols = {c['name'] for c in insp.get_columns('products')}
+    if 'robot_liner' not in cols:
+        default_expr = sa.text("false") if dialect == 'postgresql' else sa.text("0")
+        try:
+            op.add_column(
+                "products",
+                sa.Column("robot_liner", sa.Boolean(), nullable=False, server_default=default_expr),
+            )
+        except sa_exc.DBAPIError:
+            # If concurrently added by previous attempts, ignore
+            pass
+
     # barrel_shape: string among [round|triangular|squared] (validated at app level)
-    op.add_column(
-        "products",
-        sa.Column("barrel_shape", sa.String(), nullable=True),
-    )
+    cols = {c['name'] for c in insp.get_columns('products')}
+    if 'barrel_shape' not in cols:
+        try:
+            op.add_column(
+                "products",
+                sa.Column("barrel_shape", sa.String(), nullable=True),
+            )
+        except sa_exc.DBAPIError:
+            pass
+
     # reference_areas: JSON array of strings or ["Global"]
-    op.add_column(
-        "products",
-        sa.Column("reference_areas", sa.JSON(), nullable=True),
-    )
+    cols = {c['name'] for c in insp.get_columns('products')}
+    if 'reference_areas' not in cols:
+        try:
+            op.add_column(
+                "products",
+                sa.Column("reference_areas", sa.JSON(), nullable=True),
+            )
+        except sa_exc.DBAPIError:
+            pass
 
     # drop server default to leave handling to the app
-    with op.batch_alter_table("products") as batch:
+    # Avoid on Postgres to keep the default stable during migration
+    if dialect != 'postgresql':
         try:
-            batch.alter_column("robot_liner", server_default=None)
+            with op.batch_alter_table("products") as batch:
+                batch.alter_column("robot_liner", server_default=None)
         except Exception:
-            # some dialects may not support altering server_default cleanly; ignore
+            # ignore if not supported
             pass
 
 

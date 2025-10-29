@@ -16,7 +16,13 @@ JWT_SECRET = os.getenv("JWT_SECRET", "changeme")
 JWT_ALGORITHM = os.getenv("JWT_ALGORITHM", "HS256")
 JWT_EXPIRE_MINUTES = int(os.getenv("JWT_EXPIRE_MINUTES", "60"))
 
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+# Support long passwords safely, while still verifying old bcrypt hashes
+pwd_context = CryptContext(
+    schemes=["bcrypt_sha256", "bcrypt"],
+    deprecated="auto",
+    # For safety: never raise on >72 bytes when verifying old bcrypt; truncate instead
+    bcrypt__truncate_error=False,
+)
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/login")
 
 def now_utc():
