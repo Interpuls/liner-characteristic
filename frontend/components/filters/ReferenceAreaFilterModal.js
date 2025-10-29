@@ -73,7 +73,7 @@ export default function ReferenceAreaFilterModal({ isOpen, onClose, value = [], 
             <HStack justify="space-between">
               <Button variant="ghost" color="gray.300" _hover={{ color: "gray.200", bg: "whiteAlpha.100" }} onClick={handleReset}>Reset</Button>
               <Button backgroundColor="rgba(28, 31, 54, 1)" color="white" _hover={{ bg: "rgba(32, 35, 60, 1)" }} onClick={handleApply} isLoading={loading}>
-                Conferma
+                Confirm
               </Button>
             </HStack>
           </Box>
