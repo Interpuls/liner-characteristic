@@ -13,7 +13,7 @@ import AppSizePill from "@/components/ui/AppSizePill";
 
 const scoreColor = (s) =>
   s >= 4 ? "green.500" :
-  s === 3 ? "green.400" :
+  s === 3 ? "rgba(120, 224, 116, 1)" :
   s === 2 ? "yellow.500" :
   s === 1 ? "red.500" : "gray.500";
 
