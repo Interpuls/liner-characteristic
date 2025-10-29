@@ -40,10 +40,7 @@ services:
     build:
       context: ./frontend
       dockerfile: Dockerfile
-      args:
-        # In produzione vogliamo chiamare il backend tramite lo stesso host (Caddy),
-        # quindi questa variabile NON deve puntare a :8000
-        NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL-http://46.62.208.162}
+      
     image: liner-frontend:latest
     container_name: liner-frontend
     depends_on:
