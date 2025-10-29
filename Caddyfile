@@ -1,0 +1,38 @@
+:80 {
+
+    # Tutte le chiamate API vere del backend FastAPI
+    @backend path \
+        /auth* \
+        /users* \
+        /products* \
+        /kpis* \
+        /tpp* \
+        /massage* \
+        /speed* \
+        /smt-hood* \
+        /healthz*
+
+    reverse_proxy @backend liner-backend:8080
+
+    # Tutto il resto è frontend (Next.js)
+    @frontend {
+        not path \
+            /auth* \
+            /users* \
+            /products* \
+            /kpis* \
+            /tpp* \
+            /massage* \
+            /speed* \
+            /smt-hood* \
+            /healthz*
+    }
+
+    reverse_proxy @frontend liner-frontend:3000
+
+    log {
+        output stdout
+        format console
+        level INFO
+    }
+}
