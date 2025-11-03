@@ -2,9 +2,9 @@
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/router";
 import {
-  Box, Heading, Text, HStack, VStack, Button,
-  Card, CardHeader, CardBody, Table, Thead, Tbody, Tr, Th, Td, useToast,
-  Tag, TagLabel, Tabs, TabList, TabPanels, Tab, TabPanel, Divider,
+  Box, Text, HStack, VStack, Button,
+  Card, CardBody, useToast,
+  Tabs, TabList, TabPanels, Tab, TabPanel,
   useDisclosure, Modal, ModalOverlay, ModalContent, ModalBody, ModalCloseButton
 } from "@chakra-ui/react";
 import { TbListDetails, TbGauge } from "react-icons/tb";
@@ -13,6 +13,9 @@ import AppHeader from "../../components/AppHeader";
 import AppFooter from "../../components/AppFooter";
 import { getToken } from "../../lib/auth";
 import { getMe, listProducts } from "../../lib/api";
+import DetailsTab from "../../components/idcard/DetailsTab";
+import KpisTab from "../../components/idcard/KpisTab";
+import TestsTab from "../../components/idcard/TestsTab";
 
 export default function IdResultPage() {
   const router = useRouter();
@@ -25,17 +28,10 @@ export default function IdResultPage() {
   const { brand, model, teat_size, from } = router.query;
   const backHref = typeof from === 'string' && from ? decodeURIComponent(from) : "/product/result";
 
-  // piccola util per label leggibili
-  const labelize = (k) =>
-    String(k)
-      .replace(/_/g, " ")
-      .replace(/\b\w/g, (m) => m.toUpperCase());
+  
 
   // quali campi saltare nella tabella “specs”
-  const OMIT = new Set([
-    "id", "created_at", "updated_at",
-    "product_type",
-  ]);
+  
 
   useEffect(() => {
     const t = getToken();
@@ -119,66 +115,13 @@ export default function IdResultPage() {
                   </TabList>
                   <TabPanels w="100%">
                     <TabPanel px={0} w="100%">
-                      {/* Product image (only in Details) */}
-                      <Box w="100%" display="flex" justifyContent="center" mb={4}>
-                        <Box
-                          as="img"
-                          src="/liner.png"
-                          alt="Liner"
-                          maxH="180px"
-                          objectFit="contain"
-                          cursor="zoom-in"
-                          onClick={imgModal.onOpen}
-                          tabIndex={0}
-                          onKeyDown={(e)=>{ if (e.key === 'Enter' || e.key === ' ') { imgModal.onOpen(); e.preventDefault(); } }}
-                        />
-                      </Box>
-                      {/* Legend table (liner dimensions) */}
-                      <Box overflowX="auto" w="100%" borderWidth="1px" borderRadius="md" bg="white">
-                        <Table size="sm" variant="striped" colorScheme="gray">
-                          <Thead>
-                            <Tr bg="blue.400">
-                              <Th colSpan={2} color="white">Liner dimension</Th>
-                            </Tr>
-                          </Thead>
-                          <Tbody>
-                            {(() => {
-                              const dims = [
-                                { addon: 'A', label: 'Liner length', value: product?.liner_length },
-                                { addon: 'B', label: 'Hoodcup diameter (mm)', value: product?.hoodcup_diameter },
-                                { addon: 'C', label: 'Orifice diameter (mm)', value: product?.orifice_diameter },
-                                { addon: 'D', label: 'Barrel diameter at 75mm', value: product?.barrel_diameter },
-                                { addon: 'E', label: 'Return to lockring (mm)', value: product?.return_to_lockring },
-                                { addon: 'F', label: 'Lockring diameter (mm)', value: product?.lockring_diameter },
-                                { addon: 'G', label: 'Milk tube ID (mm)', value: product?.milk_tube_id },
-                              ];
-                              return dims.map((d) => (
-                                <Tr key={d.addon}>
-                                  <Td w="60%">
-                                    <HStack spacing={2}>
-                                      <Tag size="sm" colorScheme="blue" borderRadius="full"><TagLabel>{d.addon}</TagLabel></Tag>
-                                      <Text>{d.label}</Text>
-                                    </HStack>
-                                  </Td>
-                                  <Td>{d.value != null && d.value !== '' ? `${d.value} mm` : '—'}</Td>
-                                </Tr>
-                              ));
-                            })()}
-                          </Tbody>
-                        </Table>
-                      </Box>
+                      <DetailsTab product={product} onOpenImage={imgModal.onOpen} />
                     </TabPanel>
                     <TabPanel w="100%">
-                      <VStack spacing={3} py={2} align="center" color="gray.600">
-                        <Box as={TbGauge} boxSize={8} />
-                        <Text>KPIs coming soon.</Text>
-                      </VStack>
+                      <KpisTab product={product} isAdmin={me?.is_admin} />
                     </TabPanel>
                     <TabPanel w="100%">
-                      <VStack spacing={3} py={2} align="center" color="gray.600">
-                        <Box as={RiFlaskLine} boxSize={8} />
-                        <Text>Tests coming soon.</Text>
-                      </VStack>
+                      <TestsTab product={product} />
                     </TabPanel>
                   </TabPanels>
                 </Tabs>
