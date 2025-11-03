@@ -197,7 +197,8 @@ function ScrollableSmtBars({ data }) {
   return (
     <VStack align="stretch" spacing={1}>
       <Box w="100%" overflowX={{ base: 'auto', md: 'visible' }} style={{ WebkitOverflowScrolling: 'touch' }}>
-        <svg width={width} height={height}>
+        <Box w="100%" display={{ base: 'block', md: 'flex' }} justifyContent={{ base: 'flex-start', md: 'center' }}>
+          <svg width={width} height={height}>
         {/* axes */}
         <line x1={margin.left} y1={margin.top} x2={margin.left} y2={height - margin.bottom} stroke="#cbd5e1" strokeWidth="1" />
         <line x1={margin.left} y1={height - margin.bottom} x2={width - margin.right} y2={height - margin.bottom} stroke="#cbd5e1" strokeWidth="1" />
@@ -275,7 +276,8 @@ function ScrollableSmtBars({ data }) {
             </g>
           );
         })}
-        </svg>
+          </svg>
+        </Box>
       </Box>
       <HStack spacing={4} w="100%" justify={{ base: 'flex-start', md: 'center' }} wrap="wrap">
         {flows.map(fl => (
@@ -315,7 +317,8 @@ function ScrollableBars({ data }) {
 
   return (
     <Box w="100%" overflowX={{ base: 'auto', md: 'visible' }} style={{ WebkitOverflowScrolling: 'touch' }}>
-      <svg width={width} height={height}>
+      <Box w="100%" display={{ base: 'block', md: 'flex' }} justifyContent={{ base: 'flex-start', md: 'center' }}>
+        <svg width={width} height={height}>
         {/* axes */}
         <line x1={margin.left} y1={margin.top} x2={margin.left} y2={height - margin.bottom} stroke="#cbd5e1" strokeWidth="1" />
         <line x1={margin.left} y1={height - margin.bottom} x2={width - margin.right} y2={height - margin.bottom} stroke="#cbd5e1" strokeWidth="1" />
@@ -352,7 +355,8 @@ function ScrollableBars({ data }) {
             </g>
           );
         })}
-      </svg>
+        </svg>
+      </Box>
     </Box>
   );
 }
