@@ -1,6 +1,9 @@
 from datetime import datetime
 from typing import Optional
-from sqlmodel import SQLModel, Field
+from sqlmodel import SQLModel, Field, Relationship
+import sqlalchemy as sa
+
+from .product import ProductApplication
 
 
 class TppRun(SQLModel, table=True):
@@ -12,3 +15,10 @@ class TppRun(SQLModel, table=True):
     real_tpp: Optional[float] = None
     notes: Optional[str] = None
     created_at: datetime = Field(default_factory=datetime.utcnow, nullable=False)
+
+    __table_args__ = (
+        sa.Index("ix_tpp_runs_created_at", "created_at"),
+    )
+
+    # Optional relationship to use with selectinload
+    product_application: Optional[ProductApplication] = Relationship()

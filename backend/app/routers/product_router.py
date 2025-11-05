@@ -227,12 +227,15 @@ def create_product(payload: ProductIn, session: Session = Depends(get_session)):
                 raise HTTPException(status_code=409, detail="Could not create product")
 
             # crea le 4 application standard
-            for size in (40, 50, 60, 70):
-                session.add(ProductApplication(
+            apps = [
+                ProductApplication(
                     product_id=obj.id,
                     size_mm=size,
                     label=SIZE_LABELS[size],
-                ))
+                )
+                for size in (40, 50, 60, 70)
+            ]
+            session.bulk_save_objects(apps)
 
             session.commit()
             return obj

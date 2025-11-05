@@ -1,5 +1,6 @@
 from sqlmodel import SQLModel, create_engine, Session
 import os
+import logging
 from sqlalchemy import event
 from sqlalchemy.engine import Engine
 import sqlite3
@@ -13,9 +14,24 @@ engine = create_engine(
     connect_args=connect_args,
 )
 
+logger = logging.getLogger("liner-backend.db")
+
+
 def init_db():
-    #SQLModel.metadata.create_all(engine)
-    pass
+    # Optionally run Alembic migrations on startup to keep schema in sync
+    if os.getenv("RUN_MIGRATIONS_ON_STARTUP", "1").strip() not in ("", "0", "false", "False"):
+        try:
+            from alembic.config import Config
+            from alembic import command
+            base_dir = os.path.dirname(os.path.dirname(__file__))  # backend/
+            alembic_ini = os.path.join(base_dir, "alembic.ini")
+            cfg = Config(alembic_ini)
+            cfg.set_main_option("sqlalchemy.url", DATABASE_URL)
+            command.upgrade(cfg, "head")
+            logger.info("Alembic migrations applied at startup")
+        except Exception as e:
+            logger.warning("Skipping migrations at startup: %s", e)
+    # If disabled, rely on external alembic upgrade
 
 def get_session():
     # Avoid expiring objects on commit to reduce refresh round-trips

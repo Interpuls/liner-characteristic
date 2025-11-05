@@ -1,6 +1,9 @@
 from datetime import datetime
 from typing import Optional
-from sqlmodel import SQLModel, Field
+from sqlmodel import SQLModel, Field, Relationship
+import sqlalchemy as sa
+
+from .product import ProductApplication
 
 
 class SpeedRun(SQLModel, table=True):
@@ -12,3 +15,10 @@ class SpeedRun(SQLModel, table=True):
     measure_ml: Optional[float] = None  
     notes: Optional[str] = None
     created_at: datetime = Field(default_factory=datetime.utcnow, nullable=False)
+
+    __table_args__ = (
+        sa.Index("ix_speed_runs_created_at", "created_at"),
+    )
+
+    # Optional relationship for eager loading
+    product_application: Optional[ProductApplication] = Relationship()

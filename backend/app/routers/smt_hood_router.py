@@ -4,6 +4,7 @@ import json
 import sqlalchemy as sa
 from fastapi import APIRouter, Depends, HTTPException, Query, Body, Path
 from sqlmodel import Session, select
+from sqlalchemy.orm import selectinload
 
 from app.db import get_session
 from app.auth import get_current_user, require_role
@@ -74,18 +75,20 @@ def create_smt_hood_run(
 
         by_flow[code] = (fl, smt_min, smt_max, hood_min, hood_max)
 
-    for code, (fl, smt_min, smt_max, hood_min, hood_max) in by_flow.items():
-        session.add(
-            SmtHoodPoint(
-                run_id=run.id,
-                flow_code=code,
-                flow_lpm=fl,
-                smt_min=smt_min,
-                smt_max=smt_max,
-                hood_min=hood_min,
-                hood_max=hood_max,
-            )
+    pts_to_save = [
+        SmtHoodPoint(
+            run_id=run.id,
+            flow_code=code,
+            flow_lpm=fl,
+            smt_min=smt_min,
+            smt_max=smt_max,
+            hood_min=hood_min,
+            hood_max=hood_max,
         )
+        for code, (fl, smt_min, smt_max, hood_min, hood_max) in by_flow.items()
+    ]
+    if pts_to_save:
+        session.bulk_save_objects(pts_to_save)
     session.commit()
 
     saved = session.exec(
@@ -140,18 +143,20 @@ def upsert_smt_hood_points(
     
     #upsert semplice: delete -> insert
     session.exec(sa.delete(SmtHoodPoint).where(SmtHoodPoint.run_id == run_id))
-    for code, (fl, smt_min, smt_max, hood_min, hood_max) in by_code.items():
-        session.add(
-            SmtHoodPoint(
-                run_id=run_id,
-                flow_code=code,
-                flow_lpm=fl,
-                smt_min=smt_min,
-                smt_max=smt_max,
-                hood_min=hood_min,
-                hood_max=hood_max,
-            )
+    pts_to_save = [
+        SmtHoodPoint(
+            run_id=run_id,
+            flow_code=code,
+            flow_lpm=fl,
+            smt_min=smt_min,
+            smt_max=smt_max,
+            hood_min=hood_min,
+            hood_max=hood_max,
         )
+        for code, (fl, smt_min, smt_max, hood_min, hood_max) in by_code.items()
+    ]
+    if pts_to_save:
+        session.bulk_save_objects(pts_to_save)
     session.commit()
 
     saved = session.exec(
@@ -198,6 +203,7 @@ def compute_smt_hood_kpis(
     session.commit()
 
     results = {}
+    metrics_to_save = []
     respray_vals, fluydo_vals, slippage_vals, ringing_vals = [], [], [], []
 
     # ---- per-flow: calcolo, scoring e persistenza metriche derivate ----
@@ -220,23 +226,29 @@ def compute_smt_hood_kpis(
         s_ringing  = score_or_422(session, "RINGING_RISK",  ringing_val)
 
         # Salva metriche derivate
-        def save_metric(code: str, value: float):
-            session.add(
-                TestMetric(
-                    run_type="SMT_HOOD",
-                    run_id=run.id,
-                    product_application_id=run.product_application_id,
-                    metric_code=code,
-                    value_num=float(value),
-                    unit="kPa",
-                    context_json=json.dumps({"flow_lpm": fl}),
-                )
-            )
-
-        save_metric("RESPRAY_VAL", respray_val)
-        save_metric("FLUYDODINAMIC_VAL", fluydo_val)
-        save_metric("SLIPPAGE_VAL", slippage_val)
-        save_metric("RINGING_VAL", ringing_val)
+        # Accumula metriche derivate per batch insert
+        metrics_to_save.extend([
+            TestMetric(
+                run_type="SMT_HOOD", run_id=run.id, product_application_id=run.product_application_id,
+                metric_code="RESPRAY_VAL", value_num=float(respray_val), unit="kPa",
+                context_json=json.dumps({"flow_lpm": fl}),
+            ),
+            TestMetric(
+                run_type="SMT_HOOD", run_id=run.id, product_application_id=run.product_application_id,
+                metric_code="FLUYDODINAMIC_VAL", value_num=float(fluydo_val), unit="kPa",
+                context_json=json.dumps({"flow_lpm": fl}),
+            ),
+            TestMetric(
+                run_type="SMT_HOOD", run_id=run.id, product_application_id=run.product_application_id,
+                metric_code="SLIPPAGE_VAL", value_num=float(slippage_val), unit="kPa",
+                context_json=json.dumps({"flow_lpm": fl}),
+            ),
+            TestMetric(
+                run_type="SMT_HOOD", run_id=run.id, product_application_id=run.product_application_id,
+                metric_code="RINGING_VAL", value_num=float(ringing_val), unit="kPa",
+                context_json=json.dumps({"flow_lpm": fl}),
+            ),
+        ])
 
         results[fl] = {
             "respray": {"value": respray_val, "score": s_respray},
@@ -249,6 +261,10 @@ def compute_smt_hood_kpis(
         fluydo_vals.append(fluydo_val)
         slippage_vals.append(slippage_val)
         ringing_vals.append(ringing_val)
+
+    # Persisti metriche derivate in batch
+    if metrics_to_save:
+        session.bulk_save_objects(metrics_to_save)
 
     # ---- KPI finali (medie 3 flow) + upsert in kpi_values ----
     def _avg(xs: list[float]) -> float:
@@ -319,7 +335,7 @@ def list_smt_hood_runs(
     session: Session = Depends(get_session),
     user=Depends(get_current_user),
 ):
-    q = select(SmtHoodRun)
+    q = select(SmtHoodRun).options(selectinload(SmtHoodRun.product_application))
     if product_application_id:
         q = q.where(SmtHoodRun.product_application_id == product_application_id)
     q = q.order_by(SmtHoodRun.created_at.desc()).limit(limit).offset(offset)
