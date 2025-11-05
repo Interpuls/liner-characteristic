@@ -154,6 +154,45 @@ def save_pref(payload: ProductPreferenceIn, session: Session = Depends(get_sessi
     session.refresh(pref)
     return pref
 
+#DELETE by ID
+@router.delete("/products/preferences/{pref_id}", status_code=204)
+def delete_preference_by_id(
+    pref_id: int,
+    session: Session = Depends(get_session),
+    user = Depends(get_current_user)
+):
+    pref = session.exec(
+        select(SearchPreference)
+        .where(SearchPreference.id == pref_id, SearchPreference.user_id == user.id)
+    ).first()
+
+    if not pref:
+        raise HTTPException(status_code=404, detail="Preference not found")
+
+    session.delete(pref)
+    session.commit()
+    return
+
+
+#DELETE by name 
+@router.delete("/products/preferences", status_code=204)
+def delete_preference_by_name(
+    name: str = Query(..., min_length=1),
+    session: Session = Depends(get_session),
+    user = Depends(get_current_user)
+):
+    pref = session.exec(
+        select(SearchPreference)
+        .where(SearchPreference.user_id == user.id, SearchPreference.name == name)
+    ).first()
+
+    if not pref:
+        raise HTTPException(status_code=404, detail="Preference not found")
+
+    session.delete(pref)
+    session.commit()
+    return
+
 
 # UTILS
 def _norm_compound(x: str | None) -> str:
