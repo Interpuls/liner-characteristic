@@ -176,17 +176,8 @@ def create_product(payload: ProductIn, session: Session = Depends(get_session)):
     only_admin = True if payload.only_admin is None else bool(payload.only_admin)
 
 #unicità (brand, model, compound)
-    dup = session.exec(
-        select(Product).where(
-            Product.brand == brand,
-            Product.model == model,
-            Product.compound == compound,
-        )
-    ).first()
-    if dup:
-        raise HTTPException(status_code=409, detail="Product with same brand, model and compound already exists")
-
-    try: #se questa nasce pubblica => demoto eventuali altre pubbliche di stesso brand/model
+    try:
+        # se questa nasce pubblica => demoto eventuali altre pubbliche di stesso brand/model
         if not only_admin:
             session.exec(
                 sa.update(Product)
@@ -198,50 +189,57 @@ def create_product(payload: ProductIn, session: Session = Depends(get_session)):
                 .values(only_admin=True)
             )
 
-        #code univoco
+        # Generazione code univoco con retry solo in caso di collisione su code
         base_code = payload.code or _slugify(f"{brand}-{model}-{compound}")
-        code = base_code
-        i = 1
-        while session.exec(select(Product).where(Product.code == code)).first():
-            i += 1
-            code = f"{base_code}-{i}"
+        suffix = 0
+        max_tries = 50
+        while True:
+            code = base_code if suffix == 0 else f"{base_code}-{suffix}"
 
-        #costruisci l'oggetto e forziamo i valori calcolati/corretti
-        data = payload.dict(exclude_unset=True)
-        data.update({
-            "code": code,
-            "name": payload.name or model or code,
-            "product_type": "liner",
-            "brand": brand,
-            "model": model,
-            "compound": compound,
-            "only_admin": only_admin,
-        })
+            data = payload.dict(exclude_unset=True)
+            data.update({
+                "code": code,
+                "name": payload.name or model or code,
+                "product_type": "liner",
+                "brand": brand,
+                "model": model,
+                "compound": compound,
+                "only_admin": only_admin,
+            })
 
-        obj = Product(**data)
-        session.add(obj)
-        session.flush()
+            obj = Product(**data)
+            session.add(obj)
+            try:
+                session.flush()
+            except IntegrityError as e:
+                # Gestisci collisioni su vincoli unici
+                session.rollback()
+                msg = str(getattr(e, "orig", e))
+                if "ux_products_code" in msg:
+                    # prova con un suffisso incrementale
+                    suffix += 1
+                    if suffix > max_tries:
+                        raise HTTPException(status_code=409, detail="Could not generate a unique product code")
+                    continue
+                if "ux_products_brand_model_compound" in msg:
+                    raise HTTPException(status_code=409, detail="Product with same brand, model and compound already exists")
+                # altri errori di integrità
+                raise HTTPException(status_code=409, detail="Could not create product")
 
-    #crea le 4 application standard
-        for size in (40, 50, 60, 70):
-            session.add(ProductApplication(
-                product_id=obj.id,
-                size_mm=size,
-                label=SIZE_LABELS[size],
-            ))
+            # crea le 4 application standard
+            for size in (40, 50, 60, 70):
+                session.add(ProductApplication(
+                    product_id=obj.id,
+                    size_mm=size,
+                    label=SIZE_LABELS[size],
+                ))
 
-        session.commit()
-        session.refresh(obj)
-        return obj
+            session.commit()
+            return obj
 
-    except IntegrityError as e:
-        session.rollback()
-        msg = str(getattr(e, "orig", e))
-        if "ux_products_brand_model_compound" in msg:
-            raise HTTPException(status_code=409, detail="Product with same brand, model and compound already exists")
-        if "ux_products_code" in msg:
-            raise HTTPException(status_code=409, detail="Product code already exists")
-        raise HTTPException(status_code=409, detail="Could not create product")
+    except HTTPException:
+        # già gestito sopra
+        raise
     except Exception:
         session.rollback()
         raise HTTPException(status_code=500, detail="Could not create product")
@@ -280,17 +278,6 @@ def update_product(product_id: int, payload: ProductIn, session: Session = Depen
     new_model = data.get("model", obj.model) or ""
     new_compound = data.get("compound", obj.compound)
  #Unicità (brand, model, compound) escludendo se stesso
-    dup = session.exec(
-        select(Product).where(
-            Product.id != product_id,
-            Product.brand == new_brand,
-            Product.model == new_model,
-            Product.compound == new_compound,
-        )
-    ).first()
-    if dup:
-        raise HTTPException(status_code=409, detail="Product with same brand, model and compound already exists")
-
     try:
         #Se diventa pubblico => demoto eventuali altri pubblici stesso brand/model
         becoming_public = ("only_admin" in data) and (data["only_admin"] is False)
@@ -306,12 +293,6 @@ def update_product(product_id: int, payload: ProductIn, session: Session = Depen
                 .values(only_admin=True)
             )
 
-    #Se cambia code, verifica univocità
-        if "code" in data and data["code"] != obj.code:
-            exists = session.exec(select(Product).where(Product.code == data["code"])).first()
-            if exists:
-                raise HTTPException(status_code=400, detail="Product code already exists")
-
         data.pop("product_type", None)
 
     #Applica la patch campo per campo
@@ -320,7 +301,6 @@ def update_product(product_id: int, payload: ProductIn, session: Session = Depen
     #Aggiorna i campi derivati che hai già in logica (se name non passato, NON lo tocco)
         session.add(obj)
         session.commit()
-        session.refresh(obj)
         return obj
 
     except IntegrityError as e:
