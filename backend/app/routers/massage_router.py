@@ -4,6 +4,7 @@ import json
 import sqlalchemy as sa
 from fastapi import APIRouter, Depends, HTTPException, Query, Body, Path
 from sqlmodel import Session, select, delete
+from sqlalchemy.orm import selectinload
 
 from app.db import get_session
 from app.auth import get_current_user, require_role
@@ -49,17 +50,21 @@ def create_massage_run(
         for p in pts
         if "pressure_kpa" in p and "min_val" in p and "max_val" in p
     }
+    points_to_save = []
     for kpa in [45, 40, 35]:
         p = by_p.get(kpa)
         if not p:
             continue
-        mp = MassagePoint(
-            run_id=run.id,
-            pressure_kpa=kpa,
-            min_val=float(p["min_val"]),
-            max_val=float(p["max_val"]),
+        points_to_save.append(
+            MassagePoint(
+                run_id=run.id,
+                pressure_kpa=kpa,
+                min_val=float(p["min_val"]),
+                max_val=float(p["max_val"]),
+            )
         )
-        session.add(mp)
+    if points_to_save:
+        session.bulk_save_objects(points_to_save)
 
     session.commit()
 
@@ -122,27 +127,28 @@ def compute_massage_kpis(
     session.exec(delete(TestMetric).where(TestMetric.run_type == "MASSAGE", TestMetric.run_id == run.id))
     session.commit()
 
-    #Salva metriche derivate
-    def _save_metric(code: str, value: float, unit: str | None = None, ctx: dict | None = None):
-        session.add(TestMetric(
-            run_type="MASSAGE",
-            run_id=run.id,
-            product_application_id=run.product_application_id,
-            metric_code=code,
-            value_num=float(value),
-            unit=unit,
-            context_json=json.dumps(ctx or {}),
-        ))
-
-    _save_metric("I45", I45)
-    _save_metric("I40", I40)
-    _save_metric("I35", I35)
-    _save_metric("AVG_OVERMILK", avg_overmilk)
-    _save_metric("AVG_PF", avg_pf)
-    _save_metric("DIFF_FROM_MAX", diff_from_max, unit="kPa")
-    _save_metric("DIFF_PCT", diff_pct, unit="%")
-    _save_metric("DROP_45_40", drop_45_to_40, unit="%")
-    _save_metric("DROP_40_35", drop_40_to_35, unit="%")
+    # Salva metriche derivate in batch
+    metrics = [
+        TestMetric(run_type="MASSAGE", run_id=run.id, product_application_id=run.product_application_id,
+                   metric_code="I45", value_num=float(I45), unit=None, context_json=json.dumps({})),
+        TestMetric(run_type="MASSAGE", run_id=run.id, product_application_id=run.product_application_id,
+                   metric_code="I40", value_num=float(I40), unit=None, context_json=json.dumps({})),
+        TestMetric(run_type="MASSAGE", run_id=run.id, product_application_id=run.product_application_id,
+                   metric_code="I35", value_num=float(I35), unit=None, context_json=json.dumps({})),
+        TestMetric(run_type="MASSAGE", run_id=run.id, product_application_id=run.product_application_id,
+                   metric_code="AVG_OVERMILK", value_num=float(avg_overmilk), unit=None, context_json=json.dumps({})),
+        TestMetric(run_type="MASSAGE", run_id=run.id, product_application_id=run.product_application_id,
+                   metric_code="AVG_PF", value_num=float(avg_pf), unit=None, context_json=json.dumps({})),
+        TestMetric(run_type="MASSAGE", run_id=run.id, product_application_id=run.product_application_id,
+                   metric_code="DIFF_FROM_MAX", value_num=float(diff_from_max), unit="kPa", context_json=json.dumps({})),
+        TestMetric(run_type="MASSAGE", run_id=run.id, product_application_id=run.product_application_id,
+                   metric_code="DIFF_PCT", value_num=float(diff_pct), unit="%", context_json=json.dumps({})),
+        TestMetric(run_type="MASSAGE", run_id=run.id, product_application_id=run.product_application_id,
+                   metric_code="DROP_45_40", value_num=float(drop_45_to_40), unit="%", context_json=json.dumps({})),
+        TestMetric(run_type="MASSAGE", run_id=run.id, product_application_id=run.product_application_id,
+                   metric_code="DROP_40_35", value_num=float(drop_40_to_35), unit="%", context_json=json.dumps({})),
+    ]
+    session.bulk_save_objects(metrics)
 
     session.commit()
 
@@ -213,7 +219,7 @@ def list_massage_runs(
     session: Session = Depends(get_session),
     user=Depends(get_current_user),
 ):
-    q = select(MassageRun)
+    q = select(MassageRun).options(selectinload(MassageRun.product_application))
     if product_application_id:
         q = q.where(MassageRun.product_application_id == product_application_id)
     q = q.order_by(MassageRun.created_at.desc()).limit(limit).offset(offset)
@@ -281,15 +287,17 @@ def upsert_massage_points(
         by_kpa[kpa] = p
     #Upsert semplice: cancella i punti esistenti del run e reinserisci quelli passati
     session.exec(delete(MassagePoint).where(MassagePoint.run_id == run_id))
-    for kpa, p in by_kpa.items():
-        session.add(
-            MassagePoint(
-                run_id=run_id,
-                pressure_kpa=kpa,
-                min_val=float(p.min_val),
-                max_val=float(p.max_val),
-            )
+    pts_to_save = [
+        MassagePoint(
+            run_id=run_id,
+            pressure_kpa=kpa,
+            min_val=float(p.min_val),
+            max_val=float(p.max_val),
         )
+        for kpa, p in by_kpa.items()
+    ]
+    if pts_to_save:
+        session.bulk_save_objects(pts_to_save)
     session.commit()
     #risposta coerente col GET latest
     saved = session.exec(

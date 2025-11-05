@@ -4,6 +4,7 @@ import json
 import sqlalchemy as sa
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlmodel import Session, select
+from sqlalchemy.orm import selectinload
 
 from app.db import get_session
 from app.auth import get_current_user, require_role
@@ -115,7 +116,7 @@ def list_speed_runs(
     session: Session = Depends(get_session),
     user=Depends(get_current_user),
 ):
-    q = select(SpeedRun)
+    q = select(SpeedRun).options(selectinload(SpeedRun.product_application))
     if product_application_id:
         q = q.where(SpeedRun.product_application_id == product_application_id)
     q = q.order_by(SpeedRun.created_at.desc()).limit(limit).offset(offset)

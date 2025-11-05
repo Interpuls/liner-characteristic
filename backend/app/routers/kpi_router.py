@@ -86,15 +86,18 @@ def upsert_kpi_scales(
 ):
     #pulizia e reinserimento (semplice e idempotente)
     session.exec(sa.delete(KpiScale).where(KpiScale.kpi_code == kpi_code))
-    for band in payload.bands:
-        obj = KpiScale(
+    objs = [
+        KpiScale(
             kpi_code=kpi_code,
             band_min=band.band_min,
             band_max=band.band_max,
             score=band.score,
             label=band.label,
         )
-        session.add(obj)
+        for band in payload.bands
+    ]
+    if objs:
+        session.bulk_save_objects(objs)
     session.commit()
     return {"ok": True}
 

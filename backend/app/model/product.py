@@ -1,6 +1,6 @@
 from datetime import datetime, date
-from typing import Optional
-from sqlmodel import SQLModel, Field
+from typing import Optional, List
+from sqlmodel import SQLModel, Field, Relationship
 import sqlalchemy as sa 
 
 #modello tabella prodotti
@@ -61,8 +61,12 @@ class Product(SQLModel, table=True):
         sa.UniqueConstraint("brand", "model", "compound", name="ux_products_brand_model_compound"),
         sa.UniqueConstraint("code", name="ux_products_code"),
         sa.Index("ix_products_name", "name"),
+        sa.Index("ix_products_created_at", "created_at"),
         {"sqlite_autoincrement": True},   
     )
+
+    # Relationship: a Product has many applications
+    applications: List["ProductApplication"] = Relationship(back_populates="product")
 
 
 class ProductApplication(SQLModel, table=True):
@@ -80,3 +84,10 @@ class ProductApplication(SQLModel, table=True):
     size_mm: int = Field(index=True)
     label: str | None = None
     created_at: datetime = Field(default_factory=datetime.utcnow, nullable=False)
+
+    __table_args__ = (
+        sa.Index("ix_product_applications_created_at", "created_at"),
+    )
+
+    # Relationship back to product
+    product: Optional[Product] = Relationship(back_populates="applications")

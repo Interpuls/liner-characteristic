@@ -1,5 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlmodel import Session, select
+from sqlalchemy.orm import selectinload
 from typing import Optional
 import sqlalchemy as sa
 import json
@@ -130,7 +131,7 @@ def list_tpp_runs(
     session: Session = Depends(get_session),
     user=Depends(get_current_user),
 ):
-    q = select(TppRun)
+    q = select(TppRun).options(selectinload(TppRun.product_application))
     if product_application_id:
         q = q.where(TppRun.product_application_id == product_application_id)
     q = q.order_by(TppRun.created_at.desc()).limit(limit).offset(offset)
