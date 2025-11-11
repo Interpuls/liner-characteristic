@@ -104,7 +104,7 @@ function TppRow({ pa, product, token, onDone }) {
             <Box>
               <Text fontSize="xs" color="gray.500" mb={1}>Real TPP</Text>
               <InputGroup>
-                <InputLeftAddon>mm</InputLeftAddon>
+                <InputLeftAddon>kPa</InputLeftAddon>
                 <Input
                   value={value}
                   onChange={(e) => setValue(e.target.value)}
