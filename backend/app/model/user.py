@@ -6,6 +6,10 @@ from sqlalchemy import UniqueConstraint, Index
 import sqlalchemy as sa
 from app.common.enums import UserRole
 
+class UnitSystem(str, Enum):
+    METRIC = "metric"
+    IMPERIAL = "imperial"
+
 #Modello Tabella USER
 class User(SQLModel, table=True):
     __tablename__ = "users"
@@ -30,3 +34,9 @@ class User(SQLModel, table=True):
         UniqueConstraint("email", name="uq_users_email"),
         Index("ix_users_role", "role"),
     )
+
+unit_system: UnitSystem = Field(
+        default=UnitSystem.METRIC,
+        nullable=False,
+        index=True
+        )
