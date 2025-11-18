@@ -5,6 +5,7 @@ import sqlalchemy as sa
 from fastapi import APIRouter, Depends, HTTPException, Query, Body, Path
 from sqlmodel import Session, select, delete
 from sqlalchemy.orm import selectinload
+from app.services.conversion_wrapper import convert_output
 
 from app.db import get_session
 from app.auth import get_current_user, require_role
@@ -21,6 +22,7 @@ router = APIRouter()
 # ---------------------------------------------------------------------------
 #Crea un nuovo run MASSAGE con i punti a diverse pressioni (45, 40, 35 kPa)
 @router.post("/runs", response_model=dict)
+@convert_output
 def create_massage_run(
     payload: dict = Body(...),
     session: Session = Depends(get_session),
@@ -91,6 +93,7 @@ def create_massage_run(
 #Calcola le metriche e i KPI (CONGESTION_RISK, HYPERKERATOSIS_RISK, FITTING)
 #per un run MASSAGE
 @router.post("/runs/{run_id}/compute", response_model=dict)
+@convert_output
 def compute_massage_kpis(
     run_id: int,
     session: Session = Depends(get_session),
@@ -212,6 +215,7 @@ def compute_massage_kpis(
 # ---------------------------------------------------------------------------
 
 @router.get("/runs", response_model=List[MassageRunOut])
+@convert_output
 def list_massage_runs(
     product_application_id: Optional[int] = None,
     limit: int = Query(50, ge=1, le=200),
@@ -227,6 +231,7 @@ def list_massage_runs(
 
 
 @router.get("/runs/latest", response_model=dict)
+@convert_output
 def get_latest_massage_run(
     product_application_id: int = Query(..., ge=1),
     session: Session = Depends(get_session),
@@ -266,6 +271,7 @@ def get_latest_massage_run(
 
 
 @router.put("/runs/{run_id}/points", response_model=dict)
+@convert_output
 def upsert_massage_points(
     run_id: int = Path(..., ge=1),
     points: List[MassagePointIn] = Body(...),

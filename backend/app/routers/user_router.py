@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlmodel import Session, select
 from typing import List
+from app.services.conversion_wrapper import convert_output
 
 from app.db import get_session
 from app.auth import get_current_user, require_role
@@ -14,11 +15,13 @@ router = APIRouter()
 
 #Restituisce i dati dell’utente autenticato
 @router.get("/me", response_model=UserRead)
+@convert_output
 def me(current_user: User = Depends(get_current_user)):
     return current_user
 
 #Restituisce la lista di tutti gli utenti (solo per admin)
 @router.get("/", response_model=List[UserRead])
+@convert_output
 def list_users(
     session: Session = Depends(get_session),
     _: User = Depends(require_role(UserRole.ADMIN)),  
@@ -28,6 +31,7 @@ def list_users(
 
 #Restituisce i dettagli di un singolo utente(solo per admin)
 @router.get("/{user_id}", response_model=UserRead)
+@convert_output
 def get_user(
     user_id: int,
     session: Session = Depends(get_session),
@@ -40,6 +44,7 @@ def get_user(
 
 #Elimina un utente (solo admin)
 @router.delete("/{user_id}", status_code=204)
+@convert_output
 def delete_user(
     user_id: int,
     session: Session = Depends(get_session),

@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, Path
 from sqlmodel import Session, select
 from sqlalchemy.exc import IntegrityError
+from app.services.conversion_wrapper import convert_output
 
 from app.db import get_session
 from app.auth import get_current_user, require_role
@@ -19,6 +20,7 @@ router = APIRouter()
     "/{product_id}/applications",
     response_model=list[ProductApplicationOut]
 )
+@convert_output
 def list_product_applications(
     product_id: int = Path(..., ge=1),
     session: Session = Depends(get_session),
@@ -41,6 +43,7 @@ def list_product_applications(
     response_model=ProductApplicationOut,
     dependencies=[Depends(require_role("admin"))],
 )
+@convert_output
 def create_product_application(
     product_id: int,
     payload: ProductApplicationIn,
@@ -72,6 +75,7 @@ def create_product_application(
     status_code=204,
     dependencies=[Depends(require_role("admin"))],
 )
+@convert_output
 def delete_product_application(
     product_id: int,
     app_id: int,

@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlmodel import Session, select
+from app.services.conversion_wrapper import convert_output
 
 from app.db import get_session
 from app.auth import hash_password, verify_password, create_access_token, get_current_user
@@ -17,6 +18,7 @@ ALLOWED_EMAIL_DOMAIN = "milkrite.com"  #eventualmente da spostare in un .env ??
 # ---------------- AUTH ENDPOINTS ----------------
 
 @router.post("/register", response_model=UserRead)
+@convert_output
 def register(payload: UserCreate, session: Session = Depends(get_session)):
     #Crea un nuovo utente (registrazione).
     #Consente solo indirizzi email aziendali.
@@ -39,6 +41,7 @@ def register(payload: UserCreate, session: Session = Depends(get_session)):
 
 #Effettua il login e genera un token JWT
 @router.post("/login", response_model=Token)
+@convert_output
 def login(
     form: OAuth2PasswordRequestForm = Depends(),
     session: Session = Depends(get_session),
@@ -56,5 +59,6 @@ def login(
     
 #Restituisce le informazioni dell’utente autenticato.
 @router.get("/me", response_model=UserRead)
+@convert_output
 def me(user: User = Depends(get_current_user)):
     return user

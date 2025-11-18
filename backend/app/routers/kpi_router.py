@@ -2,6 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlmodel import Session, select
 from sqlalchemy import delete
 import sqlalchemy as sa
+from app.services.conversion_wrapper import convert_output
 
 from app.db import get_session
 from app.auth import require_role, get_current_user
@@ -17,6 +18,7 @@ router = APIRouter()
 
 #Restituisce tutte le definizioni KPI ordinate per data di creazione
 @router.get("/", response_model=list[KpiDefOut])
+@convert_output
 def list_kpis(session: Session = Depends(get_session), user=Depends(get_current_user)):
     rows = session.exec(
         select(KpiDef).order_by(KpiDef.created_at.asc())
@@ -25,6 +27,7 @@ def list_kpis(session: Session = Depends(get_session), user=Depends(get_current_
 
 #Restituisce i KPI calcolati per una specifica product_application_id
 @router.get("/values", response_model=list[dict])
+@convert_output
 def list_kpis_for_application(
     product_application_id: int = Query(..., ge=1),
     session: Session = Depends(get_session),
@@ -52,6 +55,7 @@ def list_kpis_for_application(
 
 #Crea o aggiorna una definizione KPI (upsert). Solo admin.
 @router.post("/", response_model=KpiDefOut, dependencies=[Depends(require_role("admin"))])
+@convert_output
 def create_or_update_kpi(payload: KpiDefIn, session: Session = Depends(get_session)):
     existing = session.exec(select(KpiDef).where(KpiDef.code == payload.code)).first()
     if existing:
@@ -70,6 +74,7 @@ def create_or_update_kpi(payload: KpiDefIn, session: Session = Depends(get_sessi
 
 #Elimina una definizione KPI (solo admin).
 @router.delete("/{kpi_id}", status_code=204, dependencies=[Depends(require_role("admin"))])
+@convert_output
 def delete_kpi(kpi_id: int, session: Session = Depends(get_session)):
     item = session.get(KpiDef, kpi_id)
     if not item:
@@ -79,6 +84,7 @@ def delete_kpi(kpi_id: int, session: Session = Depends(get_session)):
 
 #Aggiorna (upsert) le scale di un KPI. Solo admin.
 @router.put("/{kpi_code}/scales", dependencies=[Depends(require_role("admin"))])
+@convert_output
 def upsert_kpi_scales(
     kpi_code: str,
     payload: KpiScaleUpsertIn,
@@ -103,6 +109,7 @@ def upsert_kpi_scales(
 
 #Restituisce le scale di un KPI in formato compatibile con il frontend
 @router.get("/{code}/scales")
+@convert_output
 def get_kpi_scales(
     code: str,
     session: Session = Depends(get_session),

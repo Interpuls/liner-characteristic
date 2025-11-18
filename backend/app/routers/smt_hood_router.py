@@ -5,6 +5,7 @@ import sqlalchemy as sa
 from fastapi import APIRouter, Depends, HTTPException, Query, Body, Path
 from sqlmodel import Session, select
 from sqlalchemy.orm import selectinload
+from app.services.conversion_wrapper import convert_output
 
 from app.db import get_session
 from app.auth import get_current_user, require_role
@@ -33,6 +34,7 @@ def _norm_flow(lpm: float) -> float:
 
 #Crea un nuovo SMT/HOOD run con i punti per diversi flow (0.5 / 1.9 / 3.6 L/min)
 @router.post("/runs", response_model=dict)
+@convert_output
 def create_smt_hood_run(
     payload: dict = Body(...),
     session: Session = Depends(get_session),
@@ -114,6 +116,7 @@ def create_smt_hood_run(
 
 #Aggiorna i punti SMT/HOOD per un determinato run
 @router.put("/runs/{run_id}/points", response_model=dict)
+@convert_output
 def upsert_smt_hood_points(
     run_id: int = Path(..., ge=1),
     points: List[SmtHoodPointIn] = Body(...),
@@ -182,6 +185,7 @@ def upsert_smt_hood_points(
 #Calcola i KPI derivati (RESPRAY, FLUYDODINAMIC, SLIPPAGE, RINGING_RISK)
 # per un run SMT/HOOD
 @router.post("/runs/{run_id}/compute", response_model=dict)
+@convert_output
 def compute_smt_hood_kpis(
     run_id: int,
     session: Session = Depends(get_session),
@@ -328,6 +332,7 @@ def compute_smt_hood_kpis(
 
 
 @router.get("/runs", response_model=List[SmtHoodRunOut])
+@convert_output
 def list_smt_hood_runs(
     product_application_id: Optional[int] = None,
     limit: int = Query(50, ge=1, le=200),
@@ -343,6 +348,7 @@ def list_smt_hood_runs(
 
 
 @router.get("/runs/latest", response_model=dict)
+@convert_output
 def get_latest_smt_hood_run(
     product_application_id: int = Query(..., ge=1),
     session: Session = Depends(get_session),

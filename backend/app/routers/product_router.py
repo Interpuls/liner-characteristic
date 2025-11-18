@@ -4,6 +4,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlmodel import Session, select, func
 from sqlalchemy.exc import IntegrityError
 from typing import List, Optional
+from app.services.conversion_wrapper import convert_output
 
 from app.db import get_session
 from app.auth import get_current_user, require_role
@@ -29,6 +30,7 @@ router = APIRouter()
 
 #META: distinct values per i dropdown
 @router.get("/meta", response_model=ProductMetaOut)
+@convert_output
 def products_meta(session: Session = Depends(get_session), user=Depends(get_current_user)):
     is_admin = getattr(user, "role", "") == "admin"
 
@@ -67,6 +69,7 @@ def products_meta(session: Session = Depends(get_session), user=Depends(get_curr
 
 # MODELS
 @router.get("/models", response_model=List[str])
+@convert_output
 def list_models_by_brand(
     brand: str = Query(...),
     session: Session = Depends(get_session),
@@ -85,6 +88,7 @@ def list_models_by_brand(
 
 #LIST con filtri base (senza KPI per ora)
 @router.get("/", response_model=List[ProductOut])
+@convert_output
 def list_products(
     session: Session = Depends(get_session),
     user=Depends(get_current_user),
@@ -124,6 +128,7 @@ def list_products(
 
 #PREFERENCES(salvataggio/lettura per utente)
 @router.get("/preferences", response_model=List[ProductPreferenceOut])
+@convert_output
 def list_prefs(session: Session = Depends(get_session), user=Depends(get_current_user)):
     q = (
         select(SearchPreference)
@@ -134,6 +139,7 @@ def list_prefs(session: Session = Depends(get_session), user=Depends(get_current
 
 
 @router.post("/preferences", response_model=ProductPreferenceOut)
+@convert_output
 def save_pref(payload: ProductPreferenceIn, session: Session = Depends(get_session), user=Depends(get_current_user)):
     existing = session.exec(
         select(SearchPreference).where(
@@ -156,6 +162,7 @@ def save_pref(payload: ProductPreferenceIn, session: Session = Depends(get_sessi
 
 #DELETE by ID
 @router.delete("/products/preferences/{pref_id}", status_code=204)
+@convert_output
 def delete_preference_by_id(
     pref_id: int,
     session: Session = Depends(get_session),
@@ -176,6 +183,7 @@ def delete_preference_by_id(
 
 #DELETE by name 
 @router.delete("/products/preferences", status_code=204)
+@convert_output
 def delete_preference_by_name(
     name: str = Query(..., min_length=1),
     session: Session = Depends(get_session),
@@ -208,6 +216,7 @@ def _slugify(s: str) -> str:
 
 # CREATE PRODUCT
 @router.post("/", response_model=ProductOut, dependencies=[Depends(require_role("admin"))])
+@convert_output
 def create_product(payload: ProductIn, session: Session = Depends(get_session)):
     brand = (payload.brand or "").strip()
     model = (payload.model or "").strip()
@@ -289,6 +298,7 @@ def create_product(payload: ProductIn, session: Session = Depends(get_session)):
 
 #GET 
 @router.get("/{product_id}", response_model=ProductOut)
+@convert_output
 def get_product(product_id: int, session: Session = Depends(get_session), user=Depends(get_current_user)):
     obj = session.get(Product, product_id)
     if not obj:
@@ -297,6 +307,7 @@ def get_product(product_id: int, session: Session = Depends(get_session), user=D
 
 #UPDATE
 @router.put("/{product_id}", response_model=ProductOut, dependencies=[Depends(require_role("admin"))])
+@convert_output
 def update_product(product_id: int, payload: ProductIn, session: Session = Depends(get_session)):
     obj = session.get(Product, product_id)
     if not obj:
@@ -359,6 +370,7 @@ def update_product(product_id: int, payload: ProductIn, session: Session = Depen
 
 #DELETE
 @router.delete("/{product_id}", status_code=204, dependencies=[Depends(require_role("admin"))])
+@convert_output
 def delete_product(product_id: int, session: Session = Depends(get_session)):
     obj = session.get(Product, product_id)
     if not obj:
