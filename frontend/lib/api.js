@@ -36,6 +36,12 @@ export const listProductPrefs = (token) => http("products/preferences", { token 
 export const saveProductPref = (token, name, filters) =>
   http("products/preferences", { method: "POST", token, body: { name, filters } });
 
+export const deleteProductPrefById = (token, prefId) =>
+  http(`products/preferences/${prefId}`, { method: "DELETE", token });
+
+export const deleteProductPrefByName = (token, name) =>
+  http(`products/preferences?name=${encodeURIComponent(name)}`, { method: "DELETE", token });
+
 
 export const createProduct = (token, body) =>
   http("products", { method: "POST", token, body });

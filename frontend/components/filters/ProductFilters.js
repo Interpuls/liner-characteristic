@@ -13,7 +13,7 @@ const TEAT_SIZE_OPTIONS = ["40", "50", "60", "70"]; // UI labels; non-influentia
 const BARREL_SHAPES = ["squared", "triangular", "round"];
 const PARLOR_TYPES = ["robot", "conventional"]; // robot => robot_liner=true; conventional => false
 
-export default function ProductFilters({ meta, onSelectionsChange, onConfirm, value }) {
+export default function ProductFilters({ meta, onSelectionsChange, onConfirm, value, onClear }) {
   // reference area
   const refArea = useDisclosure();
   const brandModel = useDisclosure();
@@ -185,6 +185,7 @@ export default function ProductFilters({ meta, onSelectionsChange, onConfirm, va
             setTeatSizes([]);
             setShapes([]);
             setParlor([]);
+            onClear?.();
           }}
           variant="link"
           color="gray.300"

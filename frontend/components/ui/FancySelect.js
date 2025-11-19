@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import {
   Menu, MenuButton, MenuList, MenuItem, Button, Box, HStack,
   Input, Text, Icon, Portal
@@ -6,7 +6,7 @@ import {
 import { ChevronDownIcon, CheckIcon, SearchIcon } from "@chakra-ui/icons";
 
 /**
- * options: array<string | {label: string, value: string}>
+ * options: array<string | {label: string, value: string, menuLabel?: ReactNode}>
  * value: string | "" (controllato)
  * onChange: (val: string) => void
  */
@@ -22,9 +22,15 @@ export default function FancySelect({
   menuZIndex = 1600,
   iconColor = "currentColor",
   menuColorMode = "light",
+  menuProps = {},
   ...btnProps
 }) {
   const [query, setQuery] = useState("");
+  const isMenuOpen = menuProps?.isOpen;
+
+  useEffect(() => {
+    if (!isMenuOpen) setQuery("");
+  }, [isMenuOpen]);
 
   const norm = (opt) =>
     typeof opt === "string" ? { label: opt, value: opt } : opt;
@@ -44,7 +50,7 @@ export default function FancySelect({
   const isDarkMenu = menuColorMode === "dark";
 
   return (
-    <Menu isLazy placement={menuPlacement}>
+    <Menu isLazy placement={menuPlacement} {...menuProps}>
       <MenuButton
         as={Button}
         w={w}
@@ -111,7 +117,7 @@ export default function FancySelect({
                   color={isDarkMenu ? "gray.200" : undefined}
                   _hover={isDarkMenu ? { bg: "whiteAlpha.100" } : undefined}
                 >
-                  {o.label}
+                  {o.menuLabel ?? o.label}
                 </MenuItem>
               ))
             )}
