@@ -43,7 +43,6 @@ def list_product_applications(
     response_model=ProductApplicationOut,
     dependencies=[Depends(require_role("admin"))],
 )
-@convert_output
 def create_product_application(
     product_id: int,
     payload: ProductApplicationIn,
@@ -75,7 +74,6 @@ def create_product_application(
     status_code=204,
     dependencies=[Depends(require_role("admin"))],
 )
-@convert_output
 def delete_product_application(
     product_id: int,
     app_id: int,

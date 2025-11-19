@@ -34,7 +34,6 @@ def _norm_flow(lpm: float) -> float:
 
 #Crea un nuovo SMT/HOOD run con i punti per diversi flow (0.5 / 1.9 / 3.6 L/min)
 @router.post("/runs", response_model=dict)
-@convert_output
 def create_smt_hood_run(
     payload: dict = Body(...),
     session: Session = Depends(get_session),
@@ -116,7 +115,6 @@ def create_smt_hood_run(
 
 #Aggiorna i punti SMT/HOOD per un determinato run
 @router.put("/runs/{run_id}/points", response_model=dict)
-@convert_output
 def upsert_smt_hood_points(
     run_id: int = Path(..., ge=1),
     points: List[SmtHoodPointIn] = Body(...),
@@ -185,7 +183,6 @@ def upsert_smt_hood_points(
 #Calcola i KPI derivati (RESPRAY, FLUYDODINAMIC, SLIPPAGE, RINGING_RISK)
 # per un run SMT/HOOD
 @router.post("/runs/{run_id}/compute", response_model=dict)
-@convert_output
 def compute_smt_hood_kpis(
     run_id: int,
     session: Session = Depends(get_session),

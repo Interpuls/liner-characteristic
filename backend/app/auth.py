@@ -28,8 +28,13 @@ oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/login")
 def now_utc():
     return datetime.utcnow()
 
-def create_access_token(sub: str, role: str) -> str:
-    to_encode = {"sub": sub, "role": role, "exp": now_utc() + timedelta(minutes=JWT_EXPIRE_MINUTES)}
+def create_access_token(sub: str, role: str, unit_system: str) -> str:
+    to_encode = {
+        "sub": sub,
+        "role": role,
+        "unit_system": unit_system,
+        "exp": now_utc() + timedelta(minutes=JWT_EXPIRE_MINUTES),
+    }
     return jwt.encode(to_encode, JWT_SECRET, algorithm=JWT_ALGORITHM)
 
 def verify_password(plain: str, hashed: str) -> bool:
@@ -44,9 +49,10 @@ def get_current_user(token: str = Depends(oauth2_scheme), session: Session = Dep
         payload = jwt.decode(token, JWT_SECRET, algorithms=[JWT_ALGORITHM])
         sub: Optional[str] = payload.get("sub")
         role: Optional[str] = payload.get("role")
+        unit_system: Optional[str] = payload.get("unit_system")
         if sub is None or role is None:
             raise cred_exc
-        token_data = TokenData(sub=sub, role=role)
+        token_data = TokenData(sub=sub, role=role, unit_system=unit_system)
     except JWTError:
         raise cred_exc
 

@@ -1,11 +1,11 @@
 from datetime import datetime
 from typing import Optional, List
-from pydantic import BaseModel
+from .base import MetricNormalizedModel
 
 
 #----------- MASSAGE schemas ----------
 #base
-class MassagePointBase(BaseModel):
+class MassagePointBase(MetricNormalizedModel):
     pressure_kpa: int  # 45, 40, 35
     min_val: float
     max_val: float
@@ -22,7 +22,7 @@ class MassagePointOut(MassagePointBase):
         from_attributes = True
 
 #base 
-class MassageRunBase(BaseModel):
+class MassageRunBase(MetricNormalizedModel):
     product_application_id: int
     performed_at: Optional[datetime] = None
     notes: Optional[str] = None

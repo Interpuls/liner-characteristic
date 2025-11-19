@@ -55,6 +55,16 @@ class UnitConverter:
         if lmin is None: return None
         return round(lmin * 0.264172052, 3)
 
+    @staticmethod
+    def lbmin_to_lmin(lbmin: Optional[float]) -> Optional[float]:
+        if lbmin is None: return None
+        return round(lbmin / 2.2046, 3)
+
+    @staticmethod
+    def gpm_to_lmin(gpm: Optional[float]) -> Optional[float]:
+        if gpm is None: return None
+        return round(gpm / 0.264172052, 3)
+
     # ---------------------------
     # Volume
     # ---------------------------
@@ -62,4 +72,9 @@ class UnitConverter:
     def ml_to_oz(ml: Optional[float]) -> Optional[float]:
         if ml is None: return None
         return round(ml * 0.033814, 3)
+
+    @staticmethod
+    def oz_to_ml(oz: Optional[float]) -> Optional[float]:
+        if oz is None: return None
+        return round(oz / 0.033814, 3)
 

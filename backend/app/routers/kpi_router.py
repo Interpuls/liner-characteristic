@@ -55,7 +55,6 @@ def list_kpis_for_application(
 
 #Crea o aggiorna una definizione KPI (upsert). Solo admin.
 @router.post("/", response_model=KpiDefOut, dependencies=[Depends(require_role("admin"))])
-@convert_output
 def create_or_update_kpi(payload: KpiDefIn, session: Session = Depends(get_session)):
     existing = session.exec(select(KpiDef).where(KpiDef.code == payload.code)).first()
     if existing:
@@ -74,7 +73,6 @@ def create_or_update_kpi(payload: KpiDefIn, session: Session = Depends(get_sessi
 
 #Elimina una definizione KPI (solo admin).
 @router.delete("/{kpi_id}", status_code=204, dependencies=[Depends(require_role("admin"))])
-@convert_output
 def delete_kpi(kpi_id: int, session: Session = Depends(get_session)):
     item = session.get(KpiDef, kpi_id)
     if not item:
@@ -84,7 +82,6 @@ def delete_kpi(kpi_id: int, session: Session = Depends(get_session)):
 
 #Aggiorna (upsert) le scale di un KPI. Solo admin.
 @router.put("/{kpi_code}/scales", dependencies=[Depends(require_role("admin"))])
-@convert_output
 def upsert_kpi_scales(
     kpi_code: str,
     payload: KpiScaleUpsertIn,

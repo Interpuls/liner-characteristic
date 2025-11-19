@@ -44,7 +44,6 @@ def get_user(
 
 #Elimina un utente (solo admin)
 @router.delete("/{user_id}", status_code=204)
-@convert_output
 def delete_user(
     user_id: int,
     session: Session = Depends(get_session),

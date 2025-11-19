@@ -1,13 +1,13 @@
 from datetime import datetime
 from typing import List, Optional, Dict, Any
-from pydantic import BaseModel, EmailStr
 from enum import Enum
+from .base import MetricNormalizedModel
 # Use the same enums as the ORM models to avoid mismatch
 from ..model.kpi import FormulaType, TestKind
 
 # --------------- KPI DEFINITIONS ----------------------
 
-class KpiDefBase(BaseModel):
+class KpiDefBase(MetricNormalizedModel):
     code: str
     name: str
     description: Optional[str] = None
@@ -31,19 +31,19 @@ class KpiDefOut(KpiDefBase):
 
 # --------------- KPI SCALE ----------------------------
 
-class KpiScaleBandIn(BaseModel):
+class KpiScaleBandIn(MetricNormalizedModel):
     band_min: float
     band_max: float
     score: int
     label: Optional[str] = None
 
 
-class KpiScaleUpsertIn(BaseModel):
+class KpiScaleUpsertIn(MetricNormalizedModel):
     bands: List[KpiScaleBandIn]
 
 # --------------- KPI VALUES -----------------------------
 
-class KpiValueOut(BaseModel):
+class KpiValueOut(MetricNormalizedModel):
     kpi_code: str
     value_num: float
     score: int

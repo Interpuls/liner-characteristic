@@ -24,7 +24,6 @@ router = APIRouter()
 
 #Crea un nuovo TPP run per una specifica Product Application
 @router.post("/runs", response_model=TppRunOut)
-@convert_output
 def create_tpp_run(
     payload: TppRunIn,
     session: Session = Depends(get_session),
@@ -48,7 +47,6 @@ def create_tpp_run(
 
 #Calcola e salva i KPI per un TPP run specifico
 @router.post("/runs/{run_id}/compute", response_model=list[KpiValueOut])
-@convert_output
 def compute_tpp_kpis(
     run_id: int,
     session: Session = Depends(get_session),

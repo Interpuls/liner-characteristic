@@ -1,5 +1,7 @@
 from typing import Optional
-from pydantic import BaseModel, EmailStr, condecimal, constr
+from pydantic import EmailStr, condecimal, constr
+from .base import MetricNormalizedModel
+from .user import UnitSystem
 
 
 # ------------------------------------------------------
@@ -15,16 +17,18 @@ Num01 = condecimal(ge=0, max_digits=6, decimal_places=3)
 # ------------------------------------------------------
 
 #token restituito al login
-class Token(BaseModel):
+class Token(MetricNormalizedModel):
     access_token: str
     token_type: str = "bearer"
+    unit_system: UnitSystem = UnitSystem.METRIC
 
 #dati del token
-class TokenData(BaseModel):
+class TokenData(MetricNormalizedModel):
     sub: Optional[str] = None  # email o user_id
     role: Optional[str] = None  # ruolo utente (admin/user)
+    unit_system: Optional[UnitSystem] = None
 
 #credenziali
-class LoginInput(BaseModel):
+class LoginInput(MetricNormalizedModel):
     email: EmailStr
     password: str

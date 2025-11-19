@@ -22,7 +22,6 @@ router = APIRouter()
 # ---------------------------------------------------------------------------
 #Crea un nuovo run MASSAGE con i punti a diverse pressioni (45, 40, 35 kPa)
 @router.post("/runs", response_model=dict)
-@convert_output
 def create_massage_run(
     payload: dict = Body(...),
     session: Session = Depends(get_session),
@@ -93,7 +92,6 @@ def create_massage_run(
 #Calcola le metriche e i KPI (CONGESTION_RISK, HYPERKERATOSIS_RISK, FITTING)
 #per un run MASSAGE
 @router.post("/runs/{run_id}/compute", response_model=dict)
-@convert_output
 def compute_massage_kpis(
     run_id: int,
     session: Session = Depends(get_session),
@@ -271,7 +269,6 @@ def get_latest_massage_run(
 
 
 @router.put("/runs/{run_id}/points", response_model=dict)
-@convert_output
 def upsert_massage_points(
     run_id: int = Path(..., ge=1),
     points: List[MassagePointIn] = Body(...),

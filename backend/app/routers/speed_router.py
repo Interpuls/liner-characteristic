@@ -23,7 +23,6 @@ router = APIRouter()
 
 #Crea un nuovo run SPEED con le misurazioni di portata
 @router.post("/runs", response_model=SpeedRunOut)
-@convert_output
 def create_speed_run(
     payload: SpeedRunIn,
     session: Session = Depends(get_session),
@@ -42,7 +41,6 @@ def create_speed_run(
 
 #Calcola il KPI SPEED per il run specificato
 @router.post("/runs/{run_id}/compute", response_model=List[KpiValueOut])
-@convert_output
 def compute_speed_kpis(
     run_id: int,
     session: Session = Depends(get_session),

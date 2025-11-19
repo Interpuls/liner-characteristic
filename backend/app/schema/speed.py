@@ -1,12 +1,12 @@
 from datetime import datetime
 from typing import Optional
-from pydantic import BaseModel
+from .base import MetricNormalizedModel
 
 
 # ---------------- SPEED SCHEMAS ----------------
 
 #base
-class SpeedRunBase(BaseModel):
+class SpeedRunBase(MetricNormalizedModel):
     product_application_id: int
     performed_at: Optional[datetime] = None
     notes: Optional[str] = None

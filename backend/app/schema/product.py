@@ -1,11 +1,12 @@
 from datetime import datetime
 from typing import List, Optional, Dict, Any, ClassVar
-from pydantic import BaseModel, validator, Field
+from pydantic import validator, Field
 from enum import Enum
+from .base import MetricNormalizedModel
 
 
 #product schemas
-class ProductBase(BaseModel):
+class ProductBase(MetricNormalizedModel):
     code: Optional[str] = None
     name: Optional[str] = None
     description: Optional[str] = None
@@ -105,12 +106,12 @@ class ProductOut(ProductBase):
 # ------------------ PRODUCT PREFERENCE SCHEMAS ------------------
 #classi per salvataggio filtri 
 
-class ProductPreferenceIn(BaseModel):
+class ProductPreferenceIn(MetricNormalizedModel):
     name: str
     filters: Dict[str, Any] 
 
 
-class ProductPreferenceOut(BaseModel):
+class ProductPreferenceOut(MetricNormalizedModel):
     id: int
     name: str
     filters: Dict[str, Any]
@@ -121,7 +122,7 @@ class ProductPreferenceOut(BaseModel):
 
 # ------------------ PRODUCT META SCHEMA ------------------
 
-class ProductMetaOut(BaseModel):
+class ProductMetaOut(MetricNormalizedModel):
     product_types: List[str]
     brands: List[str]
     models: List[str]
@@ -142,7 +143,7 @@ SIZE_LABELS = {
 }
 
 
-class ProductApplicationIn(BaseModel):
+class ProductApplicationIn(MetricNormalizedModel):
     size_mm: int = Field(..., description="One of 40, 50, 60, 70")
     label: Optional[str] = None
 
@@ -155,7 +156,7 @@ class ProductApplicationIn(BaseModel):
     # placeholder for future validators
 
 
-class ProductApplicationOut(BaseModel):
+class ProductApplicationOut(MetricNormalizedModel):
     id: int
     product_id: int
     size_mm: int
