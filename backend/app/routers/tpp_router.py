@@ -4,6 +4,7 @@ from sqlalchemy.orm import selectinload
 from typing import Optional
 import sqlalchemy as sa
 import json
+from app.services.conversion_wrapper import convert_output
 
 from app.db import get_session
 from app.auth import get_current_user, require_role
@@ -124,6 +125,7 @@ def compute_tpp_kpis(
 
 #Restituisce tutti i run TPP, con filtro per product_application_id
 @router.get("/runs", response_model=list[TppRunOut])
+@convert_output
 def list_tpp_runs(
     product_application_id: Optional[int] = None,
     limit: int = Query(50, ge=1, le=200),
@@ -139,6 +141,7 @@ def list_tpp_runs(
 
 #Restituisce i KPI calcolati per un run TPP specifico
 @router.get("/runs/{run_id}/kpis", response_model=list[KpiValueOut])
+@convert_output
 def get_tpp_run_kpis(
     run_id: int,
     session: Session = Depends(get_session),
@@ -157,6 +160,7 @@ def get_tpp_run_kpis(
 
 #Restituisce l'ultimo run TPP per una determinata Product Application
 @router.get("/last-run-by-application/{product_application_id}", response_model=Optional[TppRunOut])
+@convert_output
 def get_last_tpp_run_for_application(
     product_application_id: int,
     session: Session = Depends(get_session),

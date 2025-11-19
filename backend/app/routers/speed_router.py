@@ -5,6 +5,7 @@ import sqlalchemy as sa
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlmodel import Session, select
 from sqlalchemy.orm import selectinload
+from app.services.conversion_wrapper import convert_output
 
 from app.db import get_session
 from app.auth import get_current_user, require_role
@@ -109,6 +110,7 @@ def compute_speed_kpis(
 
 #Restituisce la lista dei run SPEED
 @router.get("/runs", response_model=List[SpeedRunOut])
+@convert_output
 def list_speed_runs(
     product_application_id: Optional[int] = None,
     limit: int = Query(50, ge=1, le=200),
@@ -124,6 +126,7 @@ def list_speed_runs(
 
 #Restituisce i KPI calcolati per un run SPEED specifico
 @router.get("/runs/{run_id}/kpis", response_model=List[KpiValueOut])
+@convert_output
 def get_speed_run_kpis(
     run_id: int,
     session: Session = Depends(get_session),
@@ -141,6 +144,7 @@ def get_speed_run_kpis(
 
 #Restituisce l’ultimo run SPEED per una determinata application
 @router.get("/last-run-by-application/{product_application_id}", response_model=Optional[SpeedRunOut])
+@convert_output
 def get_last_speed_run_for_application(
     product_application_id: int,
     session: Session = Depends(get_session),

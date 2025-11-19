@@ -1,12 +1,12 @@
 from datetime import datetime
 from typing import Optional, List
-from pydantic import BaseModel
+from .base import MetricNormalizedModel
 
 
 # ---------------- SMT/HOOD SCHEMAS ----------------
 
 #base
-class SmtHoodPointBase(BaseModel):
+class SmtHoodPointBase(MetricNormalizedModel):
     flow_lpm: float                 # 0.5, 1.9, 3.6
     smt_min: float
     smt_max: float
@@ -27,7 +27,7 @@ class SmtHoodPointOut(SmtHoodPointBase):
         from_attributes = True
 
 #base
-class SmtHoodRunBase(BaseModel):
+class SmtHoodRunBase(MetricNormalizedModel):
     product_application_id: int
     performed_at: Optional[datetime] = None
     notes: Optional[str] = None

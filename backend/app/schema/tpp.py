@@ -1,11 +1,11 @@
 from datetime import datetime
 from typing import Optional
-from pydantic import BaseModel
+from .base import MetricNormalizedModel
 
 
 # ---------------- TPP SCHEMAS ----------------
 
-class TppRunBase(BaseModel):
+class TppRunBase(MetricNormalizedModel):
     product_application_id: int
     performed_at: Optional[datetime] = None
     real_tpp: Optional[float] = None

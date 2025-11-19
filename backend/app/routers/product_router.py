@@ -4,6 +4,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlmodel import Session, select, func
 from sqlalchemy.exc import IntegrityError
 from typing import List, Optional
+from app.services.conversion_wrapper import convert_output
 
 from app.db import get_session
 from app.auth import get_current_user, require_role
@@ -29,6 +30,7 @@ router = APIRouter()
 
 #META: distinct values per i dropdown
 @router.get("/meta", response_model=ProductMetaOut)
+@convert_output
 def products_meta(session: Session = Depends(get_session), user=Depends(get_current_user)):
     is_admin = getattr(user, "role", "") == "admin"
 
@@ -67,6 +69,7 @@ def products_meta(session: Session = Depends(get_session), user=Depends(get_curr
 
 # MODELS
 @router.get("/models", response_model=List[str])
+@convert_output
 def list_models_by_brand(
     brand: str = Query(...),
     session: Session = Depends(get_session),
@@ -85,6 +88,7 @@ def list_models_by_brand(
 
 #LIST con filtri base (senza KPI per ora)
 @router.get("/", response_model=List[ProductOut])
+@convert_output
 def list_products(
     session: Session = Depends(get_session),
     user=Depends(get_current_user),
@@ -124,6 +128,7 @@ def list_products(
 
 #PREFERENCES(salvataggio/lettura per utente)
 @router.get("/preferences", response_model=List[ProductPreferenceOut])
+@convert_output
 def list_prefs(session: Session = Depends(get_session), user=Depends(get_current_user)):
     q = (
         select(SearchPreference)
@@ -289,6 +294,7 @@ def create_product(payload: ProductIn, session: Session = Depends(get_session)):
 
 #GET 
 @router.get("/{product_id}", response_model=ProductOut)
+@convert_output
 def get_product(product_id: int, session: Session = Depends(get_session), user=Depends(get_current_user)):
     obj = session.get(Product, product_id)
     if not obj:

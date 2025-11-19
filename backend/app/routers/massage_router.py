@@ -5,6 +5,7 @@ import sqlalchemy as sa
 from fastapi import APIRouter, Depends, HTTPException, Query, Body, Path
 from sqlmodel import Session, select, delete
 from sqlalchemy.orm import selectinload
+from app.services.conversion_wrapper import convert_output
 
 from app.db import get_session
 from app.auth import get_current_user, require_role
@@ -212,6 +213,7 @@ def compute_massage_kpis(
 # ---------------------------------------------------------------------------
 
 @router.get("/runs", response_model=List[MassageRunOut])
+@convert_output
 def list_massage_runs(
     product_application_id: Optional[int] = None,
     limit: int = Query(50, ge=1, le=200),
@@ -227,6 +229,7 @@ def list_massage_runs(
 
 
 @router.get("/runs/latest", response_model=dict)
+@convert_output
 def get_latest_massage_run(
     product_application_id: int = Query(..., ge=1),
     session: Session = Depends(get_session),

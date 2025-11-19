@@ -2,6 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlmodel import Session, select
 from sqlalchemy import delete
 import sqlalchemy as sa
+from app.services.conversion_wrapper import convert_output
 
 from app.db import get_session
 from app.auth import require_role, get_current_user
@@ -17,6 +18,7 @@ router = APIRouter()
 
 #Restituisce tutte le definizioni KPI ordinate per data di creazione
 @router.get("/", response_model=list[KpiDefOut])
+@convert_output
 def list_kpis(session: Session = Depends(get_session), user=Depends(get_current_user)):
     rows = session.exec(
         select(KpiDef).order_by(KpiDef.created_at.asc())
@@ -25,6 +27,7 @@ def list_kpis(session: Session = Depends(get_session), user=Depends(get_current_
 
 #Restituisce i KPI calcolati per una specifica product_application_id
 @router.get("/values", response_model=list[dict])
+@convert_output
 def list_kpis_for_application(
     product_application_id: int = Query(..., ge=1),
     session: Session = Depends(get_session),
@@ -103,6 +106,7 @@ def upsert_kpi_scales(
 
 #Restituisce le scale di un KPI in formato compatibile con il frontend
 @router.get("/{code}/scales")
+@convert_output
 def get_kpi_scales(
     code: str,
     session: Session = Depends(get_session),

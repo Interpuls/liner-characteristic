@@ -1,9 +1,10 @@
 from datetime import datetime
 from typing import List, Optional
-from pydantic import BaseModel, constr
+from pydantic import constr
+from .base import MetricNormalizedModel
 
 # --------------- TEST TYPE SCHEMAS ----------------------------------
-class TestTypeBase(BaseModel):
+class TestTypeBase(MetricNormalizedModel):
     code: constr(min_length=1, max_length=50)
     name: str
     description: Optional[str] = None
