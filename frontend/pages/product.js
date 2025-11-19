@@ -1,11 +1,37 @@
 // pages/products.js
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/router";
 import NextLink from "next/link";
-import { Box, Heading, Button, HStack, useToast, Card, CardBody, CardHeader, Show, IconButton } from "@chakra-ui/react";
-import { ChevronLeftIcon } from "@chakra-ui/icons";
+import {
+  Box,
+  Heading,
+  Button,
+  HStack,
+  useToast,
+  Card,
+  CardBody,
+  CardHeader,
+  Show,
+  IconButton,
+  Text,
+  Modal,
+  ModalOverlay,
+  ModalContent,
+  ModalHeader,
+  ModalBody,
+  ModalFooter,
+  ModalCloseButton,
+  useDisclosure,
+} from "@chakra-ui/react";
+import { ChevronLeftIcon, DeleteIcon } from "@chakra-ui/icons";
 import { getToken } from "../lib/auth";
-import { getMe, getProductsMeta, listProductPrefs, saveProductPref } from "../lib/api";
+import {
+  getMe,
+  getProductsMeta,
+  listProductPrefs,
+  deleteProductPrefById,
+  deleteProductPrefByName,
+} from "../lib/api";
 
 import ProductFilters from "../components/filters/ProductFilters";
 import FancySelect from "../components/ui/FancySelect";
@@ -21,6 +47,9 @@ export default function Products() {
   const [prefId, setPrefId] = useState("");
   const [loadedPref, setLoadedPref] = useState(null);
   const [presetFromQuery, setPresetFromQuery] = useState(null);
+  const [prefToDelete, setPrefToDelete] = useState(null);
+  const [isDeletingPref, setIsDeletingPref] = useState(false);
+  const prefMenuDisclosure = useDisclosure();
 
   useEffect(() => {
     const t = getToken();
@@ -78,8 +107,91 @@ export default function Products() {
     router.push(`/product/result?${params.toString()}`);
   };
 
-  const onResetLocal = () => {
-    // ProductFilters owns state and provides bottom Reset; nothing to do here.
+  const onClearFilters = () => {
+    setPrefId("");
+    setLoadedPref(null);
+    setPresetFromQuery(null);
+    prefMenuDisclosure.onClose();
+  };
+
+  const closePrefMenu = prefMenuDisclosure?.onClose;
+
+  const prefOptions = useMemo(() => {
+    return prefs.map((pref) => ({
+      label: pref.name,
+      value: String(pref.id),
+      menuLabel: (
+        <HStack w="full" spacing={3}>
+          <Box flex="1" textAlign="left">
+            <Text isTruncated>{pref.name}</Text>
+          </Box>
+          <IconButton
+            aria-label={`Elimina ${pref.name}`}
+            icon={<DeleteIcon />}
+            size="xs"
+            colorScheme="red"
+            variant="ghost"
+            onMouseDown={(evt) => {
+              evt.preventDefault();
+              evt.stopPropagation();
+            }}
+            onClick={(evt) => {
+              evt.preventDefault();
+              evt.stopPropagation();
+              closePrefMenu?.();
+              setPrefToDelete(pref);
+            }}
+          />
+        </HStack>
+      ),
+    }));
+  }, [prefs, closePrefMenu]);
+
+  const closeDeleteModal = () => {
+    if (isDeletingPref) return;
+    setPrefToDelete(null);
+  };
+
+  const confirmDeletePref = async () => {
+    if (!prefToDelete) return;
+    const token = getToken();
+    if (!token) {
+      toast({ status: "error", title: "Sessione scaduta" });
+      window.location.replace("/login");
+      return;
+    }
+    setIsDeletingPref(true);
+    try {
+      try {
+        await deleteProductPrefById(token, prefToDelete.id);
+      } catch (err) {
+        if (prefToDelete.name && err?.status === 404) {
+          await deleteProductPrefByName(token, prefToDelete.name);
+        } else {
+          throw err;
+        }
+      }
+      setPrefs((prev) =>
+        prev.filter(
+          (p) =>
+            String(p.id) !== String(prefToDelete.id) &&
+            (prefToDelete.name ? p.name !== prefToDelete.name : true)
+        )
+      );
+      if (String(prefId) === String(prefToDelete.id)) {
+        setPrefId("");
+      }
+      toast({ status: "success", title: "Preference deleted" });
+    } catch (err) {
+      toast({
+        status: "error",
+        title: "Deletion error",
+        description: err?.message || "Unable to delete preference",
+      });
+    } finally {
+      setIsDeletingPref(false);
+      setPrefToDelete(null);
+    }
   };
 
   // save is now handled in results page
@@ -155,10 +267,11 @@ export default function Products() {
             {/* Preference research selector below header, no back icon */}
             <HStack justify="flex-start" mb={{ base: 5, md: 6 }} align="center">
               <FancySelect
-                options={prefs.map(p => ({ label: p.name, value: String(p.id) }))}
+                options={prefOptions}
                 value={prefId}
                 onChange={setPrefId}
                 placeholder="Preference research"
+                menuProps={prefMenuDisclosure}
                 size="sm"
                 w={{ base:"full", md:"320px" }}
                 variant="solid"
@@ -171,7 +284,13 @@ export default function Products() {
                 menuColorMode="dark"
               />
             </HStack>
-            <ProductFilters meta={meta} onSelectionsChange={setSelection} onConfirm={onConfirm} value={presetFromQuery || loadedPref} />
+            <ProductFilters
+              meta={meta}
+              onSelectionsChange={setSelection}
+              onConfirm={onConfirm}
+              value={presetFromQuery || loadedPref}
+              onClear={onClearFilters}
+            />
           </CardBody>
         </Card>
 
@@ -183,6 +302,30 @@ export default function Products() {
       </Box>
 
       {/* Save modal removed; Save action lives in results page */}
+      <Modal isOpen={!!prefToDelete} onClose={closeDeleteModal} isCentered>
+        <ModalOverlay />
+        <ModalContent bg="#0c1f44" color="white">
+          <ModalHeader>Elimina preference</ModalHeader>
+          <ModalCloseButton />
+          <ModalBody>
+            <Text>
+              Sei sicuro di voler eliminare la preference{" "}
+              <Text as="span" fontWeight="semibold">
+                {prefToDelete?.name}
+              </Text>
+              ?
+            </Text>
+          </ModalBody>
+          <ModalFooter gap={3}>
+            <Button onClick={closeDeleteModal} variant="outline" colorScheme="whiteAlpha" isDisabled={isDeletingPref}>
+              Annulla
+            </Button>
+            <Button colorScheme="red" onClick={confirmDeletePref} isLoading={isDeletingPref}>
+              Elimina
+            </Button>
+          </ModalFooter>
+        </ModalContent>
+      </Modal>
     </>
   );
 }
