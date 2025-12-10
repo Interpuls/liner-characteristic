@@ -29,11 +29,16 @@ class User(SQLModel, table=True):
     is_active: bool = Field(default=True)
     created_at: datetime = Field(default_factory=datetime.utcnow, nullable=False)
     unit_system: UnitSystem = Field(
-        default=UnitSystem.METRIC,
+        default=UnitSystem.metric,
         sa_column=sa.Column(
-            sa.Enum(UnitSystem, values_callable=lambda x: [e.value for e in x]),
+            sa.Enum(
+                "metric",
+                "imperial",
+                name="unitsystem",
+                create_type=False,
+            ),
             nullable=False,
-            default=UnitSystem.METRIC.value,
+            server_default="metric",
         ),
     )
 
