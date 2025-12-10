@@ -17,6 +17,9 @@ backend/app.db-wal
 backend/app.db-shm
 backend/*.db
 backend/app.db
+backend/app.db-wal
+backend/app.db-shm
+backend/*.db
 
 # Env & secrets
 *.env
