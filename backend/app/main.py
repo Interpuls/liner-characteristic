@@ -17,11 +17,12 @@ from app.routers import (
 app = FastAPI(
     title="Liner Characteristic API",
     version="1.0.0",
-    description="Backend per la gestione delle caratteristiche dei liner e test KPI."
+    description="Backend per la gestione delle caratteristiche dei liner e test KPI.",
+    debug=True
 )
 
 logger = logging.getLogger("liner-backend")
-logging.basicConfig(level=logging.INFO)
+logging.basicConfig(level=logging.DEBUG)
 
 @app.on_event("startup")
 def on_startup():
