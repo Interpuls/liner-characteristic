@@ -18,6 +18,7 @@ import { getMe, listProducts, saveProductPref, listProductApplications, getKpiVa
 import { latestKpiByCode } from "../../lib/kpi";
 import { RiFlaskLine } from "react-icons/ri";
 import { TbChartRadar, TbArrowsRightLeft } from "react-icons/tb";
+import { formatTeatSize } from "../../lib/teatSizes";
 
 export default function ProductsSearchPage() {
   const router = useRouter();
@@ -550,7 +551,9 @@ export default function ProductsSearchPage() {
                 <VStack align="stretch" spacing={2}>
                   {filteredList.map(it => (
                     <HStack key={it.key} justify="space-between">
-                      <Text fontSize="sm">{it.brand} {it.model} • {it.size_mm} mm</Text>
+                      <Text fontSize="sm">
+                        {it.brand} {it.model} • {formatTeatSize(it.size_mm)}{it.size_mm ? ` (${it.size_mm} mm)` : ""}
+                      </Text>
                       <input type="checkbox" checked={selSelected.has(it.key)} onChange={() => toggleSel(it.key)} />
                     </HStack>
                   ))}

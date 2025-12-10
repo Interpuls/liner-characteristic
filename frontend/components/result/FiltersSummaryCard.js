@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Card, CardHeader, CardBody, Heading, Stack, HStack, Tag, TagLabel, Button, Text, IconButton, Spacer } from "@chakra-ui/react";
 import { ChevronDownIcon } from "@chakra-ui/icons";
+import { formatTeatSize } from "../../lib/teatSizes";
 
 function toList(val) {
   if (Array.isArray(val)) return val.filter(Boolean).map(String);
@@ -12,7 +13,7 @@ export default function FiltersSummaryCard({ brand, model, teat_size, areas = []
   const [open, setOpen] = useState(false);
   const brandsList = toList(brand);
   const modelsList = toList(model);
-  const teatList = toList(teat_size);
+  const teatList = toList(teat_size).map(formatTeatSize);
   const areasList = Array.isArray(areas) ? areas : toList(areas);
   const shapesList = toList(barrel_shape);
   return (

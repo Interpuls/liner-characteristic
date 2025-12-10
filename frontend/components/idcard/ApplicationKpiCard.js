@@ -4,6 +4,7 @@ import { getToken } from "../../lib/auth";
 import { getKpiValuesByPA } from "../../lib/api";
 import { latestKpiByCode } from "../../lib/kpi";
 // import { AppSizePill } from "../ui/AppSizePill";
+import { formatTeatSize } from "../../lib/teatSizes";
 
 // Small helper for score color
 const scoreColor = (s) =>
@@ -73,7 +74,7 @@ export default function ApplicationKpiCard({ application, product, kpisByCode })
     return () => { alive = false; };
   }, [application?.id, kpisByCode]);
 
-  const sizeLabel = useMemo(() => `${application?.size_mm} mm`, [application?.size_mm]);
+  const sizeLabel = useMemo(() => formatTeatSize(application?.size_mm), [application?.size_mm]);
   const sizeValue = useMemo(() => (application?.size_mm != null ? String(application.size_mm) : ''), [application?.size_mm]);
 
   return (
@@ -89,8 +90,8 @@ export default function ApplicationKpiCard({ application, product, kpisByCode })
       <SimpleGrid columns={{ base: 9, md: 12 }} gap={{ base: 1, md: 3 }} alignItems="center">
         <GridItem colSpan={{ base: 0, md: 3 }} display={{ base: 'none', md: 'block' }}>
           <VStack spacing={0.5} align="center">
-            <Text fontSize="xs" color="gray.600" textAlign="center">Teat Size (mm)</Text>
-            <Text fontSize="lg" fontWeight="semibold" textAlign="center" color="#12305f">{sizeValue}</Text>
+            <Text fontSize="xs" color="gray.600" textAlign="center">Teat Size</Text>
+            <Text fontSize="lg" fontWeight="semibold" textAlign="center" color="#12305f">{sizeLabel}</Text>
           </VStack>
         </GridItem>
         {KPI_ORDER.map((code) => (

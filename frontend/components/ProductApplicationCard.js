@@ -5,6 +5,7 @@ import { getToken } from "../lib/auth";
 import { listProductApplications, getKpiValuesByPA } from "../lib/api";
 import { latestKpiByCode } from "../lib/kpi";
 import { AppSizePill } from "./ui/AppSizePill";
+import { formatTeatSize } from "../lib/teatSizes";
 
 // Small helper for score color
 const scoreColor = (s) =>
@@ -98,7 +99,7 @@ export default function ProductApplicationCard({ productId, brand, model, sizeMm
     return () => { alive = false; };
   }, [productId, sizeMm]);
 
-  const sizeLabel = useMemo(() => `${sizeMm} mm`, [sizeMm]);
+  const sizeLabel = useMemo(() => formatTeatSize(sizeMm), [sizeMm]);
 
   const goToDetails = () => {
     const q = new URLSearchParams({ brand: String(brand || ""), model: String(model || "") });

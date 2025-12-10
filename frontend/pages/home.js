@@ -243,10 +243,10 @@ export default function Home() {
           >
             <Heading size="md" color="gray.300" mb={4} mt={0}>Performance Rankings</Heading>
             <SimpleGrid columns={{ base: 1 }} gap={6}>
-              <SectionRow title="40" />
-              <SectionRow title="50" />
-              <SectionRow title="60" />
-              <SectionRow title="70" />
+              <SectionRow title="XS" />
+              <SectionRow title="S" />
+              <SectionRow title="M" />
+              <SectionRow title="L" />
             </SimpleGrid>
           </Box>
         </Box>

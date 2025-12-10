@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Box, VStack, HStack, Text, Spinner, Center, Divider } from "@chakra-ui/react";
 import { getToken } from "../../lib/auth";
 import { listProductApplications, getLatestMassageRun, getLatestSmtHoodRun } from "../../lib/api";
+import { formatTeatSize } from "../../lib/teatSizes";
 
 // Massage bars: use two blue shades to differentiate OM and PF
 const OM_COLOR = "#90cdf4"; // blue.300
@@ -48,8 +49,8 @@ export default function TestsTab({ product }) {
               om = m?.avg_overmilk != null ? Number(m.avg_overmilk) : null;
               pf = m?.avg_pf != null ? Number(m.avg_pf) : null;
             }
-            return { label: String(a.size_mm), om, pf };
-          } catch { return { label: String(a.size_mm), om: null, pf: null }; }
+            return { label: formatTeatSize(a.size_mm), om, pf };
+          } catch { return { label: formatTeatSize(a.size_mm), om: null, pf: null }; }
         }));
         if (alive) setData(entries);
 
@@ -65,9 +66,9 @@ export default function TestsTab({ product }) {
               const p = by.get(key);
               return [key, p ? { min: Number(p.smt_min), max: Number(p.smt_max) } : null];
             }));
-            return { label: String(a.size_mm), flows: flowsObj };
+            return { label: formatTeatSize(a.size_mm), flows: flowsObj };
           } catch {
-            return { label: String(a.size_mm), flows: { '0.5': null, '1.9': null, '3.6': null } };
+            return { label: formatTeatSize(a.size_mm), flows: { '0.5': null, '1.9': null, '3.6': null } };
           }
         }));
         if (alive) setSmtData(smtEntries);
@@ -83,9 +84,9 @@ export default function TestsTab({ product }) {
               const p = by.get(key);
               return [key, p ? { min: Number(p.hood_min), max: Number(p.hood_max) } : null];
             }));
-            return { label: String(a.size_mm), flows: flowsObj };
+            return { label: formatTeatSize(a.size_mm), flows: flowsObj };
           } catch {
-            return { label: String(a.size_mm), flows: { '0.5': null, '1.9': null, '3.6': null } };
+            return { label: formatTeatSize(a.size_mm), flows: { '0.5': null, '1.9': null, '3.6': null } };
           }
         }));
         if (alive) setHoodData(hoodEntries);

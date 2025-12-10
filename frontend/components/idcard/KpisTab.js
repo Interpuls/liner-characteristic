@@ -4,6 +4,7 @@ import { getToken } from "../../lib/auth";
 import { listProductApplications, getKpiValuesByPA } from "../../lib/api";
 import { latestKpiByCode } from "../../lib/kpi";
 import ApplicationKpiCard from "./ApplicationKpiCard";
+import { formatTeatSize } from "../../lib/teatSizes";
 
 const KPI_ORDER = [
   'CLOSURE','FITTING','CONGESTION_RISK','HYPERKERATOSIS_RISK','SPEED','RESPRAY','FLUYDODINAMIC','SLIPPAGE','RINGING_RISK'
@@ -55,7 +56,7 @@ export default function KpisTab({ product, isAdmin }) {
   const radarSeries = useMemo(() => {
     return radarApps.map((a) => ({
       appId: a.id,
-      label: `${a.size_mm} mm`,
+      label: formatTeatSize(a?.size_mm),
       byCode: kpisByApp[a.id] || {},
     }));
   }, [radarApps, kpisByApp]);
