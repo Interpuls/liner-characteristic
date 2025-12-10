@@ -7,8 +7,8 @@ import sqlalchemy as sa
 from app.common.enums import UserRole
 
 class UnitSystem(str, Enum):
-    METRIC = "metric"
-    IMPERIAL = "imperial"
+    metric = "metric"
+    imperial = "imperial"
 
 #Modello Tabella USER
 class User(SQLModel, table=True):
