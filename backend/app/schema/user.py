@@ -33,3 +33,10 @@ class UserRead(UserBase):
 #aggiorna lo unit_system dello user
 class UserUpdate(MetricNormalizedModel):
     unit_system: Optional[UnitSystem] = None
+
+#payload di risposta per update user (include nuovo token opzionale)
+class UserUpdateResponse(MetricNormalizedModel):
+    user: UserRead
+    access_token: Optional[str] = None
+    token_type: str = "bearer"
+    unit_system: Optional[UnitSystem] = None
