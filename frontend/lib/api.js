@@ -15,6 +15,8 @@ export const loginApi = async (email, password) => {
 };
 
 export const getMe = (token) => http("auth/me", { token });
+export const updateMyUnitSystem = (token, unit_system) =>
+  http("users/me", { method: "PATCH", token, body: { unit_system } });
 
 
 // ---------------------------- PRODUCTS ----------------------------

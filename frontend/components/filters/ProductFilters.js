@@ -7,9 +7,9 @@ import BrandModelFilterModal from "./BrandModelFilterModal";
 import ChipSelectFilterModal from "./ChipSelectFilterModal";
 import { getToken } from "../../lib/auth";
 import { listProducts } from "../../lib/api";
+import { TEAT_SIZE_OPTIONS, formatTeatSize } from "../../lib/teatSizes";
 import { FiGlobe, FiTag, FiAperture, FiBox, FiCpu } from "react-icons/fi";
 
-const TEAT_SIZE_OPTIONS = ["40", "50", "60", "70"]; // UI labels; non-influential to count (all products have all sizes)
 const BARREL_SHAPES = ["squared", "triangular", "round"];
 const PARLOR_TYPES = ["robot", "conventional"]; // robot => robot_liner=true; conventional => false
 
@@ -225,6 +225,7 @@ export default function ProductFilters({ meta, onSelectionsChange, onConfirm, va
         options={TEAT_SIZE_OPTIONS}
         value={teatSizes}
         onChange={setTeatSizes}
+        renderLabel={formatTeatSize}
         count={count}
         loading={loadingCount}
       />
