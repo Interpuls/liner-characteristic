@@ -8,11 +8,12 @@ import {
   AlertDialogFooter, AlertDialogHeader, AlertDialogContent, AlertDialogOverlay,
   useDisclosure, Show, Hide, Icon, Center, useBreakpointValue,
   Drawer, DrawerOverlay, DrawerContent, DrawerHeader, DrawerBody, DrawerCloseButton,
-  Stack, IconButton, Divider as CkDivider
+  Stack, IconButton, Divider as CkDivider, Modal, ModalOverlay, ModalContent,
+  ModalHeader, ModalCloseButton, ModalBody, ModalFooter
 } from "@chakra-ui/react";
 import { getToken, clearToken } from "../lib/auth";
 import { getMe, updateMyUnitSystem } from "../lib/api";
-import { FiSearch, FiCreditCard, FiSliders } from "react-icons/fi";
+import { FiSearch, FiCreditCard, FiSliders, FiSettings } from "react-icons/fi";
 import { RxHamburgerMenu } from "react-icons/rx";
 import AppHeader from "../components/AppHeader";
 import AppFooter from "../components/AppFooter";
@@ -42,6 +43,7 @@ export default function Home() {
   const toast = useToast();
 
   const { isOpen, onOpen, onClose } = useDisclosure();
+  const { isOpen: isSettingsOpen, onOpen: onSettingsOpen, onClose: onSettingsClose } = useDisclosure();
   const cancelRef = useRef();
   const topSpacing = useBreakpointValue({ base: 4, md: 6 });
   // mobile drawer (burger menu)
@@ -215,7 +217,14 @@ export default function Home() {
   return (
     <>
       <Hide below="md">
-        <AppHeader title="Liner Database" logoSrc="/favicon.ico" onLogoutClick={onOpen} rightArea={<RightArea />} />
+        <AppHeader
+          title="Liner Database"
+          logoSrc="/favicon.ico"
+          onLogoutClick={onOpen}
+          rightArea={<RightArea />}
+          infoIcon={FiSettings}
+          onInfoClick={onSettingsOpen}
+        />
       </Hide>
 
         <Box as="main" bg="#0b1f45" minH="100vh">
@@ -336,6 +345,75 @@ export default function Home() {
           </DrawerBody>
         </DrawerContent>
       </Drawer>
+
+      <Modal isOpen={isSettingsOpen} onClose={onSettingsClose} isCentered>
+        <ModalOverlay />
+        <ModalContent
+          bg="rgba(4, 6, 20, 1)"
+          color="gray.100"
+          borderWidth="1px"
+          borderColor="whiteAlpha.200"
+          boxShadow="xl"
+        >
+          <ModalHeader color="white">Impostazioni utente</ModalHeader>
+          <ModalCloseButton color="gray.300" _hover={{ color: "white" }} />
+          <ModalBody>
+            <Stack spacing={4}>
+              <Box>
+                <Text fontSize="xs" textTransform="uppercase" letterSpacing="0.08em" color="gray.400" mb={1}>
+                  Username
+                </Text>
+                <Text fontWeight="semibold" color="white">{me?.email || "Non disponibile"}</Text>
+              </Box>
+
+              <Box>
+                <Text fontSize="xs" textTransform="uppercase" letterSpacing="0.08em" color="gray.400" mb={2}>
+                  Sistema di misura
+                </Text>
+                <HStack
+                  justify="space-between"
+                  align="center"
+                  p={3}
+                  borderWidth="1px"
+                  borderColor="whiteAlpha.200"
+                  borderRadius="md"
+                  bg="rgba(20, 23, 41, 1)"
+                >
+                  <Box>
+                    <Text fontSize="sm" color="white">Unit system</Text>
+                    <Text fontSize="xs" color="gray.400">
+                      {unitSystem === "imperial" ? "Imperial" : "Metric"}
+                    </Text>
+                  </Box>
+                  <HStack spacing={2}>
+                    <Button
+                      size="sm"
+                      variant={unitSystem === "metric" ? "solid" : "outline"}
+                      colorScheme="blue"
+                      isDisabled={savingUnit}
+                      onClick={() => handleUnitSystemChange("metric")}
+                    >
+                      Metric
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant={unitSystem === "imperial" ? "solid" : "outline"}
+                      colorScheme="blue"
+                      isDisabled={savingUnit}
+                      onClick={() => handleUnitSystemChange("imperial")}
+                    >
+                      Imperial
+                    </Button>
+                  </HStack>
+                </HStack>
+              </Box>
+            </Stack>
+          </ModalBody>
+          <ModalFooter>
+            <Button variant="ghost" color="gray.200" _hover={{ bg: "whiteAlpha.100" }} onClick={onSettingsClose}>Chiudi</Button>
+          </ModalFooter>
+        </ModalContent>
+      </Modal>
 
       <AlertDialog isOpen={isOpen} leastDestructiveRef={cancelRef} onClose={onClose} isCentered>
         <AlertDialogOverlay>
