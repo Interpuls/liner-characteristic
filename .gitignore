@@ -13,6 +13,8 @@ backend/**/__pycache__/
 **/*.pyd
 backend/.pytest_cache/
 backend/*.sqlite3
+backend/app.db-wal
+backend/app.db-shm
 backend/*.db
 backend/app.db
 backend/app.db-wal

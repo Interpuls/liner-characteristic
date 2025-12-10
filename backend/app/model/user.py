@@ -30,16 +30,12 @@ class User(SQLModel, table=True):
     created_at: datetime = Field(default_factory=datetime.utcnow, nullable=False)
     unit_system: UnitSystem = Field(
         default=UnitSystem.METRIC,
-        sa_column=sa.Column(
-            sa.Enum(UnitSystem, values_callable=lambda x: [e.value for e in x]),
-            nullable=False,
-            default=UnitSystem.METRIC.value,
-        ),
+        nullable=False,
+        index=True,
     )
 
     #Vincoli e indici
     __table_args__ = (
         UniqueConstraint("email", name="uq_users_email"),
         Index("ix_users_role", "role"),
-        Index("ix_users_unit_system", "unit_system"),
     )
