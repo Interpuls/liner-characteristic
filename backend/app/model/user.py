@@ -41,5 +41,4 @@ class User(SQLModel, table=True):
     __table_args__ = (
         UniqueConstraint("email", name="uq_users_email"),
         Index("ix_users_role", "role"),
-        Index("ix_users_unit_system", "unit_system"),
     )
