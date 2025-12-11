@@ -31,14 +31,9 @@ class User(SQLModel, table=True):
     unit_system: UnitSystem = Field(
         default=UnitSystem.metric,
         sa_column=sa.Column(
-            sa.Enum(
-                "metric",
-                "imperial",
-                name="unitsystem",
-                create_type=False,
-            ),
+            sa.Enum(UnitSystem, values_callable=lambda x: [e.value for e in x]),
             nullable=False,
-            server_default="metric",
+            default=UnitSystem.metric.value,
         ),
     )
 
