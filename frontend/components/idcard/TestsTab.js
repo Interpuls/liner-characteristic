@@ -14,6 +14,9 @@ export default function TestsTab({ product, unitSystem = "metric" }) {
   const [data, setData] = useState([]); // [{label, om, pf}]
   const [smtData, setSmtData] = useState([]); // [{label, flows:{'0.5':{min,max},'1.9':{min,max},'3.6':{min,max}}}]
   const [hoodData, setHoodData] = useState([]); // same structure but using hood min/max
+  const [massageHighlight, setMassageHighlight] = useState(null);
+  const [smtHighlight, setSmtHighlight] = useState(null);
+  const [hoodHighlight, setHoodHighlight] = useState(null);
   const isImperial = unitSystem === "imperial";
   const pressureLabel = isImperial ? "inHg" : "kPa";
   const kpaToInhg = (v) => v == null ? null : Number((v * 0.295299830714).toFixed(2));
@@ -125,20 +128,35 @@ export default function TestsTab({ product, unitSystem = "metric" }) {
       <Text fontWeight="semibold" textAlign={{ base: 'left', md: 'center' }}>
         {`Massage Intensity (${pressureLabel})`}
       </Text>
-      <ScrollableBars data={data} pressureLabel={pressureLabel} />
+      <ScrollableBars data={data} pressureLabel={pressureLabel} onBarSelect={setMassageHighlight} />
+      {massageHighlight && (
+        <Text fontSize="xs" color="gray.500" textAlign={{ base: 'left', md: 'center' }} mt={1}>
+          {massageHighlight}
+        </Text>
+      )}
       <Legend />
       <Divider my={{ base: 2, md: 4 }} />
 
       <Text mt={4} fontWeight="semibold" textAlign={{ base: 'left', md: 'center' }}>
         {`SMT - Vacuum Fluctuation (${pressureLabel})`}
       </Text>
-      <ScrollableSmtBars data={smtData} pressureLabel={pressureLabel} isImperial={isImperial} />
+      <ScrollableSmtBars data={smtData} pressureLabel={pressureLabel} isImperial={isImperial} onBarSelect={setSmtHighlight} />
+      {smtHighlight && (
+        <Text fontSize="xs" color="gray.500" textAlign={{ base: 'left', md: 'center' }} mt={1}>
+          {smtHighlight}
+        </Text>
+      )}
       <Divider my={{ base: 2, md: 4 }} />
 
       <Text mt={4} fontWeight="semibold" textAlign={{ base: 'left', md: 'center' }}>
         {`HOODCUP - Vacuum Fluctuation (${pressureLabel})`}
       </Text>
-      <ScrollableSmtBars data={hoodData} pressureLabel={pressureLabel} isImperial={isImperial} />
+      <ScrollableSmtBars data={hoodData} pressureLabel={pressureLabel} isImperial={isImperial} onBarSelect={setHoodHighlight} />
+      {hoodHighlight && (
+        <Text fontSize="xs" color="gray.500" textAlign={{ base: 'left', md: 'center' }} mt={1}>
+          {hoodHighlight}
+        </Text>
+      )}
     </VStack>
   );
 }
@@ -158,7 +176,7 @@ function Legend() {
   );
 }
 
-function ScrollableSmtBars({ data, pressureLabel = "kPa", isImperial = false }) {
+function ScrollableSmtBars({ data, pressureLabel = "kPa", isImperial = false, onBarSelect }) {
   const margin = { top: 10, right: 16, bottom: 28, left: 32 };
   const catWidth = 90; // width per application
   const innerBars = 3; // flows
@@ -279,13 +297,29 @@ function ScrollableSmtBars({ data, pressureLabel = "kPa", isImperial = false }) 
                   <g key={fl}>
                     {/* Blue segment from min up to threshold */}
                     {hasBlue && (
-                      <rect x={x} y={blueTopY} width={barWidth} height={blueH} fill={BLUE_SHADES[fl]} rx={2}>
+                      <rect
+                        x={x}
+                        y={blueTopY}
+                        width={barWidth}
+                        height={blueH}
+                        fill={BLUE_SHADES[fl]}
+                        rx={2}
+                        onClick={() => onBarSelect?.(`${flowLabels[fl]} L/min: ${fmt(vmin)}-${fmt(Math.min(vmax, threshold))} ${pressureLabel}`)}
+                      >
                         <title>{`${fl} L/min: ${fmt(vmin)}-${fmt(vmax)} ${pressureLabel}`}</title>
                       </rect>
                     )}
                     {/* Red segment above threshold */}
                     {hasRed && (
-                      <rect x={x} y={redTopY} width={barWidth} height={redH} fill={RED_SHADES[fl]} rx={2}>
+                      <rect
+                        x={x}
+                        y={redTopY}
+                        width={barWidth}
+                        height={redH}
+                        fill={RED_SHADES[fl]}
+                        rx={2}
+                        onClick={() => onBarSelect?.(`${flowLabels[fl]} L/min: ${fmt(Math.max(vmin, threshold))}-${fmt(vmax)} ${pressureLabel}`)}
+                      >
                         <title>{`${fl} L/min: ${fmt(vmin)}-${fmt(vmax)} ${pressureLabel} (above ${threshold})`}</title>
                       </rect>
                     )}
@@ -312,7 +346,7 @@ function ScrollableSmtBars({ data, pressureLabel = "kPa", isImperial = false }) 
   );
 }
 
-function ScrollableBars({ data, pressureLabel = "kPa" }) {
+function ScrollableBars({ data, pressureLabel = "kPa", onBarSelect }) {
   const margin = { top: 10, right: 16, bottom: 28, left: 28 };
   const catWidth = 68; // width per application
   const barWidth = 20; // each bar width
@@ -365,10 +399,26 @@ function ScrollableBars({ data, pressureLabel = "kPa" }) {
           const pfX = omX + barWidth + gapBars;
           return (
             <g key={i}>
-              <rect x={omX} y={omY} width={barWidth} height={omH} fill={OM_COLOR} rx={2}>
+              <rect
+                x={omX}
+                y={omY}
+                width={barWidth}
+                height={omH}
+                fill={OM_COLOR}
+                rx={2}
+                onClick={() => onBarSelect?.(`${d.label}: OM ${fmt(d.om)} ${pressureLabel}`)}
+              >
                 <title>{`OM: ${fmt(d.om)} ${pressureLabel}`}</title>
               </rect>
-              <rect x={pfX} y={pfY} width={barWidth} height={pfH} fill={PF_COLOR} rx={2}>
+              <rect
+                x={pfX}
+                y={pfY}
+                width={barWidth}
+                height={pfH}
+                fill={PF_COLOR}
+                rx={2}
+                onClick={() => onBarSelect?.(`${d.label}: PF ${fmt(d.pf)} ${pressureLabel}`)}
+              >
                 <title>{`PF: ${fmt(d.pf)} ${pressureLabel}`}</title>
               </rect>
               {/* labels */}
