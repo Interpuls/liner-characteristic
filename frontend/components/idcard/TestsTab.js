@@ -8,12 +8,19 @@ import { formatTeatSize } from "../../lib/teatSizes";
 const OM_COLOR = "#90cdf4"; // blue.300
 const PF_COLOR = "#2b6cb0"; // blue.700
 
-export default function TestsTab({ product }) {
+export default function TestsTab({ product, unitSystem = "metric" }) {
   const [loading, setLoading] = useState(false);
   const [apps, setApps] = useState([]);
   const [data, setData] = useState([]); // [{label, om, pf}]
   const [smtData, setSmtData] = useState([]); // [{label, flows:{'0.5':{min,max},'1.9':{min,max},'3.6':{min,max}}}]
   const [hoodData, setHoodData] = useState([]); // same structure but using hood min/max
+  const [massageHighlight, setMassageHighlight] = useState(null);
+  const [smtHighlight, setSmtHighlight] = useState(null);
+  const [hoodHighlight, setHoodHighlight] = useState(null);
+  const isImperial = unitSystem === "imperial";
+  const pressureLabel = isImperial ? "inHg" : "kPa";
+  const kpaToInhg = (v) => v == null ? null : Number((v * 0.295299830714).toFixed(2));
+  const pressureVal = (value, imperialValue) => isImperial ? imperialValue ?? (value != null ? kpaToInhg(value) : null) : value;
 
   const pid = product?.id;
 
@@ -49,7 +56,11 @@ export default function TestsTab({ product }) {
               om = m?.avg_overmilk != null ? Number(m.avg_overmilk) : null;
               pf = m?.avg_pf != null ? Number(m.avg_pf) : null;
             }
-            return { label: formatTeatSize(a.size_mm), om, pf };
+            return {
+              label: formatTeatSize(a.size_mm),
+              om: pressureVal(om, res?.om_inhg),
+              pf: pressureVal(pf, res?.pf_inhg),
+            };
           } catch { return { label: formatTeatSize(a.size_mm), om: null, pf: null }; }
         }));
         if (alive) setData(entries);
@@ -64,7 +75,10 @@ export default function TestsTab({ product }) {
             const flowsObj = Object.fromEntries(flows.map(fl => {
               const key = fl.toFixed(1);
               const p = by.get(key);
-              return [key, p ? { min: Number(p.smt_min), max: Number(p.smt_max) } : null];
+              return [key, p ? {
+                min: pressureVal(Number(p.smt_min), p.smt_min_inhg != null ? Number(p.smt_min_inhg) : null),
+                max: pressureVal(Number(p.smt_max), p.smt_max_inhg != null ? Number(p.smt_max_inhg) : null),
+              } : null];
             }));
             return { label: formatTeatSize(a.size_mm), flows: flowsObj };
           } catch {
@@ -82,7 +96,10 @@ export default function TestsTab({ product }) {
             const flowsObj = Object.fromEntries(flows.map(fl => {
               const key = fl.toFixed(1);
               const p = by.get(key);
-              return [key, p ? { min: Number(p.hood_min), max: Number(p.hood_max) } : null];
+              return [key, p ? {
+                min: pressureVal(Number(p.hood_min), p.hood_min_inhg != null ? Number(p.hood_min_inhg) : null),
+                max: pressureVal(Number(p.hood_max), p.hood_max_inhg != null ? Number(p.hood_max_inhg) : null),
+              } : null];
             }));
             return { label: formatTeatSize(a.size_mm), flows: flowsObj };
           } catch {
@@ -95,7 +112,7 @@ export default function TestsTab({ product }) {
       }
     })();
     return () => { alive = false; };
-  }, [pid]);
+  }, [pid, isImperial]);
 
   if (!pid) return <Box py={8} textAlign="center" color="gray.600">No product selected.</Box>;
   if (loading) return (
@@ -108,17 +125,38 @@ export default function TestsTab({ product }) {
 
   return (
     <VStack align="stretch" spacing={3}>
-      <Text fontWeight="semibold" textAlign={{ base: 'left', md: 'center' }}>Massage Intensity (kPa)</Text>
-      <ScrollableBars data={data} />
+      <Text fontWeight="semibold" textAlign={{ base: 'left', md: 'center' }}>
+        {`Massage Intensity (${pressureLabel})`}
+      </Text>
+      <ScrollableBars data={data} pressureLabel={pressureLabel} onBarSelect={setMassageHighlight} />
+      {massageHighlight && (
+        <Text fontSize="xs" color="gray.500" textAlign={{ base: 'left', md: 'center' }} mt={1}>
+          {massageHighlight}
+        </Text>
+      )}
       <Legend />
       <Divider my={{ base: 2, md: 4 }} />
 
-      <Text mt={4} fontWeight="semibold" textAlign={{ base: 'left', md: 'center' }}>SMT - Vacuum Fluctuation</Text>
-      <ScrollableSmtBars data={smtData} />
+      <Text mt={4} fontWeight="semibold" textAlign={{ base: 'left', md: 'center' }}>
+        {`SMT - Vacuum Fluctuation (${pressureLabel})`}
+      </Text>
+      <ScrollableSmtBars data={smtData} pressureLabel={pressureLabel} isImperial={isImperial} onBarSelect={setSmtHighlight} />
+      {smtHighlight && (
+        <Text fontSize="xs" color="gray.500" textAlign={{ base: 'left', md: 'center' }} mt={1}>
+          {smtHighlight}
+        </Text>
+      )}
       <Divider my={{ base: 2, md: 4 }} />
 
-      <Text mt={4} fontWeight="semibold" textAlign={{ base: 'left', md: 'center' }}>HOODCUP - Vacuum Fluctuation</Text>
-      <ScrollableSmtBars data={hoodData} />
+      <Text mt={4} fontWeight="semibold" textAlign={{ base: 'left', md: 'center' }}>
+        {`HOODCUP - Vacuum Fluctuation (${pressureLabel})`}
+      </Text>
+      <ScrollableSmtBars data={hoodData} pressureLabel={pressureLabel} isImperial={isImperial} onBarSelect={setHoodHighlight} />
+      {hoodHighlight && (
+        <Text fontSize="xs" color="gray.500" textAlign={{ base: 'left', md: 'center' }} mt={1}>
+          {hoodHighlight}
+        </Text>
+      )}
     </VStack>
   );
 }
@@ -138,14 +176,14 @@ function Legend() {
   );
 }
 
-function ScrollableSmtBars({ data }) {
+function ScrollableSmtBars({ data, pressureLabel = "kPa", isImperial = false, onBarSelect }) {
   const margin = { top: 10, right: 16, bottom: 28, left: 32 };
   const catWidth = 90; // width per application
   const innerBars = 3; // flows
   const barWidth = 16;
   const gapBars = 8;
   const gapCats = 28;
-  const threshold = 45; // kPa
+  const threshold = isImperial ? Number((45 * 0.295299830714).toFixed(2)) : 45; // convert threshold if imperial
   const minsAll = data.flatMap(d => [
     Number(d.flows?.['0.5']?.min ?? Infinity),
     Number(d.flows?.['1.9']?.min ?? Infinity),
@@ -259,14 +297,30 @@ function ScrollableSmtBars({ data }) {
                   <g key={fl}>
                     {/* Blue segment from min up to threshold */}
                     {hasBlue && (
-                      <rect x={x} y={blueTopY} width={barWidth} height={blueH} fill={BLUE_SHADES[fl]} rx={2}>
-                        <title>{`${fl} L/min: ${fmt(vmin)}–${fmt(vmax)} kPa`}</title>
+                      <rect
+                        x={x}
+                        y={blueTopY}
+                        width={barWidth}
+                        height={blueH}
+                        fill={BLUE_SHADES[fl]}
+                        rx={2}
+                        onClick={() => onBarSelect?.(`${flowLabels[fl]} L/min: ${fmt(vmin)}-${fmt(Math.min(vmax, threshold))} ${pressureLabel}`)}
+                      >
+                        <title>{`${fl} L/min: ${fmt(vmin)}-${fmt(vmax)} ${pressureLabel}`}</title>
                       </rect>
                     )}
                     {/* Red segment above threshold */}
                     {hasRed && (
-                      <rect x={x} y={redTopY} width={barWidth} height={redH} fill={RED_SHADES[fl]} rx={2}>
-                        <title>{`${fl} L/min: ${fmt(vmin)}–${fmt(vmax)} kPa (above 45)`}</title>
+                      <rect
+                        x={x}
+                        y={redTopY}
+                        width={barWidth}
+                        height={redH}
+                        fill={RED_SHADES[fl]}
+                        rx={2}
+                        onClick={() => onBarSelect?.(`${flowLabels[fl]} L/min: ${fmt(Math.max(vmin, threshold))}-${fmt(vmax)} ${pressureLabel}`)}
+                      >
+                        <title>{`${fl} L/min: ${fmt(vmin)}-${fmt(vmax)} ${pressureLabel} (above ${threshold})`}</title>
                       </rect>
                     )}
                   </g>
@@ -292,7 +346,7 @@ function ScrollableSmtBars({ data }) {
   );
 }
 
-function ScrollableBars({ data }) {
+function ScrollableBars({ data, pressureLabel = "kPa", onBarSelect }) {
   const margin = { top: 10, right: 16, bottom: 28, left: 28 };
   const catWidth = 68; // width per application
   const barWidth = 20; // each bar width
@@ -345,11 +399,27 @@ function ScrollableBars({ data }) {
           const pfX = omX + barWidth + gapBars;
           return (
             <g key={i}>
-              <rect x={omX} y={omY} width={barWidth} height={omH} fill={OM_COLOR} rx={2}>
-                <title>{`OM: ${fmt(d.om)} kPa`}</title>
+              <rect
+                x={omX}
+                y={omY}
+                width={barWidth}
+                height={omH}
+                fill={OM_COLOR}
+                rx={2}
+                onClick={() => onBarSelect?.(`${d.label}: OM ${fmt(d.om)} ${pressureLabel}`)}
+              >
+                <title>{`OM: ${fmt(d.om)} ${pressureLabel}`}</title>
               </rect>
-              <rect x={pfX} y={pfY} width={barWidth} height={pfH} fill={PF_COLOR} rx={2}>
-                <title>{`PF: ${fmt(d.pf)} kPa`}</title>
+              <rect
+                x={pfX}
+                y={pfY}
+                width={barWidth}
+                height={pfH}
+                fill={PF_COLOR}
+                rx={2}
+                onClick={() => onBarSelect?.(`${d.label}: PF ${fmt(d.pf)} ${pressureLabel}`)}
+              >
+                <title>{`PF: ${fmt(d.pf)} ${pressureLabel}`}</title>
               </rect>
               {/* labels */}
               <text x={groupX + catWidth/2} y={height - margin.bottom + 16} textAnchor="middle" fontSize="10" fill="#475569">{d.label}</text>

@@ -11,8 +11,8 @@ import {
   Stack, IconButton, Divider as CkDivider, Modal, ModalOverlay, ModalContent,
   ModalHeader, ModalCloseButton, ModalBody, ModalFooter
 } from "@chakra-ui/react";
-import { getToken, clearToken } from "../lib/auth";
-import { getMe, updateMyUnitSystem } from "../lib/api";
+import { getToken, clearToken, setToken } from "../lib/auth";
+import { getMe, updateUserUnitSystem } from "../lib/api";
 import { FiSearch, FiCreditCard, FiSliders, FiSettings } from "react-icons/fi";
 import { RxHamburgerMenu } from "react-icons/rx";
 import AppHeader from "../components/AppHeader";
@@ -40,11 +40,14 @@ export default function Home() {
   const [me, setMe] = useState(null);
   const [unitSystem, setUnitSystem] = useState("metric");
   const [savingUnit, setSavingUnit] = useState(false);
+  const [pendingUnit, setPendingUnit] = useState(null);
   const toast = useToast();
 
   const { isOpen, onOpen, onClose } = useDisclosure();
   const { isOpen: isSettingsOpen, onOpen: onSettingsOpen, onClose: onSettingsClose } = useDisclosure();
+  const unitDialog = useDisclosure();
   const cancelRef = useRef();
+  const unitCancelRef = useRef();
   const topSpacing = useBreakpointValue({ base: 4, md: 6 });
   // mobile drawer (burger menu)
   const menuCtrl = useDisclosure();
@@ -69,15 +72,26 @@ export default function Home() {
       });
   }, [toast]);
 
-  const handleUnitSystemChange = async (next) => {
+  const requestUnitSystemChange = (next) => {
     if (!next || next === unitSystem) return;
+    setPendingUnit(next);
+    unitDialog.onOpen();
+  };
+
+  const applyUnitSystemChange = async () => {
+    const next = pendingUnit;
+    if (!next || !me?.id) { unitDialog.onClose(); return; }
     const prev = unitSystem;
-    setUnitSystem(next);
     const token = getToken();
-    if (!token) { window.location.replace("/login"); return; }
+    if (!token) { cancelUnitSystemChange(); window.location.replace("/login"); return; }
     setSavingUnit(true);
+    setUnitSystem(next);
     try {
-      await updateMyUnitSystem(token, next);
+      const res = await updateUserUnitSystem(token, me.id, next);
+      if (res?.access_token) setToken(res.access_token);
+      const updatedUser = res?.user || me;
+      setMe(updatedUser);
+      setUnitSystem(res?.unit_system || updatedUser?.unit_system || next);
       toast({ status: "success", title: "Unit system updated", duration: 1800 });
     } catch (err) {
       setUnitSystem(prev);
@@ -88,7 +102,14 @@ export default function Home() {
       });
     } finally {
       setSavingUnit(false);
+      setPendingUnit(null);
+      unitDialog.onClose();
     }
+  };
+
+  const cancelUnitSystemChange = () => {
+    setPendingUnit(null);
+    unitDialog.onClose();
   };
 
   if (!me) return <Box p="8">Loading…</Box>;
@@ -318,7 +339,7 @@ export default function Home() {
                         variant={unitSystem === "metric" ? "solid" : "outline"}
                         colorScheme="blue"
                         isDisabled={savingUnit}
-                        onClick={() => handleUnitSystemChange("metric")}
+                        onClick={() => requestUnitSystemChange("metric")}
                       >
                         Metric
                       </Button>
@@ -327,7 +348,7 @@ export default function Home() {
                         variant={unitSystem === "imperial" ? "solid" : "outline"}
                         colorScheme="blue"
                         isDisabled={savingUnit}
-                        onClick={() => handleUnitSystemChange("imperial")}
+                        onClick={() => requestUnitSystemChange("imperial")}
                       >
                         Imperial
                       </Button>
@@ -391,7 +412,7 @@ export default function Home() {
                       variant={unitSystem === "metric" ? "solid" : "outline"}
                       colorScheme="blue"
                       isDisabled={savingUnit}
-                      onClick={() => handleUnitSystemChange("metric")}
+                      onClick={() => requestUnitSystemChange("metric")}
                     >
                       Metric
                     </Button>
@@ -400,7 +421,7 @@ export default function Home() {
                       variant={unitSystem === "imperial" ? "solid" : "outline"}
                       colorScheme="blue"
                       isDisabled={savingUnit}
-                      onClick={() => handleUnitSystemChange("imperial")}
+                      onClick={() => requestUnitSystemChange("imperial")}
                     >
                       Imperial
                     </Button>
@@ -414,6 +435,23 @@ export default function Home() {
           </ModalFooter>
         </ModalContent>
       </Modal>
+
+      <AlertDialog isOpen={unitDialog.isOpen} leastDestructiveRef={unitCancelRef} onClose={cancelUnitSystemChange} isCentered>
+        <AlertDialogOverlay>
+          <AlertDialogContent marginInline={2}>
+            <AlertDialogHeader fontSize="lg" fontWeight="bold">Change unit system?</AlertDialogHeader>
+            <AlertDialogBody>
+              Switching measurement units will convert all displayed values. Do you want to continue?
+            </AlertDialogBody>
+            <AlertDialogFooter>
+              <Button ref={unitCancelRef} onClick={cancelUnitSystemChange}>Cancel</Button>
+              <Button colorScheme="blue" onClick={applyUnitSystemChange} ml={3} isLoading={savingUnit}>
+                {pendingUnit === "imperial" ? "Switch to Imperial" : "Switch to Metric"}
+              </Button>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialogOverlay>
+      </AlertDialog>
 
       <AlertDialog isOpen={isOpen} leastDestructiveRef={cancelRef} onClose={onClose} isCentered>
         <AlertDialogOverlay>

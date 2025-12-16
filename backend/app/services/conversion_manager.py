@@ -11,6 +11,10 @@ CONVERSIONS: Dict[str, tuple[str, Callable]] = {
 
     # pressioni
     "vacuum_inhg": ("vacuum_kpa", UnitConverter.kpa_to_inhg),
+    "smt_min_inhg": ("smt_min", UnitConverter.kpa_to_inhg),
+    "smt_max_inhg": ("smt_max", UnitConverter.kpa_to_inhg),
+    "hood_min_inhg": ("hood_min", UnitConverter.kpa_to_inhg),
+    "hood_max_inhg": ("hood_max", UnitConverter.kpa_to_inhg),
 
     # volumi
     "milk_oz": ("milk_ml", UnitConverter.ml_to_oz),
@@ -24,14 +28,28 @@ CONVERSIONS: Dict[str, tuple[str, Callable]] = {
 #NON tocca i campi originali -> non rompe il FE.
 
 def apply_conversions(data: dict, unit_system: str) -> dict:
-    if unit_system != "imperial":
-        return data
+    """
+    Converte solo per utenti imperial, mantenendo i campi originali metrici.
+    Applica la conversione anche a strutture annidate (liste/dict) senza mutare
+    l'oggetto originale.
+    """
 
-    enriched = dict(data)
+    def _convert_value(value):
+        if isinstance(value, list):
+            return [_convert_value(v) for v in value]
+        if isinstance(value, dict):
+            return apply_conversions(value, unit_system)
+        return value
+
+    if unit_system != "imperial":
+        # Copia profonda minima per non mutare l'input
+        return {k: _convert_value(v) for k, v in data.items()}
+
+    enriched = {k: _convert_value(v) for k, v in data.items()}
 
     for new_field, (orig_field, func) in CONVERSIONS.items():
-        if orig_field in data and data[orig_field] is not None:
-            enriched[new_field] = func(data[orig_field])
+        if orig_field in enriched and enriched[orig_field] is not None:
+            enriched[new_field] = func(enriched[orig_field])
 
     enriched["unit_system"] = "imperial"
     return enriched

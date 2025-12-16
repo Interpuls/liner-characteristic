@@ -121,7 +121,7 @@ export default function IdResultPage() {
                       <KpisTab product={product} isAdmin={me?.is_admin} />
                     </TabPanel>
                     <TabPanel w="100%">
-                      <TestsTab product={product} />
+                      <TestsTab product={product} unitSystem={me?.unit_system} />
                     </TabPanel>
                   </TabPanels>
                 </Tabs>

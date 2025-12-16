@@ -22,7 +22,7 @@ app = FastAPI(
 )
 
 logger = logging.getLogger("liner-backend")
-logging.basicConfig(level=logging.DEBUG)
+logging.basicConfig(level=logging.INFO)
 
 @app.on_event("startup")
 def on_startup():
