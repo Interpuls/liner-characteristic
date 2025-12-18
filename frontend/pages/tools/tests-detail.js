@@ -9,8 +9,9 @@ import SmtTab from "../../components/tests-detail/SmtTab";
 export default function TestsDetailPage() {
   const router = useRouter();
   const { app_ids, ids, keys, from } = router.query;
-  const list = typeof app_ids === 'string' && app_ids ? app_ids.split(',').filter(Boolean)
-              : (typeof ids === 'string' && ids ? ids.split(',').filter(Boolean) : (typeof keys === 'string' ? keys.split(',').filter(Boolean) : []));
+  const selectedIds = typeof app_ids === 'string' && app_ids ? app_ids.split(',').filter(Boolean)
+                  : (typeof ids === 'string' && ids ? ids.split(',').filter(Boolean) : []);
+  const selectedKeys = typeof keys === 'string' && keys ? keys.split(',').filter(Boolean) : [];
   const backHref = typeof from === 'string' && from ? decodeURIComponent(from) : "/product/result";
 
   return (
@@ -27,13 +28,13 @@ export default function TestsDetailPage() {
               </TabList>
               <TabPanels w="100%">
                 <TabPanel px={0} w="100%">
-                  <MassageTab selected={list} />
+                  <MassageTab selected={selectedIds} selectedKeys={selectedKeys} />
                 </TabPanel>
                 <TabPanel w="100%">
-                  <HoodcupTab selected={list} />
+                  <HoodcupTab selected={selectedIds} />
                 </TabPanel>
                 <TabPanel w="100%">
-                  <SmtTab selected={list} />
+                  <SmtTab selected={selectedIds} />
                 </TabPanel>
               </TabPanels>
             </Tabs>

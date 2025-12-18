@@ -447,7 +447,7 @@ export default function ProductsSearchPage() {
             pt={{ base: 4, md: 2 }}
             pb={{ base: 4, md: 2 }}
             minH={{ base: 14, md: 'auto' }}
-            onClick={() => openAction({ title: "Tests Detail", min: 1, max: 5, route: "/tools/tests-detail" })}
+            onClick={() => openAction({ title: "Tests Detail", min: 1, max: 8, route: "/tools/tests-detail" })}
           >
             <Stack direction={{ base: 'column', md: 'row' }} align="center" spacing={{ base: 1, md: 2 }}>
               <Box as={RiFlaskLine} boxSize={{ base: 6, md: 5 }} color="#12305f" />
