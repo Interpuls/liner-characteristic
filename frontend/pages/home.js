@@ -376,7 +376,7 @@ export default function Home() {
           borderColor="whiteAlpha.200"
           boxShadow="xl"
         >
-          <ModalHeader color="white">Impostazioni utente</ModalHeader>
+          <ModalHeader color="white">User settings</ModalHeader>
           <ModalCloseButton color="gray.300" _hover={{ color: "white" }} />
           <ModalBody>
             <Stack spacing={4}>
@@ -389,7 +389,7 @@ export default function Home() {
 
               <Box>
                 <Text fontSize="xs" textTransform="uppercase" letterSpacing="0.08em" color="gray.400" mb={2}>
-                  Sistema di misura
+                  Measurement units
                 </Text>
                 <HStack
                   justify="space-between"
@@ -431,7 +431,6 @@ export default function Home() {
             </Stack>
           </ModalBody>
           <ModalFooter>
-            <Button variant="ghost" color="gray.200" _hover={{ bg: "whiteAlpha.100" }} onClick={onSettingsClose}>Chiudi</Button>
           </ModalFooter>
         </ModalContent>
       </Modal>
