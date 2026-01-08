@@ -3,13 +3,14 @@ import { Box, Divider, HStack, Tag, TagLabel, Table, Thead, Tbody, Tr, Th, Td, T
 export default function DetailsTab({ product, onOpenImage, unitSystem = "metric" }) {
   const isImperial = unitSystem === "imperial";
   const unitLabel = isImperial ? "in" : "mm";
+  const barrel = isImperial ? 2.95 : 75;
   const formatLen = (value) => {
     if (value == null || value === "") return "-";
     const num = Number(value);
     if (!Number.isFinite(num)) return `${value} ${unitLabel}`;
     const converted = isImperial ? num / 25.4 : num;
     const rounded = isImperial ? Number(converted.toFixed(3)) : converted;
-    return `${rounded} ${unitLabel}`;
+    return `${rounded} ${unitLabel} `;
   };
 
   return (
@@ -41,12 +42,12 @@ export default function DetailsTab({ product, onOpenImage, unitSystem = "metric"
             {(() => {
               const dims = [
                 { addon: 'A', label: 'Liner length', value: product?.liner_length },
-                { addon: 'B', label: `Hoodcup diameter (${unitLabel})`, value: product?.hoodcup_diameter },
-                { addon: 'C', label: `Orifice diameter (${unitLabel})`, value: product?.orifice_diameter },
-                { addon: 'D', label: 'Barrel diameter at 75mm', value: product?.barrel_diameter },
-                { addon: 'E', label: `Return to lockring (${unitLabel})`, value: product?.return_to_lockring },
-                { addon: 'F', label: `Lockring diameter (${unitLabel})`, value: product?.lockring_diameter },
-                { addon: 'G', label: `Milk tube ID (${unitLabel})`, value: product?.milk_tube_id },
+                { addon: 'B', label: `Hoodcup diameter`, value: product?.hoodcup_diameter },
+                { addon: 'C', label: `Orifice diameter`, value: product?.orifice_diameter },
+                { addon: 'D', label: `Barrel diameter at ${barrel}${unitLabel}`, value: product?.barrel_diameter },
+                { addon: 'E', label: `Return to lockring`, value: product?.return_to_lockring },
+                { addon: 'F', label: `Lockring diameter`, value: product?.lockring_diameter },
+                { addon: 'G', label: `Milk tube ID`, value: product?.milk_tube_id },
               ];
               return dims.map((d) => (
                 <Tr key={d.addon}>
@@ -92,9 +93,9 @@ export default function DetailsTab({ product, onOpenImage, unitSystem = "metric"
           <Tbody>
             {(() => {
               const dims = [
-                { addon: 'H', label: `Shell lockring diameter (${unitLabel})`, value: product?.lockring_diameter },
-                { addon: 'I', label: `Shell length (${unitLabel})`, value: product?.shell_length },
-                { addon: 'L', label: `Shell external diameter (${unitLabel})`, value: product?.shell_external_diameter },
+                { addon: 'H', label: `Shell lockring diameter`, value: product?.lockring_diameter },
+                { addon: 'I', label: `Shell length`, value: product?.shell_length },
+                { addon: 'L', label: `Shell external diameter`, value: product?.shell_external_diameter },
               ];
               return dims.map((d) => (
                 <Tr key={d.addon}>

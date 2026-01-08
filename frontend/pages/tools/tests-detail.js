@@ -30,11 +30,11 @@ export default function TestsDetailPage() {
                 <TabPanel px={0} w="100%">
                   <MassageTab selected={selectedIds} selectedKeys={selectedKeys} />
                 </TabPanel>
-                <TabPanel w="100%">
-                  <HoodcupTab selected={selectedIds} />
+                <TabPanel px={0} w="100%">
+                  <HoodcupTab selected={selectedIds} selectedKeys={selectedKeys} />
                 </TabPanel>
-                <TabPanel w="100%">
-                  <SmtTab selected={selectedIds} />
+                <TabPanel px={0} w="100%">
+                  <SmtTab selected={selectedIds} selectedKeys={selectedKeys} />
                 </TabPanel>
               </TabPanels>
             </Tabs>
