@@ -152,11 +152,21 @@ export default function MassageTab({ selected = [], selectedKeys = [] }) {
   return (
     <VStack align="stretch" spacing={4} w="100%">
       {legendItems.length > 0 && (
-        <Box bg="gray.50" borderWidth="1px" borderRadius="md" p={2}>
+        <Box bg="#f8fafc73" borderWidth="1px" borderRadius="md" p={2}>
           <Text fontSize="xs" color="gray.600" mb={1}>Product colors</Text>
           <HStack spacing={2} wrap="wrap">
             {legendItems.map((item) => (
-              <HStack key={item.key} spacing={2} px={2} py={1} borderWidth="1px" borderRadius="full" borderColor="gray.200" bg="white">
+              <HStack
+                key={item.key}
+                spacing={2}
+                px={2}
+                py={1}
+                minW={isAdmin ? "140px" : "auto"}
+                borderWidth="1px"
+                borderRadius="full"
+                borderColor="gray.200"
+                bg="white"
+              >
                 <Box w="10px" h="10px" borderRadius="full" bg={item.color} />
                 <VStack spacing={0} align="start">
                   <Text fontSize="sm" color="gray.700">{item.label}</Text>
@@ -173,6 +183,7 @@ export default function MassageTab({ selected = [], selectedKeys = [] }) {
       <Stack direction={chartDirection} divider={<StackDivider borderColor="gray.200" />} spacing={4} align="stretch">
         <Box flex="1" minW={0}>
           <Text fontWeight="semibold">{`Real TPP (${unitLabel})`}</Text>
+          <Text fontSize="sm" color="gray.500" mb={1}>Latest closure vacuum per application.</Text>
           {loading ? (
             <HStack spacing={3} color="gray.600">
               <Spinner size="sm" />
@@ -205,6 +216,7 @@ export default function MassageTab({ selected = [], selectedKeys = [] }) {
 
         <Box flex="1" minW={0}>
           <Text fontWeight="semibold">{`Massage Intensity - Overmilk (${unitLabel})`}</Text>
+          <Text fontSize="sm" color="gray.500" mb={1}>Derived from min/max points at 45/40/35 kPa.</Text>
           {loading ? (
             <HStack spacing={3} color="gray.600">
               <Spinner size="sm" />
@@ -237,6 +249,7 @@ export default function MassageTab({ selected = [], selectedKeys = [] }) {
 
         <Box flex="1" minW={0}>
           <Text fontWeight="semibold">{`Massage Intensity - PF (${unitLabel})`}</Text>
+          <Text fontSize="sm" color="gray.500" mb={1}>Derived from min/max points at 45/40/35 kPa.</Text>
           {loading ? (
             <HStack spacing={3} color="gray.600">
               <Spinner size="sm" />

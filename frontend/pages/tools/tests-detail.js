@@ -16,7 +16,7 @@ export default function TestsDetailPage() {
 
   return (
     <Box minH="100vh" display="flex" flexDirection="column">
-      <AppHeader title="Tests Detail" subtitle="Dettagli test per prodotti" backHref={backHref} />
+      <AppHeader title="Tests Detail" subtitle="Test details for selected products" backHref={backHref} showInfo={false} />
       <Box as="main" flex="1" maxW={{ base: "100%", md: "6xl" }} mx="auto" px={{ base:2, md:8 }} pt={{ base:2, md:6 }} w="100%">
         <Card w="100%" borderWidth={0} rounded={{ base: "none", md: "md" }} boxShadow={{ base: "none", md: "sm" }}>
           <CardBody pt={{ base: 2, md: 3 }}>

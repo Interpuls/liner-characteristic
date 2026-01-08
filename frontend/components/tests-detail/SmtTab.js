@@ -37,6 +37,12 @@ export default function SmtTab({ selected = [], selectedKeys = [] }) {
   const isImperial = unitSystem === "imperial";
   const unitLabel = isImperial ? "inHg" : "kPa";
   const flowUnit = isImperial ? "gpm" : "L/min";
+  const flowLabel = (flow) => {
+    if (!isImperial) return flow;
+    const val = Number(flow);
+    if (!Number.isFinite(val)) return flow;
+    return (val * 0.264172).toFixed(2);
+  };
   const displayValue = (kpa) => (isImperial ? kpaToInhg(kpa) : kpa);
   const threshold = isImperial ? kpaToInhg(45) : 45;
   const maxCount = Math.max(flowBars["0.5"].length, flowBars["1.9"].length, flowBars["3.6"].length);
@@ -134,12 +140,27 @@ export default function SmtTab({ selected = [], selectedKeys = [] }) {
 
   return (
     <VStack align="stretch" spacing={4} w="100%">
+      <Box>
+        <Text fontWeight="semibold" fontSize="lg">SMT Fluctuation</Text>
+        <Text fontSize="sm" color="gray.600">Min/max vacuum ranges per flow; red segment shows values above 45 kPa.</Text>
+      </Box>
+
       {legendItems.length > 0 && (
-        <Box bg="gray.50" borderWidth="1px" borderRadius="md" p={2}>
+        <Box bg="#f8fafc73" borderWidth="1px" borderRadius="md" p={2}>
           <Text fontSize="xs" color="gray.600" mb={1}>Product colors</Text>
           <HStack spacing={2} wrap="wrap">
             {legendItems.map((item) => (
-              <HStack key={item.key} spacing={2} px={2} py={1} borderWidth="1px" borderRadius="full" borderColor="gray.200" bg="white">
+              <HStack
+                key={item.key}
+                spacing={2}
+                px={2}
+                py={1}
+                minW={isAdmin ? "140px" : "auto"}
+                borderWidth="1px"
+                borderRadius="full"
+                borderColor="gray.200"
+                bg="white"
+              >
                 <Box w="10px" h="10px" borderRadius="full" bg={item.color} />
                 <VStack spacing={0} align="start">
                   <Text fontSize="sm" color="gray.700">{item.label}</Text>
@@ -156,7 +177,7 @@ export default function SmtTab({ selected = [], selectedKeys = [] }) {
       <Stack direction={chartDirection} divider={<StackDivider borderColor="gray.200" />} spacing={4} align="stretch">
         {FLOW_LIST.map((flow) => (
           <Box key={flow} flex="1" minW={0}>
-            <Text fontWeight="semibold">{`SMT Fluctuation - ${flow} ${flowUnit} (${unitLabel})`}</Text>
+            <Text fontWeight="semibold" color="gray.800">{`Flow: ${flowLabel(flow)} ${flowUnit} (${unitLabel})`}</Text>
             {loading ? (
               <HStack spacing={3} color="gray.600" mt={2}>
                 <Spinner size="sm" />
