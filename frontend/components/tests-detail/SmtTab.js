@@ -4,6 +4,8 @@ import {
   Text,
   VStack,
   HStack,
+  Stack,
+  StackDivider,
   Spinner,
   useBreakpointValue,
 } from "@chakra-ui/react";
@@ -25,15 +27,21 @@ const kpaToInhg = (v) => (v == null ? null : Number((v * 0.295299830714).toFixed
 
 export default function SmtTab({ selected = [], selectedKeys = [] }) {
   const [unitSystem, setUnitSystem] = useState("metric");
+  const [isAdmin, setIsAdmin] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [flowBars, setFlowBars] = useState({ "0.5": [], "1.9": [], "3.6": [] });
   const [highlight, setHighlight] = useState({ "0.5": "", "1.9": "", "3.6": "" });
   const barHeight = useBreakpointValue({ base: 180, md: 220 });
+  const isWide = useBreakpointValue({ base: false, lg: true });
   const isImperial = unitSystem === "imperial";
   const unitLabel = isImperial ? "inHg" : "kPa";
+  const flowUnit = isImperial ? "gpm" : "L/min";
   const displayValue = (kpa) => (isImperial ? kpaToInhg(kpa) : kpa);
   const threshold = isImperial ? kpaToInhg(45) : 45;
+  const maxCount = Math.max(flowBars["0.5"].length, flowBars["1.9"].length, flowBars["3.6"].length);
+  const compactLayout = !!isWide && maxCount > 0 && maxCount <= 3;
+  const chartDirection = compactLayout ? "row" : "column";
 
   const selectedIds = useMemo(
     () => selected.filter((s) => /^\d+$/.test(String(s))).map((s) => Number(s)),
@@ -62,6 +70,7 @@ export default function SmtTab({ selected = [], selectedKeys = [] }) {
         try {
           const me = await getMe(token);
           if (alive && me?.unit_system) setUnitSystem(me.unit_system);
+          if (alive) setIsAdmin(me?.role === "admin");
         } catch {}
 
         const items = await resolveSelection({ token, selectedIds, selectedKeys: keyList });
@@ -126,47 +135,60 @@ export default function SmtTab({ selected = [], selectedKeys = [] }) {
   return (
     <VStack align="stretch" spacing={4} w="100%">
       {legendItems.length > 0 && (
-        <HStack spacing={3} wrap="wrap">
-          <Text fontSize="sm" color="gray.600">Product colors:</Text>
-          {legendItems.map((item) => (
-            <HStack key={item.key} spacing={1.5} px={2} py={1} borderWidth="1px" borderRadius="full" borderColor="gray.200">
-              <Box w="12px" h="12px" borderRadius="full" bg={item.color} />
-              <Text fontSize="sm" color="gray.700">{item.label}</Text>
-            </HStack>
-          ))}
-        </HStack>
+        <Box bg="gray.50" borderWidth="1px" borderRadius="md" p={2}>
+          <Text fontSize="xs" color="gray.600" mb={1}>Product colors</Text>
+          <HStack spacing={2} wrap="wrap">
+            {legendItems.map((item) => (
+              <HStack key={item.key} spacing={2} px={2} py={1} borderWidth="1px" borderRadius="full" borderColor="gray.200" bg="white">
+                <Box w="10px" h="10px" borderRadius="full" bg={item.color} />
+                <VStack spacing={0} align="start">
+                  <Text fontSize="sm" color="gray.700">{item.label}</Text>
+                  {isAdmin && item.compound ? (
+                    <Text fontSize="xs" color="gray.500">{item.compound}</Text>
+                  ) : null}
+                </VStack>
+              </HStack>
+            ))}
+          </HStack>
+        </Box>
       )}
 
-      {FLOW_LIST.map((flow) => (
-        <Box key={flow}>
-          <Text fontWeight="semibold">{`SMT Fluctuation - ${flow} L/min (${unitLabel})`}</Text>
-          {loading ? (
-            <HStack spacing={3} color="gray.600" mt={2}>
-              <Spinner size="sm" />
-              <Text>Loading SMT data...</Text>
-            </HStack>
-          ) : error ? (
-            <Text color="red.500" fontSize="sm" mt={2}>{error}</Text>
-          ) : flowBars[flow].length === 0 ? (
-            <Text color="gray.600" fontSize="sm" mt={2}>No selections available.</Text>
-          ) : (
-            <Box p={{ base: 2, md: 3 }} bg="white" mt={2}>
-              <RangeBarChart
-                bars={flowBars[flow]}
-                barHeight={barHeight || 200}
-                unitLabel={unitLabel}
-                threshold={threshold}
-                displayValue={displayValue}
-                color={BLUE_SHADES[flow]}
-                alertColor={RED_SHADES[flow]}
-                colorMap={colorMap}
-                onSelect={(label, minKpa, maxKpa) => onRangeClick(flow, label, minKpa, maxKpa)}
-              />
-            </Box>
-          )}
-          {highlight[flow] ? <Text fontSize="xs" color="gray.500">{highlight[flow]}</Text> : null}
-        </Box>
-      ))}
+      <Stack direction={chartDirection} divider={<StackDivider borderColor="gray.200" />} spacing={4} align="stretch">
+        {FLOW_LIST.map((flow) => (
+          <Box key={flow} flex="1" minW={0}>
+            <Text fontWeight="semibold">{`SMT Fluctuation - ${flow} ${flowUnit} (${unitLabel})`}</Text>
+            {loading ? (
+              <HStack spacing={3} color="gray.600" mt={2}>
+                <Spinner size="sm" />
+                <Text>Loading SMT data...</Text>
+              </HStack>
+            ) : error ? (
+              <Text color="red.500" fontSize="sm" mt={2}>{error}</Text>
+            ) : flowBars[flow].length === 0 ? (
+              <Text color="gray.600" fontSize="sm" mt={2}>No selections available.</Text>
+            ) : (
+              <Box p={{ base: 2, md: 3 }} bg="white" mt={2}>
+                <RangeBarChart
+                  bars={flowBars[flow]}
+                  barHeight={barHeight || 200}
+                  unitLabel={unitLabel}
+                  threshold={threshold}
+                  displayValue={displayValue}
+                  color={BLUE_SHADES[flow]}
+                  alertColor={RED_SHADES[flow]}
+                  colorMap={colorMap}
+                  onSelect={(label, minKpa, maxKpa) => onRangeClick(flow, label, minKpa, maxKpa)}
+                />
+              </Box>
+            )}
+            {highlight[flow] ? (
+              <Box mt={1} px={3} py={2} bg="gray.50" borderWidth="1px" borderRadius="md" w="fit-content">
+                <Text fontSize="sm" color="gray.700">{highlight[flow]}</Text>
+              </Box>
+            ) : null}
+          </Box>
+        ))}
+      </Stack>
     </VStack>
   );
 }
@@ -201,7 +223,8 @@ async function resolveSelection({ token, selectedIds = [], selectedKeys = [] }) 
         const label = labelParts.join(" - ") || `App ${match?.id ?? ""}`;
         const teatLabel = formatTeatSize(sizeStr || "");
         const model = entry.prod?.model || "";
-        return match?.id ? { appId: Number(match.id), label, model, teat: teatLabel, productId: pid } : null;
+        const compound = entry.prod?.compound || "";
+        return match?.id ? { appId: Number(match.id), label, model, teat: teatLabel, productId: pid, compound } : null;
       })
       .filter(Boolean);
   }
@@ -240,7 +263,7 @@ function buildLegendItems(items, colorMap) {
     const color = colorMap?.get(key);
     if (!color) continue;
     const label = it.model || it.label || `Item ${res.length + 1}`;
-    res.push({ key, label, color });
+    res.push({ key, label, color, compound: it.compound });
   }
   return res;
 }

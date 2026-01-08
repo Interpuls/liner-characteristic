@@ -4,6 +4,8 @@ import {
   Text,
   VStack,
   HStack,
+  Stack,
+  StackDivider,
   Spinner,
   useBreakpointValue,
 } from "@chakra-ui/react";
@@ -26,6 +28,7 @@ const kpaToInhg = (v) => (v == null ? null : Number((v * 0.295299830714).toFixed
 
 export default function MassageTab({ selected = [], selectedKeys = [] }) {
   const [unitSystem, setUnitSystem] = useState("metric");
+  const [isAdmin, setIsAdmin] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [bars, setBars] = useState([]); // Real TPP
@@ -35,8 +38,12 @@ export default function MassageTab({ selected = [], selectedKeys = [] }) {
   const [intensityHighlightOm, setIntensityHighlightOm] = useState("");
   const [intensityHighlightPf, setIntensityHighlightPf] = useState("");
   const barHeight = useBreakpointValue({ base: 180, md: 220 });
+  const isWide = useBreakpointValue({ base: false, lg: true });
   const unitLabel = unitSystem === "imperial" ? "inHg" : "kPa";
   const displayValue = (kpa) => (unitSystem === "imperial" ? kpaToInhg(kpa) : kpa);
+  const maxCount = Math.max(bars.length, omBars.length, pfBars.length);
+  const compactLayout = !!isWide && maxCount > 0 && maxCount <= 3;
+  const chartDirection = compactLayout ? "row" : "column";
 
   const selectedIds = useMemo(
     () => selected.filter((s) => /^\d+$/.test(String(s))).map((s) => Number(s)),
@@ -67,6 +74,7 @@ export default function MassageTab({ selected = [], selectedKeys = [] }) {
         try {
           const me = await getMe(token);
           if (alive && me?.unit_system) setUnitSystem(me.unit_system);
+          if (alive) setIsAdmin(me?.role === "admin");
         } catch {}
 
         const items = await resolveSelection({ token, selectedIds, selectedKeys: keyList });
@@ -144,94 +152,121 @@ export default function MassageTab({ selected = [], selectedKeys = [] }) {
   return (
     <VStack align="stretch" spacing={4} w="100%">
       {legendItems.length > 0 && (
-        <HStack spacing={3} wrap="wrap">
-          <Text fontSize="sm" color="gray.600">Product colors:</Text>
-          {legendItems.map((item) => (
-            <HStack key={item.key} spacing={1.5} px={2} py={1} borderWidth="1px" borderRadius="full" borderColor="gray.200">
-              <Box w="12px" h="12px" borderRadius="full" bg={item.color} />
-              <Text fontSize="sm" color="gray.700">{item.label}</Text>
+        <Box bg="gray.50" borderWidth="1px" borderRadius="md" p={2}>
+          <Text fontSize="xs" color="gray.600" mb={1}>Product colors</Text>
+          <HStack spacing={2} wrap="wrap">
+            {legendItems.map((item) => (
+              <HStack key={item.key} spacing={2} px={2} py={1} borderWidth="1px" borderRadius="full" borderColor="gray.200" bg="white">
+                <Box w="10px" h="10px" borderRadius="full" bg={item.color} />
+                <VStack spacing={0} align="start">
+                  <Text fontSize="sm" color="gray.700">{item.label}</Text>
+                  {isAdmin && item.compound ? (
+                    <Text fontSize="xs" color="gray.500">{item.compound}</Text>
+                  ) : null}
+                </VStack>
+              </HStack>
+            ))}
+          </HStack>
+        </Box>
+      )}
+
+      <Stack direction={chartDirection} divider={<StackDivider borderColor="gray.200" />} spacing={4} align="stretch">
+        <Box flex="1" minW={0}>
+          <Text fontWeight="semibold">{`Real TPP (${unitLabel})`}</Text>
+          {loading ? (
+            <HStack spacing={3} color="gray.600">
+              <Spinner size="sm" />
+              <Text>Loading Real TPP...</Text>
             </HStack>
-          ))}
-        </HStack>
-      )}
-
-      <Text fontWeight="semibold">{`Real TPP (${unitLabel})`}</Text>
-      {loading ? (
-        <HStack spacing={3} color="gray.600">
-          <Spinner size="sm" />
-          <Text>Loading Real TPP...</Text>
-        </HStack>
-      ) : error ? (
-        <Text color="red.500" fontSize="sm">{error}</Text>
-      ) : bars.length === 0 ? (
-        <Text color="gray.600" fontSize="sm">No selections available.</Text>
-      ) : (
-        <Box p={{ base: 2, md: 3 }} bg="white">
-          <BarChart
-            bars={bars}
-            maxVal={maxTpp}
-            barHeight={barHeight || 200}
-            unitLabel={unitLabel}
-            displayValue={displayValue}
-            color={BAR_COLOR}
-            colorMap={colorMap}
-            onSelect={onBarClick}
-          />
+          ) : error ? (
+            <Text color="red.500" fontSize="sm">{error}</Text>
+          ) : bars.length === 0 ? (
+            <Text color="gray.600" fontSize="sm">No selections available.</Text>
+          ) : (
+            <Box p={{ base: 2, md: 3 }} bg="white">
+              <BarChart
+                bars={bars}
+                maxVal={maxTpp}
+                barHeight={barHeight || 200}
+                unitLabel={unitLabel}
+                displayValue={displayValue}
+                color={BAR_COLOR}
+                colorMap={colorMap}
+                onSelect={onBarClick}
+              />
+            </Box>
+          )}
+          {highlight ? (
+            <Box mt={1} px={3} py={2} bg="gray.50" borderWidth="1px" borderRadius="md" w="fit-content">
+              <Text fontSize="sm" color="gray.700">{highlight}</Text>
+            </Box>
+          ) : null}
         </Box>
-      )}
-      {highlight ? <Text fontSize="xs" color="gray.500">{highlight}</Text> : null}
 
-      <Text fontWeight="semibold" mt={4}>{`Massage Intensity - Overmilk (${unitLabel})`}</Text>
-      {loading ? (
-        <HStack spacing={3} color="gray.600">
-          <Spinner size="sm" />
-          <Text>Loading Massage Intensity...</Text>
-        </HStack>
-      ) : error ? (
-        <Text color="red.500" fontSize="sm">{error}</Text>
-      ) : omBars.length === 0 ? (
-        <Text color="gray.600" fontSize="sm">No selections available.</Text>
-      ) : (
-        <Box p={{ base: 2, md: 3 }} bg="white">
-          <BarChart
-            bars={omBars}
-            maxVal={maxOm}
-            barHeight={barHeight || 200}
-            unitLabel={unitLabel}
-            displayValue={displayValue}
-            color={OM_COLOR}
-            colorMap={colorMap}
-            onSelect={(label, val) => onIntensityClick(label, val, "OM")}
-          />
+        <Box flex="1" minW={0}>
+          <Text fontWeight="semibold">{`Massage Intensity - Overmilk (${unitLabel})`}</Text>
+          {loading ? (
+            <HStack spacing={3} color="gray.600">
+              <Spinner size="sm" />
+              <Text>Loading Massage Intensity...</Text>
+            </HStack>
+          ) : error ? (
+            <Text color="red.500" fontSize="sm">{error}</Text>
+          ) : omBars.length === 0 ? (
+            <Text color="gray.600" fontSize="sm">No selections available.</Text>
+          ) : (
+            <Box p={{ base: 2, md: 3 }} bg="white">
+              <BarChart
+                bars={omBars}
+                maxVal={maxOm}
+                barHeight={barHeight || 200}
+                unitLabel={unitLabel}
+                displayValue={displayValue}
+                color={OM_COLOR}
+                colorMap={colorMap}
+                onSelect={(label, val) => onIntensityClick(label, val, "OM")}
+              />
+            </Box>
+          )}
+          {intensityHighlightOm ? (
+            <Box mt={1} px={3} py={2} bg="gray.50" borderWidth="1px" borderRadius="md" w="fit-content">
+              <Text fontSize="sm" color="gray.700">{intensityHighlightOm}</Text>
+            </Box>
+          ) : null}
         </Box>
-      )}
-      {intensityHighlightOm ? <Text fontSize="xs" color="gray.500">{intensityHighlightOm}</Text> : null}
 
-      <Text fontWeight="semibold" mt={4}>{`Massage Intensity - PF (${unitLabel})`}</Text>
-      {loading ? (
-        <HStack spacing={3} color="gray.600">
-          <Spinner size="sm" />
-          <Text>Loading Massage Intensity...</Text>
-        </HStack>
-      ) : error ? (
-        <Text color="red.500" fontSize="sm">{error}</Text>
-      ) : pfBars.length === 0 ? (
-        <Text color="gray.600" fontSize="sm">No selections available.</Text>
-      ) : (
-        <Box p={{ base: 2, md: 3 }} bg="white">
-          <BarChart
-            bars={pfBars}
-            maxVal={maxPf}
-            barHeight={barHeight || 200}
-            unitLabel={unitLabel}
-            displayValue={displayValue}
-            color={PF_COLOR}
-            colorMap={colorMap}
-            onSelect={(label, val) => onIntensityClick(label, val, "PF")}
-          />
+        <Box flex="1" minW={0}>
+          <Text fontWeight="semibold">{`Massage Intensity - PF (${unitLabel})`}</Text>
+          {loading ? (
+            <HStack spacing={3} color="gray.600">
+              <Spinner size="sm" />
+              <Text>Loading Massage Intensity...</Text>
+            </HStack>
+          ) : error ? (
+            <Text color="red.500" fontSize="sm">{error}</Text>
+          ) : pfBars.length === 0 ? (
+            <Text color="gray.600" fontSize="sm">No selections available.</Text>
+          ) : (
+            <Box p={{ base: 2, md: 3 }} bg="white">
+              <BarChart
+                bars={pfBars}
+                maxVal={maxPf}
+                barHeight={barHeight || 200}
+                unitLabel={unitLabel}
+                displayValue={displayValue}
+                color={PF_COLOR}
+                colorMap={colorMap}
+                onSelect={(label, val) => onIntensityClick(label, val, "PF")}
+              />
+            </Box>
+          )}
+          {intensityHighlightPf ? (
+            <Box mt={1} px={3} py={2} bg="gray.50" borderWidth="1px" borderRadius="md" w="fit-content">
+              <Text fontSize="sm" color="gray.700">{intensityHighlightPf}</Text>
+            </Box>
+          ) : null}
         </Box>
-      )}
-      {intensityHighlightPf ? <Text fontSize="xs" color="gray.500">{intensityHighlightPf}</Text> : null}
+      </Stack>
     </VStack>
   );
 }
@@ -266,7 +301,8 @@ async function resolveSelection({ token, selectedIds = [], selectedKeys = [] }) 
         const label = labelParts.join(" - ") || `App ${match?.id ?? ""}`;
         const teatLabel = formatTeatSize(sizeStr || "");
         const model = entry.prod?.model || "";
-        return match?.id ? { appId: Number(match.id), label, model, teat: teatLabel, productId: pid } : null;
+        const compound = entry.prod?.compound || "";
+        return match?.id ? { appId: Number(match.id), label, model, teat: teatLabel, productId: pid, compound } : null;
       })
       .filter(Boolean);
   }
@@ -333,7 +369,7 @@ function buildLegendItems(items, colorMap) {
     const color = colorMap?.get(key);
     if (!color) continue;
     const label = it.model || it.label || `Item ${res.length + 1}`;
-    res.push({ key, label, color });
+    res.push({ key, label, color, compound: it.compound });
   }
   return res;
 }
