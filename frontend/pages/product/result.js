@@ -104,7 +104,10 @@ export default function ProductsSearchPage() {
       if (!saveName.trim()) { toast({ status: "warning", title: "Inserisci un nome" }); return; }
       // Build filters object compatible with ProductFilters
       const areasSel = typeof areas === "string" && areas ? String(areas).split(",") : [];
-      const brandModelFilters = brand ? { brands: [String(brand)], models: (model ? { [String(brand)]: [String(model)] } : {}) } : { brands: [], models: {} };
+      const safeModel = model && !["imperial", "metric"].includes(String(model)) ? String(model) : "";
+      const brandModelFilters = brand
+        ? { brands: [String(brand)], models: (safeModel ? { [String(brand)]: [safeModel] } : {}) }
+        : { brands: [], models: {} };
       const teatSel = (() => {
         const acc = [];
         if (Array.isArray(teat_sizes)) acc.push(...teat_sizes.map(String));
