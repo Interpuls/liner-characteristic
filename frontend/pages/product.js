@@ -83,13 +83,28 @@ export default function Products() {
     }
   }, [router.isReady, router.query?.preset]);
 
+  const normalizeModels = (modelsObj) => {
+    if (!modelsObj || typeof modelsObj !== "object") return [];
+    const raw = Object.values(modelsObj).flatMap((v) => {
+      if (Array.isArray(v)) return v;
+      if (typeof v === "string") {
+        return v.includes(",") ? v.split(",").map((s) => s.trim()).filter(Boolean) : [v];
+      }
+      return [];
+    });
+    return raw
+      .map(String)
+      .filter(Boolean)
+      .filter((v) => v !== "imperial" && v !== "metric");
+  };
+
   const onConfirm = () => {
     const params = new URLSearchParams();
     const { brandModel, teatSizes, shapes, parlor, areas } = selection || {};
 
     // Single-value params preserved for backend filtering compatibility
     if (brandModel?.brands && brandModel.brands.length === 1) params.set("brand", brandModel.brands[0]);
-    const allModels = Object.values(brandModel?.models || {}).flat();
+    const allModels = normalizeModels(brandModel?.models);
     if (allModels.length === 1) params.set("model", allModels[0]);
     if (teatSizes && teatSizes.length === 1) params.set("teat_size", teatSizes[0]);
 

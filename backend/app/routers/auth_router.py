@@ -12,7 +12,7 @@ from app.schema.auth import Token
 router = APIRouter()
 
 
-ALLOWED_EMAIL_DOMAIN = "milkrite.com"  #eventualmente da spostare in un .env ??
+ALLOWED_EMAIL_DOMAIN = "milkrite-interpuls.com"  #eventualmente da spostare in un .env ??
 
 
 # ---------------- AUTH ENDPOINTS ----------------
