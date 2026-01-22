@@ -6,6 +6,7 @@ import AppFooter from "../../components/AppFooter";
 import { getToken } from "../../lib/auth";
 import { getKpiValuesByPA, listProductApplications, getProduct } from "../../lib/api";
 import { latestKpiByCode } from "../../lib/kpi";
+import { formatTeatSize } from "../../lib/teatSizes";
 
 const KPI_ORDER = [
   'CLOSURE','FITTING','CONGESTION_RISK','HYPERKERATOSIS_RISK','SPEED','RESPRAY','FLUYDODINAMIC','SLIPPAGE','RINGING_RISK'
@@ -57,11 +58,12 @@ export default function RadarMapPage() {
             try { const prod = await getProduct(token, pid); prodByPid.set(pid, prod); } catch {}
           }));
           items = pairs.map(({ id, key }) => {
-            const [pidStr] = String(key).split('-');
+            const [pidStr, sizeStr] = String(key).split('-');
             const pid = Number(pidStr);
+            const sizeMm = Number(sizeStr);
             const prod = prodByPid.get(pid);
             const label = prod?.model || `App ${id}`;
-            return { appId: id, label };
+            return { appId: id, label, sizeMm: Number.isFinite(sizeMm) ? sizeMm : undefined };
           });
         } else if (selectedKeys.length > 0) {
           // keys format: `${productId}-${sizeMm}`
@@ -88,7 +90,7 @@ export default function RadarMapPage() {
             const prod = entry.prod;
             const model = prod?.model || '';
             const label = model || `App ${appId ?? ''}`;
-            return appId ? { appId, label } : null;
+            return appId ? { appId, label, sizeMm: Number.isFinite(size) ? size : undefined } : null;
           }).filter(Boolean);
         } else if (selectedIds.length > 0) {
           // Fallback: ids only, no keys -> generic label
@@ -102,9 +104,9 @@ export default function RadarMapPage() {
             const values = await getKpiValuesByPA(token, it.appId);
             const latest = latestKpiByCode(values);
             const byCode = Object.fromEntries(Object.entries(latest).map(([code, v]) => [code, { score: v.score, value_num: v.value_num }]));
-            result.push({ appId: it.appId, label: it.label, byCode });
+            result.push({ appId: it.appId, label: it.label, sizeMm: it.sizeMm, byCode });
           } catch (e) {
-            result.push({ appId: it.appId, label: it.label, byCode: {} });
+            result.push({ appId: it.appId, label: it.label, sizeMm: it.sizeMm, byCode: {} });
           }
         }));
         setSeries(result);
@@ -161,22 +163,33 @@ function Legend({ items, hidden, onToggle }) {
       {items.map((s, i) => {
         const color = COLORS[i % COLORS.length];
         const isHidden = hidden?.has(s.appId);
+        const hasSize = Number.isFinite(s.sizeMm);
         return (
           <HStack
             key={s.appId}
             spacing={2}
             px={2}
             py={1}
+            minW="140px"
             borderWidth="1px"
             borderRadius="full"
-            borderColor={color}
-            bg={isHidden ? 'gray.50' : 'white'}
+            borderColor="gray.200"
+            bg="white"
             cursor="pointer"
             onClick={() => onToggle?.(s.appId)}
             opacity={isHidden ? 0.5 : 1}
           >
             <Box w="10px" h="10px" borderRadius="full" bg={color} />
-            <Text fontSize="sm" textDecoration={isHidden ? 'line-through' : 'none'}>{s.label}</Text>
+            <VStack spacing={0} align="start">
+              <Text fontSize="sm" color="gray.700" textDecoration={isHidden ? 'line-through' : 'none'}>
+                {s.label}
+              </Text>
+              {hasSize ? (
+                <Text fontSize="xs" color="gray.500" textDecoration={isHidden ? 'line-through' : 'none'}>
+                  {formatTeatSize(s.sizeMm)}
+                </Text>
+              ) : null}
+            </VStack>
           </HStack>
         );
       })}
