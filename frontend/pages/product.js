@@ -320,11 +320,11 @@ export default function Products() {
       <Modal isOpen={!!prefToDelete} onClose={closeDeleteModal} isCentered>
         <ModalOverlay />
         <ModalContent bg="#0c1f44" color="white">
-          <ModalHeader>Elimina preference</ModalHeader>
+          <ModalHeader>Delete preference</ModalHeader>
           <ModalCloseButton />
           <ModalBody>
             <Text>
-              Sei sicuro di voler eliminare la preference{" "}
+              Are you sure you want to delete the preference{" "}
               <Text as="span" fontWeight="semibold">
                 {prefToDelete?.name}
               </Text>
@@ -333,10 +333,10 @@ export default function Products() {
           </ModalBody>
           <ModalFooter gap={3}>
             <Button onClick={closeDeleteModal} variant="outline" colorScheme="whiteAlpha" isDisabled={isDeletingPref}>
-              Annulla
+              Cancel
             </Button>
             <Button colorScheme="red" onClick={confirmDeletePref} isLoading={isDeletingPref}>
-              Elimina
+              Delete
             </Button>
           </ModalFooter>
         </ModalContent>

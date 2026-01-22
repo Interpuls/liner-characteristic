@@ -4,8 +4,9 @@ import { Box, Heading, Text, VStack, Card, CardHeader, CardBody, HStack, Spinner
 import AppHeader from "../../components/AppHeader";
 import AppFooter from "../../components/AppFooter";
 import { getToken } from "../../lib/auth";
-import { getKpiValuesByPA, listProductApplications, getProduct } from "../../lib/api";
+import { getKpiValuesByPA, listProductApplications, getProduct, getMe } from "../../lib/api";
 import { latestKpiByCode } from "../../lib/kpi";
+import { formatTeatSize } from "../../lib/teatSizes";
 
 const KPI_ORDER = [
   'CLOSURE','FITTING','CONGESTION_RISK','HYPERKERATOSIS_RISK','SPEED','RESPRAY','FLUYDODINAMIC','SLIPPAGE','RINGING_RISK'
@@ -37,6 +38,7 @@ export default function RadarMapPage() {
   const [series, setSeries] = useState([]);
   const [error, setError] = useState('');
   const [hiddenIds, setHiddenIds] = useState(new Set());
+  const [isAdmin, setIsAdmin] = useState(false);
 
   // Build app ids and labels. Prefer explicit app_ids, fallback to keys mapping.
   useEffect(() => {
@@ -46,6 +48,11 @@ export default function RadarMapPage() {
       if (!token) { window.location.replace('/login'); return; }
       setLoading(true); setError('');
       try {
+        try {
+          const me = await getMe(token);
+          setIsAdmin(me?.role === "admin");
+        } catch {}
+
         let items = [];
         if (selectedIds.length > 0 && selectedKeys.length > 0 && selectedIds.length === selectedKeys.length) {
           // Zip ids and keys to use model labels
@@ -57,11 +64,12 @@ export default function RadarMapPage() {
             try { const prod = await getProduct(token, pid); prodByPid.set(pid, prod); } catch {}
           }));
           items = pairs.map(({ id, key }) => {
-            const [pidStr] = String(key).split('-');
+            const [pidStr, sizeStr] = String(key).split('-');
             const pid = Number(pidStr);
+            const sizeMm = Number(sizeStr);
             const prod = prodByPid.get(pid);
             const label = prod?.model || `App ${id}`;
-            return { appId: id, label };
+            return { appId: id, label, sizeMm: Number.isFinite(sizeMm) ? sizeMm : undefined, compound: prod?.compound };
           });
         } else if (selectedKeys.length > 0) {
           // keys format: `${productId}-${sizeMm}`
@@ -88,7 +96,7 @@ export default function RadarMapPage() {
             const prod = entry.prod;
             const model = prod?.model || '';
             const label = model || `App ${appId ?? ''}`;
-            return appId ? { appId, label } : null;
+            return appId ? { appId, label, sizeMm: Number.isFinite(size) ? size : undefined, compound: prod?.compound } : null;
           }).filter(Boolean);
         } else if (selectedIds.length > 0) {
           // Fallback: ids only, no keys -> generic label
@@ -102,9 +110,9 @@ export default function RadarMapPage() {
             const values = await getKpiValuesByPA(token, it.appId);
             const latest = latestKpiByCode(values);
             const byCode = Object.fromEntries(Object.entries(latest).map(([code, v]) => [code, { score: v.score, value_num: v.value_num }]));
-            result.push({ appId: it.appId, label: it.label, byCode });
+            result.push({ appId: it.appId, label: it.label, sizeMm: it.sizeMm, compound: it.compound, byCode });
           } catch (e) {
-            result.push({ appId: it.appId, label: it.label, byCode: {} });
+            result.push({ appId: it.appId, label: it.label, sizeMm: it.sizeMm, compound: it.compound, byCode: {} });
           }
         }));
         setSeries(result);
@@ -141,6 +149,7 @@ export default function RadarMapPage() {
                 <Legend
                   items={series}
                   hidden={hiddenIds}
+                  isAdmin={isAdmin}
                   onToggle={(id) => setHiddenIds(prev => { const n = new Set(prev); if (n.has(id)) n.delete(id); else n.add(id); return n; })}
                 />
                 <ResponsiveRadar series={series} hidden={hiddenIds} />
@@ -155,28 +164,45 @@ export default function RadarMapPage() {
   );
 }
 
-function Legend({ items, hidden, onToggle }) {
+function Legend({ items, hidden, onToggle, isAdmin }) {
   return (
     <HStack wrap="wrap" spacing={2}>
       {items.map((s, i) => {
         const color = COLORS[i % COLORS.length];
         const isHidden = hidden?.has(s.appId);
+        const hasSize = Number.isFinite(s.sizeMm);
+        const subtitle = (() => {
+          const parts = [];
+          if (hasSize) parts.push(formatTeatSize(s.sizeMm));
+          if (isAdmin && s.compound) parts.push(s.compound);
+          return parts.join(" • ");
+        })();
         return (
           <HStack
             key={s.appId}
             spacing={2}
             px={2}
             py={1}
+            minW="140px"
             borderWidth="1px"
             borderRadius="full"
-            borderColor={color}
-            bg={isHidden ? 'gray.50' : 'white'}
+            borderColor="gray.200"
+            bg="white"
             cursor="pointer"
             onClick={() => onToggle?.(s.appId)}
             opacity={isHidden ? 0.5 : 1}
           >
             <Box w="10px" h="10px" borderRadius="full" bg={color} />
-            <Text fontSize="sm" textDecoration={isHidden ? 'line-through' : 'none'}>{s.label}</Text>
+            <VStack spacing={0} align="start">
+              <Text fontSize="sm" color="gray.700" textDecoration={isHidden ? 'line-through' : 'none'}>
+                {s.label}
+              </Text>
+              {subtitle ? (
+                <Text fontSize="xs" color="gray.500" textDecoration={isHidden ? 'line-through' : 'none'}>
+                  {subtitle}
+                </Text>
+              ) : null}
+            </VStack>
           </HStack>
         );
       })}

@@ -128,11 +128,11 @@ export default function ProductsSearchPage() {
         parlor: parlor ? [String(parlor)] : [],
       };
       await saveProductPref(t, saveName.trim(), payload);
-      toast({ status: "success", title: "Preferenza salvata" });
+      toast({ status: "success", title: "Preference saved" });
       setSaveName("");
       saveCtrl.onClose();
     } catch (e) {
-      toast({ status: "error", title: e?.message || "Impossibile salvare" });
+      toast({ status: "error", title: e?.message || "Unable to save" });
     }
   };
 
