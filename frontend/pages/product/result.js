@@ -155,7 +155,7 @@ export default function ProductsSearchPage() {
         ...(model ? { model } : {}),
       }).catch(() => []);
 
-      // filter client-side for shape/parlor/areas
+      // filter client-side for brand/model/shape/parlor/areas
       const shapes = (() => {
         if (Array.isArray(barrel_shape)) return barrel_shape.map(String);
         if (typeof barrel_shape === 'string' && barrel_shape.includes(',')) return barrel_shape.split(',').map(s => s.trim()).filter(Boolean);
@@ -163,8 +163,17 @@ export default function ProductsSearchPage() {
       })();
       const parlorSel = parlor ? [String(parlor)] : [];
       const areasSel = typeof areas === "string" && areas ? String(areas).split(",") : [];
+      const toList = (v) => Array.isArray(v) ? v.map(String) : (typeof v === 'string' ? v.split(',').map(s=>s.trim()).filter(Boolean) : []);
+      const brandsList = (toList(brands).length ? toList(brands) : toList(brand));
+      const modelsList = (toList(models).length ? toList(models) : toList(model));
 
       const filtered = (Array.isArray(base) ? base : []).filter((p) => {
+        let okBM = true;
+        if (brandsList.length > 0 || modelsList.length > 0) {
+          const hasBrand = p.brand && brandsList.includes(String(p.brand));
+          const hasModel = p.model && modelsList.includes(String(p.model));
+          okBM = hasBrand || hasModel;
+        }
         let okShape = true;
         if (shapes.length > 0) okShape = p.barrel_shape && shapes.includes(String(p.barrel_shape));
         let okParlor = true;
@@ -175,7 +184,7 @@ export default function ProductsSearchPage() {
           const list = Array.isArray(p.reference_areas) ? p.reference_areas : [];
           okArea = areasSel.some((a) => list.includes(a));
         }
-        return okShape && okParlor && okArea;
+        return okBM && okShape && okParlor && okArea;
       });
 
       // expand by teat sizes (support single, CSV, or teat_sizes param)

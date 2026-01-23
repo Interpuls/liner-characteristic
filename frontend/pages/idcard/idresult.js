@@ -32,9 +32,6 @@ export default function IdResultPage() {
 
   
 
-  // quali campi saltare nella tabella “specs”
-  
-
   useEffect(() => {
     const t = getToken();
     if (!t) { window.location.replace("/login"); return; }
