@@ -406,6 +406,14 @@ function BarChart({ bars, maxVal, barHeight, unitLabel, displayValue, onSelect, 
     if (b.model) parts.push(b.model);
     return parts.length ? parts.join(" · ") : b.label;
   };
+  const formatAxisLabel = (value) => {
+    const raw = String(value || "").trim();
+    if (!raw) return "";
+    let out = raw.replace(/^Evo\.\s*Evolution\b\s*/i, "Evo. ");
+    out = out.replace(/^Ultraliner\b[\s-]*/i, "");
+    out = out.replace(/^Evolution\b[\s-]*/i, "Evo. ");
+    return out.trim();
+  };
 
   const tickDecimals = safeMax >= 10 ? 0 : safeMax >= 2 ? 1 : 2;
 
@@ -450,14 +458,16 @@ function BarChart({ bars, maxVal, barHeight, unitLabel, displayValue, onSelect, 
 
         {bars.map((b, idx) => {
           const xCenter = marginLeft + idx * (barW + gap) + barW / 2;
+          const mainLabel = b.teat ? String(b.teat) : formatAxisLabel(b.label);
+          const modelLabel = b.model ? formatAxisLabel(b.model) : "";
           return (
             <g key={`label-${idx}`} transform={`translate(${xCenter},${height + 14})`}>
               <text textAnchor="middle" fontSize="11" fill="#4A5568">
-                {b.teat || b.label}
+                {mainLabel}
               </text>
-              {b.model ? (
+              {modelLabel ? (
                 <text textAnchor="middle" fontSize="10" fill="#A0AEC0" dy="12">
-                  {b.model}
+                  {modelLabel}
                 </text>
               ) : null}
             </g>
