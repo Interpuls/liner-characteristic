@@ -315,9 +315,22 @@ export default function Home() {
 
 
               <Box>
-                <Text fontSize="xs" textTransform="uppercase" letterSpacing="0.08em" color="gray.500" mb={4}>
+                <Text fontSize="xs" textTransform="uppercase" letterSpacing="0.08em" color="gray.500" mb={2}>
                   Settings
                 </Text>
+                <Stack spacing={3} mb={2}>
+                  <HStack
+                    justify="space-between"
+                    align="center"
+                    p={3}
+                    borderRadius="md"
+                  >               
+                    <Box>                      
+                      <Text fontSize="xs" color="gray.400">Username</Text>
+                      <Text fontSize="sm" color="gray.100">{me?.email || "Non disponibile"}</Text>
+                    </Box>
+                  </HStack>
+                </Stack>
                 <Stack spacing={3}>
                   <HStack
                     justify="space-between"
@@ -326,7 +339,7 @@ export default function Home() {
                     borderWidth="1px"
                     borderColor="whiteAlpha.200"
                     borderRadius="md"
-                  >
+                  >               
                     <Box>
                       <Text fontSize="sm" color="gray.100">Unit system</Text>
                       <Text fontSize="xs" color="gray.400">
