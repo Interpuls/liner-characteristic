@@ -65,8 +65,14 @@ class Product(SQLModel, table=True):
         {"sqlite_autoincrement": True},   
     )
 
-    # Relationship: a Product has many applications
-    applications: List["ProductApplication"] = Relationship(back_populates="product")
+    # Let SQLAlchemy delete child rows instead of nulling product_id.
+    applications: List["ProductApplication"] = Relationship(
+        back_populates="product",
+        sa_relationship_kwargs={
+            "cascade": "all, delete-orphan",
+            "passive_deletes": True,
+        },
+    )
 
 
 class ProductApplication(SQLModel, table=True):
