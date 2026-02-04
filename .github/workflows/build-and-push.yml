@@ -36,7 +36,9 @@ jobs:
           context: ./backend
           file: ./backend/Dockerfile
           push: true
-          tags: ghcr.io/interpuls/liner-backend:sha-${{ github.sha }}
+          tags: |
+            ghcr.io/interpuls/liner-backend:sha-${{ github.sha }}
+            ghcr.io/interpuls/liner-backend:prod
 
       - name: Build & push frontend
         uses: docker/build-push-action@v6
@@ -44,6 +46,8 @@ jobs:
           context: ./frontend
           file: ./frontend/Dockerfile
           push: true
-          tags: ghcr.io/interpuls/liner-frontend:sha-${{ github.sha }}
+          tags: |
+            ghcr.io/interpuls/liner-frontend:sha-${{ github.sha }}
+            ghcr.io/interpuls/liner-frontend:prod
           build-args: |
             NEXT_PUBLIC_API_URL=${{ secrets.NEXT_PUBLIC_API_URL_PROD }}
