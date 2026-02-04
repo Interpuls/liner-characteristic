@@ -2,7 +2,6 @@
 from sqlmodel import Session, select
 from app.model.kpi import KpiScale
 from typing import Dict, Tuple
-import math
 from fastapi import HTTPException
 
 #Ritorna lo score se trova una banda, altrimenti None (soft)

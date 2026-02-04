@@ -1,7 +1,6 @@
 from datetime import datetime
 from typing import List, Optional, Dict, Any, ClassVar
 from pydantic import validator, Field
-from enum import Enum
 from .base import MetricNormalizedModel
 
 

@@ -1,6 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlmodel import Session, select
-from sqlalchemy import delete
 import sqlalchemy as sa
 from app.services.conversion_wrapper import convert_output
 
