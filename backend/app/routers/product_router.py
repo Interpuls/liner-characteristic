@@ -324,7 +324,6 @@ def update_product(product_id: int, payload: ProductIn, session: Session = Depen
  #Calcola i "nuovi" brand/model/compound da usare per i controlli di unicità
     new_brand = data.get("brand", obj.brand) or ""
     new_model = data.get("model", obj.model) or ""
-    new_compound = data.get("compound", obj.compound)
  #Unicità (brand, model, compound) escludendo se stesso
     try:
         #Se diventa pubblico => demoto eventuali altri pubblici stesso brand/model
