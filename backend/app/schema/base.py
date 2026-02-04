@@ -1,6 +1,6 @@
 # app/schema/base.py
 from pydantic import BaseModel, model_validator
-from typing import Optional, Dict, Any
+from typing import Dict, Any
 from app.services.unit_converter import UnitConverter
 
 #Base model that normalizes imperial inputs into metric fields.

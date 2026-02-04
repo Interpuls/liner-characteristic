@@ -1,4 +1,3 @@
-from datetime import datetime
 from typing import Optional, List
 import json
 import sqlalchemy as sa
@@ -13,7 +12,7 @@ from app.model.kpi import KpiValue, TestMetric
 from app.model.product import ProductApplication
 from app.model.smthood import SmtHoodRun, SmtHoodPoint
 from app.schema.smthood import SmtHoodRunOut, SmtHoodPointIn
-from app.services.kpi_engine import score_from_scales, score_or_422
+from app.services.kpi_engine import score_or_422
 
 router = APIRouter()
 

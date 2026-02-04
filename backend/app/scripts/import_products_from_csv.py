@@ -118,7 +118,7 @@ def _create_product_like_admin(session: Session, payload: Dict[str, object]) -> 
             .where(
                 Product.brand == brand,
                 Product.model == model,
-                Product.only_admin == False,
+                Product.only_admin.is_(False),
             )
             .values(only_admin=True)
         )
