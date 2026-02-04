@@ -7,12 +7,14 @@ class UnitConverter:
     # ---------------------------
     @staticmethod
     def mm_to_inch(mm: Optional[float]) -> Optional[float]:
-        if mm is None: return None
+        if mm is None: 
+            return None
         return round(mm / 25.4, 3)
 
     @staticmethod
     def inch_to_mm(inch: Optional[float]) -> Optional[float]:
-        if inch is None: return None
+        if inch is None: 
+            return None
         return round(inch * 25.4, 3)
 
     # ---------------------------
@@ -20,12 +22,14 @@ class UnitConverter:
     # ---------------------------
     @staticmethod
     def kpa_to_inhg(kpa: Optional[float]) -> Optional[float]:
-        if kpa is None: return None
+        if kpa is None: 
+            return None
         return round(kpa * 0.295299830714, 3)
 
     @staticmethod
     def inhg_to_kpa(inhg: Optional[float]) -> Optional[float]:
-        if inhg is None: return None
+        if inhg is None: 
+            return None
         return round(inhg / 0.295299830714, 3)
 
     # ---------------------------
@@ -33,12 +37,14 @@ class UnitConverter:
     # ---------------------------
     @staticmethod
     def g_to_lb(g: Optional[float]) -> Optional[float]:
-        if g is None: return None
+        if g is None: 
+            return None
         return round(g * 0.0022046226, 3)
 
     @staticmethod
     def kg_to_lb(kg: Optional[float]) -> Optional[float]:
-        if kg is None: return None
+        if kg is None: 
+            return None
         return round(kg * 2.20462262185, 3)
 
     # ---------------------------
@@ -46,23 +52,27 @@ class UnitConverter:
     # ---------------------------
     @staticmethod
     def lmin_to_lbmin(lmin: Optional[float]) -> Optional[float]:
-        if lmin is None: return None
+        if lmin is None: 
+            return None
         # assumiamo densità = acqua (1 L = 2.2046 lb)
         return round(lmin * 2.2046, 3)
 
     @staticmethod
     def lmin_to_gpm(lmin: Optional[float]) -> Optional[float]:
-        if lmin is None: return None
+        if lmin is None: 
+            return None
         return round(lmin * 0.264172052, 3)
 
     @staticmethod
     def lbmin_to_lmin(lbmin: Optional[float]) -> Optional[float]:
-        if lbmin is None: return None
+        if lbmin is None: 
+            return None
         return round(lbmin / 2.2046, 3)
 
     @staticmethod
     def gpm_to_lmin(gpm: Optional[float]) -> Optional[float]:
-        if gpm is None: return None
+        if gpm is None: 
+            return None
         return round(gpm / 0.264172052, 3)
 
     # ---------------------------
@@ -70,11 +80,13 @@ class UnitConverter:
     # ---------------------------
     @staticmethod
     def ml_to_oz(ml: Optional[float]) -> Optional[float]:
-        if ml is None: return None
+        if ml is None: 
+            return None
         return round(ml * 0.033814, 3)
 
     @staticmethod
     def oz_to_ml(oz: Optional[float]) -> Optional[float]:
-        if oz is None: return None
+        if oz is None: 
+            return None
         return round(oz / 0.033814, 3)
 
