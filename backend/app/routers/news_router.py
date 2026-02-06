@@ -21,7 +21,7 @@ def list_published_news(
 ):
     rows = session.exec(
         select(News)
-        .where(News.is_published == True)
+        .where(News.is_published.is_(True))
         .order_by(News.published_at.desc(), News.created_at.desc())
     ).all()
     return rows
