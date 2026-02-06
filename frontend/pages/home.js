@@ -13,6 +13,7 @@ import {
 } from "@chakra-ui/react";
 import { getToken, clearToken, setToken } from "../lib/auth";
 import { getMe, updateUserUnitSystem } from "../lib/api";
+import NewsSection from "../components/home/NewsSection";
 import { FiSearch, FiCreditCard, FiSliders, FiSettings } from "react-icons/fi";
 import { RxHamburgerMenu } from "react-icons/rx";
 import AppHeader from "../components/AppHeader";
@@ -262,6 +263,8 @@ export default function Home() {
             boxShadow="0 -10px 30px rgba(0,0,0,0.35)"
             backdropFilter="saturate(120%) blur(6px)"
           >
+            <NewsSection isAdmin={isAdmin} />
+
             <Heading size="md" color="gray.300" mb={4} mt={0}>Performance Rankings</Heading>
             <SimpleGrid columns={{ base: 1 }} gap={6}>
               <SectionRow title="XS" />

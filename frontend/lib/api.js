@@ -18,6 +18,20 @@ export const getMe = (token) => http("auth/me", { token });
 export const updateUserUnitSystem = (token, userId, unit_system) =>
   http(`users/${userId}`, { method: "PUT", token, body: { unit_system } });
 
+// ---------------------------- NEWS ----------------------------
+export const listNews = (token) => http("news", { token });
+
+export const listNewsAdmin = (token) => http("news/admin", { token });
+
+export const createNews = (token, body) =>
+  http("news", { method: "POST", token, body });
+
+export const updateNews = (token, id, body) =>
+  http(`news/${id}`, { method: "PUT", token, body });
+
+export const deleteNews = (token, id) =>
+  http(`news/${id}`, { method: "DELETE", token });
+
 
 // ---------------------------- PRODUCTS ----------------------------
 

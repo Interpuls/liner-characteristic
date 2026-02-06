@@ -9,7 +9,8 @@ from app.deps import apply_cors
 # Routers
 from app.routers import (
     auth_router, user_router, product_router, product_application_router,
-    kpi_router, tpp_router, massage_router, speed_router, smt_hood_router
+    kpi_router, tpp_router, massage_router, speed_router, smt_hood_router,
+    news_router
 )
 
 app = FastAPI(
@@ -36,6 +37,7 @@ app.include_router(tpp_router.router, prefix="/tpp", tags=["TPP Runs"])
 app.include_router(massage_router.router, prefix="/massage", tags=["Massage Runs"])
 app.include_router(speed_router.router, prefix="/speed", tags=["Speed Runs"])
 app.include_router(smt_hood_router.router, prefix="/smt-hood", tags=["SMT/Hood Runs"])
+app.include_router(news_router.router, prefix="/news", tags=["News"])
 
 @app.get("/", include_in_schema=False)
 def root():
