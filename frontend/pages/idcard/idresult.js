@@ -26,6 +26,7 @@ export default function IdResultPage() {
   const [imageSrc, setImageSrc] = useState("/guaina.png");
   const imgModal = useDisclosure();
   const isMobile = useBreakpointValue({ base: true, md: false });
+  const isAdmin = me?.role === "admin";
 
   const { brand, model, teat_size, from } = router.query;
   const backHref = typeof from === 'string' && from ? decodeURIComponent(from) : "/product/result";
@@ -99,7 +100,7 @@ export default function IdResultPage() {
               </VStack>
             ) : (
               <>
-                {/* Tabs: Details | KPIs | Tests */}
+                {/* Tabs: Details | KPIs | Tests (admin only) */}
                 <Tabs colorScheme="blue" mt={{ base: 1, md: 2 }} w="100%" isFitted variant="enclosed">
                   <TabList borderRadius="md" borderWidth="1px" overflow="hidden" bg="gray.50">
                     <Tab fontWeight="semibold">
@@ -108,9 +109,11 @@ export default function IdResultPage() {
                     <Tab fontWeight="semibold">
                       <HStack spacing={2}><Box as={TbGauge} /> <Text>KPIs</Text></HStack>
                     </Tab>
-                    <Tab fontWeight="semibold">
-                      <HStack spacing={2}><Box as={RiFlaskLine} /> <Text>Tests</Text></HStack>
-                    </Tab>
+                    {isAdmin ? (
+                      <Tab fontWeight="semibold">
+                        <HStack spacing={2}><Box as={RiFlaskLine} /> <Text>Tests</Text></HStack>
+                      </Tab>
+                    ) : null}
                   </TabList>
                   <TabPanels w="100%">
                     <TabPanel px={0} w="100%">
@@ -124,11 +127,13 @@ export default function IdResultPage() {
                       />
                     </TabPanel>
                     <TabPanel w="100%">
-                      <KpisTab product={product} isAdmin={me?.is_admin} />
+                      <KpisTab product={product} isAdmin={isAdmin} />
                     </TabPanel>
-                    <TabPanel w="100%">
-                      <TestsTab product={product} unitSystem={me?.unit_system} />
-                    </TabPanel>
+                    {isAdmin ? (
+                      <TabPanel w="100%">
+                        <TestsTab product={product} unitSystem={me?.unit_system} />
+                      </TabPanel>
+                    ) : null}
                   </TabPanels>
                 </Tabs>
               </>
