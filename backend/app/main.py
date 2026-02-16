@@ -8,6 +8,9 @@ from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 from starlette.middleware.gzip import GZipMiddleware
 from sqlmodel import Session
+from app.model.audit_log import AuditLog
+from app.common.audit import safe_json_snapshot
+
 
 from app.db import init_db, engine
 from app.deps import apply_cors
@@ -71,6 +74,24 @@ async def log_requests(request: Request, call_next):
     user_token = user_ctx.set("-")
     start = time.perf_counter()
 
+    # Capture request payload for auditing (only for state-changing methods)
+    audit_payload = None
+    if request.method in ("POST", "PUT", "PATCH", "DELETE"):
+        ctype = (request.headers.get("content-type") or "").lower()
+        if "application/json" in ctype:
+            try:
+                audit_payload = await request.json()
+            except Exception:
+                audit_payload = {"_invalid_json": True}
+        elif "application/x-www-form-urlencoded" in ctype or "multipart/form-data" in ctype:
+            # Avoid reading potentially large uploads; keep just metadata
+            try:
+                form = await request.form()
+                audit_payload = {k: "***REDACTED***" for k in form.keys()}
+            except Exception:
+                audit_payload = {"_form_read_failed": True}
+
+
     try:
         response = await call_next(request)
     except Exception:
@@ -122,6 +143,29 @@ async def log_requests(request: Request, call_next):
         except Exception:
             # Logging failures should never break the request lifecycle
             logger.warning("Failed to persist access log", exc_info=True)
+
+        # Persist audit log for state-changing operations (best-effort)
+        if request.method in ("POST", "PUT", "PATCH", "DELETE"):
+            try:
+                with Session(engine, expire_on_commit=False) as session:
+                    session.add(
+                        AuditLog(
+                            request_id=request_id,
+                            user_id=user_id,
+                            method=request.method,
+                            path=request.url.path,
+                            status_code=status_code,
+                            ip=client_ip,
+                            user_agent=user_agent,
+                            request_json=safe_json_snapshot(audit_payload),
+                            duration_ms=int(duration_ms),
+                            created_at=datetime.utcnow(),
+                        )
+                    )
+                    session.commit()
+            except Exception:
+                logger.warning("Failed to persist audit log", exc_info=True)
+
 
         # Structured error logging after persistence attempt
         if response is None:
