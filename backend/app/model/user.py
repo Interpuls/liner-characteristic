@@ -7,8 +7,8 @@ import sqlalchemy as sa
 from app.common.enums import UserRole
 
 class UnitSystem(str, Enum):
-    METRIC = "metric"
-    IMPERIAL = "imperial"
+    metric = "metric"
+    imperial = "imperial"
 
 #Modello Tabella USER
 class User(SQLModel, table=True):
@@ -29,9 +29,12 @@ class User(SQLModel, table=True):
     is_active: bool = Field(default=True)
     created_at: datetime = Field(default_factory=datetime.utcnow, nullable=False)
     unit_system: UnitSystem = Field(
-        default=UnitSystem.METRIC,
-        nullable=False,
-        index=True,
+        default=UnitSystem.metric,
+        sa_column=sa.Column(
+            sa.Enum(UnitSystem, values_callable=lambda x: [e.value for e in x]),
+            nullable=False,
+            default=UnitSystem.metric.value,
+        ),
     )
 
     #Vincoli e indici

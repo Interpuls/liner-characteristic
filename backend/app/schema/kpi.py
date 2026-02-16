@@ -1,6 +1,5 @@
 from datetime import datetime
 from typing import List, Optional, Dict, Any
-from enum import Enum
 from .base import MetricNormalizedModel
 # Use the same enums as the ORM models to avoid mismatch
 from ..model.kpi import FormulaType, TestKind

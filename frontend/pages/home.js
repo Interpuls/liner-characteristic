@@ -8,11 +8,13 @@ import {
   AlertDialogFooter, AlertDialogHeader, AlertDialogContent, AlertDialogOverlay,
   useDisclosure, Show, Hide, Icon, Center, useBreakpointValue,
   Drawer, DrawerOverlay, DrawerContent, DrawerHeader, DrawerBody, DrawerCloseButton,
-  Stack, IconButton, Divider as CkDivider
+  Stack, IconButton, Divider as CkDivider, Modal, ModalOverlay, ModalContent,
+  ModalHeader, ModalCloseButton, ModalBody, ModalFooter
 } from "@chakra-ui/react";
-import { getToken, clearToken } from "../lib/auth";
-import { getMe } from "../lib/api";
-import { FiSearch, FiCreditCard, FiSliders } from "react-icons/fi";
+import { getToken, clearToken, setToken } from "../lib/auth";
+import { getMe, updateUserUnitSystem } from "../lib/api";
+import NewsSection from "../components/home/NewsSection";
+import { FiSearch, FiCreditCard, FiSliders, FiSettings } from "react-icons/fi";
 import { RxHamburgerMenu } from "react-icons/rx";
 import AppHeader from "../components/AppHeader";
 import AppFooter from "../components/AppFooter";
@@ -36,11 +38,17 @@ function NavCard({ href, title, desc, icon: IconComp }) {
 }
 
 export default function Home() {
-  const [role, setRole] = useState(null);
+  const [me, setMe] = useState(null);
+  const [unitSystem, setUnitSystem] = useState("metric");
+  const [savingUnit, setSavingUnit] = useState(false);
+  const [pendingUnit, setPendingUnit] = useState(null);
   const toast = useToast();
 
   const { isOpen, onOpen, onClose } = useDisclosure();
+  const { isOpen: isSettingsOpen, onOpen: onSettingsOpen, onClose: onSettingsClose } = useDisclosure();
+  const unitDialog = useDisclosure();
   const cancelRef = useRef();
+  const unitCancelRef = useRef();
   const topSpacing = useBreakpointValue({ base: 4, md: 6 });
   // mobile drawer (burger menu)
   const menuCtrl = useDisclosure();
@@ -54,7 +62,10 @@ export default function Home() {
     const t = getToken();
     if (!t) { window.location.replace("/login"); return; }
     getMe(t)
-      .then((me) => setRole(me.role))
+      .then((user) => {
+        setMe(user);
+        setUnitSystem(user?.unit_system || "metric");
+      })
       .catch(() => {
         clearToken();
         toast({ status: "error", title: "Session expired" });
@@ -62,8 +73,48 @@ export default function Home() {
       });
   }, [toast]);
 
-  if (!role) return <Box p="8">Loading…</Box>;
-  const isAdmin = role === "admin";
+  const requestUnitSystemChange = (next) => {
+    if (!next || next === unitSystem) return;
+    setPendingUnit(next);
+    unitDialog.onOpen();
+  };
+
+  const applyUnitSystemChange = async () => {
+    const next = pendingUnit;
+    if (!next || !me?.id) { unitDialog.onClose(); return; }
+    const prev = unitSystem;
+    const token = getToken();
+    if (!token) { cancelUnitSystemChange(); window.location.replace("/login"); return; }
+    setSavingUnit(true);
+    setUnitSystem(next);
+    try {
+      const res = await updateUserUnitSystem(token, me.id, next);
+      if (res?.access_token) setToken(res.access_token);
+      const updatedUser = res?.user || me;
+      setMe(updatedUser);
+      setUnitSystem(res?.unit_system || updatedUser?.unit_system || next);
+      toast({ status: "success", title: "Unit system updated", duration: 1800 });
+    } catch (err) {
+      setUnitSystem(prev);
+      toast({
+        status: "error",
+        title: "Unable to update unit system",
+        description: err?.message || "Try again later",
+      });
+    } finally {
+      setSavingUnit(false);
+      setPendingUnit(null);
+      unitDialog.onClose();
+    }
+  };
+
+  const cancelUnitSystemChange = () => {
+    setPendingUnit(null);
+    unitDialog.onClose();
+  };
+
+  if (!me) return <Box p="8">Loading…</Box>;
+  const isAdmin = me?.role === "admin";
 
   const AdminNav = () => (
     <HStack spacing={3} align="center">
@@ -188,7 +239,14 @@ export default function Home() {
   return (
     <>
       <Hide below="md">
-        <AppHeader title="Liner Database" logoSrc="/favicon.ico" onLogoutClick={onOpen} rightArea={<RightArea />} />
+        <AppHeader
+          title="Liner Database"
+          logoSrc="/favicon.ico"
+          onLogoutClick={onOpen}
+          rightArea={<RightArea />}
+          infoIcon={FiSettings}
+          onInfoClick={onSettingsOpen}
+        />
       </Hide>
 
         <Box as="main" bg="#0b1f45" minH="100vh">
@@ -205,12 +263,14 @@ export default function Home() {
             boxShadow="0 -10px 30px rgba(0,0,0,0.35)"
             backdropFilter="saturate(120%) blur(6px)"
           >
+            <NewsSection isAdmin={isAdmin} />
+
             <Heading size="md" color="gray.300" mb={4} mt={0}>Performance Rankings</Heading>
             <SimpleGrid columns={{ base: 1 }} gap={6}>
-              <SectionRow title="40" />
-              <SectionRow title="50" />
-              <SectionRow title="60" />
-              <SectionRow title="70" />
+              <SectionRow title="XS" />
+              <SectionRow title="S" />
+              <SectionRow title="M" />
+              <SectionRow title="L" />
             </SimpleGrid>
           </Box>
         </Box>
@@ -224,25 +284,176 @@ export default function Home() {
           <DrawerCloseButton color="gray.400" _hover={{ color: "gray.300" }} />
           <DrawerHeader color="gray.100">Menu</DrawerHeader>
           <DrawerBody>
-            <Stack spacing={3} mt={2}>
-              {isAdmin ? (
-                <>
-                  <Button as={NextLink} href="/admin/product" variant="ghost" color="gray.300" onClick={menuCtrl.onClose}>Manage Product</Button>
-                  <Button as={NextLink} href="/admin/tests" variant="ghost" color="gray.300" onClick={menuCtrl.onClose}>Test Campaign</Button>
-                  <Button as={NextLink} href="/admin/kpis" variant="ghost" color="gray.300" onClick={menuCtrl.onClose}>KPI Scales</Button>
-                  <Button as={NextLink} href="/settings" variant="ghost" color="gray.300" onClick={menuCtrl.onClose}>Settings</Button>
-                </>
-              ) : (
-                <>
-                  <Button as={NextLink} href="/settings" variant="ghost" color="gray.300" _hover={{ color: "gray.200" }} onClick={menuCtrl.onClose}>Settings</Button>
-                </>
-              )}
+            <Stack spacing={5} mt={1}>
+              <Box>
+                <Text fontSize="xs" textTransform="uppercase" letterSpacing="0.08em" color="gray.500" mb={2}>
+                  Pages
+                </Text>
+                <Stack spacing={2}>
+                  <Button
+                    as={NextLink}
+                    href="/product"
+                    variant="ghost"
+                    color="gray.200"
+                    justifyContent="flex-start"
+                    onClick={menuCtrl.onClose}
+                  >
+                    Browse Products
+                  </Button>
+                  {isAdmin && (
+                    <>
+                      <Button as={NextLink} href="/admin/product" variant="ghost" color="gray.200" justifyContent="flex-start" onClick={menuCtrl.onClose}>
+                        Manage Product
+                      </Button>
+                      <Button as={NextLink} href="/admin/tests" variant="ghost" color="gray.200" justifyContent="flex-start" onClick={menuCtrl.onClose}>
+                        Test Campaign
+                      </Button>
+                      <Button as={NextLink} href="/admin/kpis" variant="ghost" color="gray.200" justifyContent="flex-start" onClick={menuCtrl.onClose}>
+                        KPI Scales
+                      </Button>
+                    </>
+                  )}
+                </Stack>
+              </Box>
+
+
+              <Box>
+                <Text fontSize="xs" textTransform="uppercase" letterSpacing="0.08em" color="gray.500" mb={4}>
+                  Settings
+                </Text>
+                <Stack spacing={3}>
+                  <HStack
+                    justify="space-between"
+                    align="center"
+                    p={3}
+                    borderWidth="1px"
+                    borderColor="whiteAlpha.200"
+                    borderRadius="md"
+                  >
+                    <Box>
+                      <Text fontSize="sm" color="gray.100">Unit system</Text>
+                      <Text fontSize="xs" color="gray.400">
+                        {unitSystem === "imperial" ? "Imperial" : "Metric"}
+                      </Text>
+                    </Box>
+                    <HStack spacing={2}>
+                      <Button
+                        size="sm"
+                        variant={unitSystem === "metric" ? "solid" : "outline"}
+                        colorScheme="blue"
+                        isDisabled={savingUnit}
+                        onClick={() => requestUnitSystemChange("metric")}
+                      >
+                        Metric
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant={unitSystem === "imperial" ? "solid" : "outline"}
+                        colorScheme="blue"
+                        isDisabled={savingUnit}
+                        onClick={() => requestUnitSystemChange("imperial")}
+                      >
+                        Imperial
+                      </Button>
+                    </HStack>
+                  </HStack>
+                </Stack>
+              </Box>
+
               <CkDivider />
-              <Button backgroundColor="rgba(20, 23, 41, 1)" color="white" onClick={() => { menuCtrl.onClose(); onOpen(); }}>Logout</Button>
+
+              <Button backgroundColor="rgba(20, 23, 41, 1)" color="white" onClick={() => { menuCtrl.onClose(); onOpen(); }}>
+                Logout
+              </Button>
             </Stack>
           </DrawerBody>
         </DrawerContent>
       </Drawer>
+
+      <Modal isOpen={isSettingsOpen} onClose={onSettingsClose} isCentered>
+        <ModalOverlay />
+        <ModalContent
+          bg="rgba(4, 6, 20, 1)"
+          color="gray.100"
+          borderWidth="1px"
+          borderColor="whiteAlpha.200"
+          boxShadow="xl"
+        >
+          <ModalHeader color="white">User settings</ModalHeader>
+          <ModalCloseButton color="gray.300" _hover={{ color: "white" }} />
+          <ModalBody>
+            <Stack spacing={4}>
+              <Box>
+                <Text fontSize="xs" textTransform="uppercase" letterSpacing="0.08em" color="gray.400" mb={1}>
+                  Username
+                </Text>
+                <Text fontWeight="semibold" color="white">{me?.email || "Non disponibile"}</Text>
+              </Box>
+
+              <Box>
+                <Text fontSize="xs" textTransform="uppercase" letterSpacing="0.08em" color="gray.400" mb={2}>
+                  Measurement units
+                </Text>
+                <HStack
+                  justify="space-between"
+                  align="center"
+                  p={3}
+                  borderWidth="1px"
+                  borderColor="whiteAlpha.200"
+                  borderRadius="md"
+                  bg="rgba(20, 23, 41, 1)"
+                >
+                  <Box>
+                    <Text fontSize="sm" color="white">Unit system</Text>
+                    <Text fontSize="xs" color="gray.400">
+                      {unitSystem === "imperial" ? "Imperial" : "Metric"}
+                    </Text>
+                  </Box>
+                  <HStack spacing={2}>
+                    <Button
+                      size="sm"
+                      variant={unitSystem === "metric" ? "solid" : "outline"}
+                      colorScheme="blue"
+                      isDisabled={savingUnit}
+                      onClick={() => requestUnitSystemChange("metric")}
+                    >
+                      Metric
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant={unitSystem === "imperial" ? "solid" : "outline"}
+                      colorScheme="blue"
+                      isDisabled={savingUnit}
+                      onClick={() => requestUnitSystemChange("imperial")}
+                    >
+                      Imperial
+                    </Button>
+                  </HStack>
+                </HStack>
+              </Box>
+            </Stack>
+          </ModalBody>
+          <ModalFooter>
+          </ModalFooter>
+        </ModalContent>
+      </Modal>
+
+      <AlertDialog isOpen={unitDialog.isOpen} leastDestructiveRef={unitCancelRef} onClose={cancelUnitSystemChange} isCentered>
+        <AlertDialogOverlay>
+          <AlertDialogContent marginInline={2}>
+            <AlertDialogHeader fontSize="lg" fontWeight="bold">Change unit system?</AlertDialogHeader>
+            <AlertDialogBody>
+              Switching measurement units will convert all displayed values. Do you want to continue?
+            </AlertDialogBody>
+            <AlertDialogFooter>
+              <Button ref={unitCancelRef} onClick={cancelUnitSystemChange}>Cancel</Button>
+              <Button colorScheme="blue" onClick={applyUnitSystemChange} ml={3} isLoading={savingUnit}>
+                {pendingUnit === "imperial" ? "Switch to Imperial" : "Switch to Metric"}
+              </Button>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialogOverlay>
+      </AlertDialog>
 
       <AlertDialog isOpen={isOpen} leastDestructiveRef={cancelRef} onClose={onClose} isCentered>
         <AlertDialogOverlay>

@@ -11,3 +11,4 @@ Progetto per la gestione e il confronto delle caratteristiche dei liner.
 - `database/` → Script SQL o migrazioni ORM
 
 
+## Test di CI PR

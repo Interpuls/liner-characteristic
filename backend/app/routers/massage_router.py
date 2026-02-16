@@ -1,7 +1,6 @@
 from datetime import datetime
 from typing import List, Optional
 import json
-import sqlalchemy as sa
 from fastapi import APIRouter, Depends, HTTPException, Query, Body, Path
 from sqlmodel import Session, select, delete
 from sqlalchemy.orm import selectinload
@@ -9,11 +8,11 @@ from app.services.conversion_wrapper import convert_output
 
 from app.db import get_session
 from app.auth import get_current_user, require_role
-from app.model.kpi import KpiScale, KpiValue, TestMetric
+from app.model.kpi import KpiValue, TestMetric
 from app.model.product import ProductApplication
 from app.model.massage import MassageRun, MassagePoint
 from app.schema.massage import MassageRunOut, MassagePointIn
-from app.services.kpi_engine import score_from_scales, score_or_422
+from app.services.kpi_engine import score_or_422
 
 router = APIRouter()
 

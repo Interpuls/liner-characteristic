@@ -11,7 +11,6 @@ from app.auth import get_current_user, require_role
 from app.model.product import Product, ProductApplication
 from app.model.search import SearchPreference
 from app.model.kpi import KpiDef
-from app.model.user import UserRole
 from app.schema.product import (
     ProductIn,
     ProductOut,
@@ -44,7 +43,7 @@ def products_meta(session: Session = Depends(get_session), user=Depends(get_curr
     product_types = distinct_list(Product.product_type) or ["liner"]
 
     #Brand: nascondi i prodotti only_admin=True agli user non admin
-    brand_where = None if is_admin else (Product.only_admin == False)
+    brand_where = None if is_admin else (Product.only_admin.is_(False))
     brands = distinct_list(Product.brand, extra_where=brand_where)
     
     #Models: lista “globale” come prima (può rimanere così)
@@ -81,7 +80,7 @@ def list_models_by_brand(
         Product.model.isnot(None),
     )
     if not is_admin:
-        q = q.where(Product.only_admin == False)
+        q = q.where(Product.only_admin.is_(False))
     rows = session.exec(q).all()
     return [r[0] if isinstance(r, (tuple, list)) else r for r in rows if r is not None]
 
@@ -120,7 +119,7 @@ def list_products(
 
     is_admin = getattr(user, "role", "") == "admin"
     if not is_admin:
-        qy = qy.where(Product.only_admin == False)
+        qy = qy.where(Product.only_admin.is_(False))
 
     qy = qy.order_by(Product.created_at.desc()).limit(limit).offset(offset)
     return session.exec(qy).all()
@@ -324,7 +323,6 @@ def update_product(product_id: int, payload: ProductIn, session: Session = Depen
  #Calcola i "nuovi" brand/model/compound da usare per i controlli di unicità
     new_brand = data.get("brand", obj.brand) or ""
     new_model = data.get("model", obj.model) or ""
-    new_compound = data.get("compound", obj.compound)
  #Unicità (brand, model, compound) escludendo se stesso
     try:
         #Se diventa pubblico => demoto eventuali altri pubblici stesso brand/model

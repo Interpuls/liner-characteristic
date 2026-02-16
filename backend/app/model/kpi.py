@@ -1,7 +1,6 @@
 from datetime import datetime
-from typing import List, Optional
-from enum import Enum
-from sqlmodel import SQLModel, Field, Relationship, Column, JSON, UniqueConstraint, Index
+from typing import Optional
+from sqlmodel import SQLModel, Field, Column, JSON
 import sqlalchemy as sa
 from app.common.enums import FormulaType, TestKind
 

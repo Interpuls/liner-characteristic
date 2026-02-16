@@ -2,10 +2,6 @@
 from sqlmodel import Session, select
 from app.model.kpi import KpiScale
 from typing import Dict, Tuple
-import math
-
-from sqlmodel import Session, select
-from app.model.kpi import KpiScale
 from fastapi import HTTPException
 
 #Ritorna lo score se trova una banda, altrimenti None (soft)
@@ -41,7 +37,8 @@ def massage_compute_derivatives(points: Dict[int, Tuple[float, float]]):
       DROP_45to40, DROP_40to35  (percentuali di calo intensità)
     """
     def intensity(p):
-        if p not in points: return None
+        if p not in points: 
+            return None
         mn, mx = points[p]
         return mx - mn
 

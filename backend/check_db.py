@@ -1,4 +1,5 @@
-import os, sqlite3
+import os
+import sqlite3
 
 url = os.getenv("DATABASE_URL", "sqlite:///./app.db")
 db = url.replace("sqlite:///", "")

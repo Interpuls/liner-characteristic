@@ -5,7 +5,7 @@ import {
   Box, Text, HStack, VStack, Button,
   Card, CardBody, useToast,
   Tabs, TabList, TabPanels, Tab, TabPanel,
-  useDisclosure, Modal, ModalOverlay, ModalContent, ModalBody, ModalCloseButton
+  useBreakpointValue, useDisclosure, Modal, ModalOverlay, ModalContent, ModalBody, ModalCloseButton
 } from "@chakra-ui/react";
 import { TbListDetails, TbGauge } from "react-icons/tb";
 import { RiFlaskLine } from "react-icons/ri";
@@ -23,14 +23,14 @@ export default function IdResultPage() {
   const [me, setMe] = useState(null);
   const [loading, setLoading] = useState(true);
   const [product, setProduct] = useState(null);
+  const [imageSrc, setImageSrc] = useState("/guaina.png");
   const imgModal = useDisclosure();
+  const isMobile = useBreakpointValue({ base: true, md: false });
+  const isAdmin = me?.role === "admin";
 
   const { brand, model, teat_size, from } = router.query;
   const backHref = typeof from === 'string' && from ? decodeURIComponent(from) : "/product/result";
 
-  
-
-  // quali campi saltare nella tabella “specs”
   
 
   useEffect(() => {
@@ -100,7 +100,7 @@ export default function IdResultPage() {
               </VStack>
             ) : (
               <>
-                {/* Tabs: Details | KPIs | Tests */}
+                {/* Tabs: Details | KPIs | Tests (admin only) */}
                 <Tabs colorScheme="blue" mt={{ base: 1, md: 2 }} w="100%" isFitted variant="enclosed">
                   <TabList borderRadius="md" borderWidth="1px" overflow="hidden" bg="gray.50">
                     <Tab fontWeight="semibold">
@@ -109,20 +109,31 @@ export default function IdResultPage() {
                     <Tab fontWeight="semibold">
                       <HStack spacing={2}><Box as={TbGauge} /> <Text>KPIs</Text></HStack>
                     </Tab>
-                    <Tab fontWeight="semibold">
-                      <HStack spacing={2}><Box as={RiFlaskLine} /> <Text>Tests</Text></HStack>
-                    </Tab>
+                    {isAdmin ? (
+                      <Tab fontWeight="semibold">
+                        <HStack spacing={2}><Box as={RiFlaskLine} /> <Text>Tests</Text></HStack>
+                      </Tab>
+                    ) : null}
                   </TabList>
                   <TabPanels w="100%">
                     <TabPanel px={0} w="100%">
-                      <DetailsTab product={product} onOpenImage={imgModal.onOpen} />
+                      <DetailsTab
+                        product={product}
+                        unitSystem={me?.unit_system}
+                        onOpenImage={(src) => {
+                          setImageSrc(src || "/guaina.png");
+                          imgModal.onOpen();
+                        }}
+                      />
                     </TabPanel>
                     <TabPanel w="100%">
-                      <KpisTab product={product} isAdmin={me?.is_admin} />
+                      <KpisTab product={product} isAdmin={isAdmin} />
                     </TabPanel>
-                    <TabPanel w="100%">
-                      <TestsTab product={product} />
-                    </TabPanel>
+                    {isAdmin ? (
+                      <TabPanel w="100%">
+                        <TestsTab product={product} unitSystem={me?.unit_system} />
+                      </TabPanel>
+                    ) : null}
                   </TabPanels>
                 </Tabs>
               </>
@@ -136,10 +147,37 @@ export default function IdResultPage() {
       {/* Full image modal */}
       <Modal isOpen={imgModal.isOpen} onClose={imgModal.onClose} size="6xl" isCentered>
         <ModalOverlay />
-        <ModalContent bg="transparent" boxShadow="none">
-          <ModalCloseButton color="white" />
-          <ModalBody p={0} display="flex" alignItems="center" justifyContent="center">
-            <Box as="img" src="/liner.png" alt="Liner" maxH="85vh" maxW="95vw" objectFit="contain" />
+        <ModalContent
+          bg="transparent"
+          boxShadow="none"
+          w={isMobile ? "100vw" : undefined}
+          h={isMobile ? "100vh" : undefined}
+          maxW={isMobile ? "100vw" : undefined}
+          maxH={isMobile ? "100vh" : undefined}
+        >
+          <ModalCloseButton
+            color="white"
+            position={isMobile ? "fixed" : "absolute"}
+            top={isMobile ? 4 : 2}
+            right={isMobile ? 4 : 2}
+            zIndex={1}
+          />
+          <ModalBody
+            p={0}
+            display="flex"
+            alignItems={isMobile ? "center" : "center"}
+            justifyContent="center"
+            minH={isMobile ? "100vh" : undefined}
+          >
+            <Box
+              as="img"
+              src={imageSrc}
+              alt={imageSrc === "/collettore.png" ? "Collector" : "Liner"}
+              maxH={isMobile ? "90vw" : "85vh"}
+              maxW={isMobile ? "85vh" : "95vw"}
+              objectFit="contain"
+              transform={isMobile ? "rotate(90deg)" : "none"}
+            />
           </ModalBody>
         </ModalContent>
       </Modal>

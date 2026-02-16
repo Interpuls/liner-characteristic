@@ -18,6 +18,7 @@ import { getMe, listProducts, saveProductPref, listProductApplications, getKpiVa
 import { latestKpiByCode } from "../../lib/kpi";
 import { RiFlaskLine } from "react-icons/ri";
 import { TbChartRadar, TbArrowsRightLeft } from "react-icons/tb";
+import { formatTeatSize } from "../../lib/teatSizes";
 
 export default function ProductsSearchPage() {
   const router = useRouter();
@@ -45,6 +46,7 @@ export default function ProductsSearchPage() {
     return Number.isFinite(p) && p >= 1 ? p : 1;
   }, [router.query.page]);
   const [page, setPage] = useState(initialPage);
+  const isAdmin = me?.role === "admin";
 
   // Persist sort in sessionStorage (fast, no router churn)
   const loadedSortFromSS = useRef(false);
@@ -103,7 +105,10 @@ export default function ProductsSearchPage() {
       if (!saveName.trim()) { toast({ status: "warning", title: "Inserisci un nome" }); return; }
       // Build filters object compatible with ProductFilters
       const areasSel = typeof areas === "string" && areas ? String(areas).split(",") : [];
-      const brandModelFilters = brand ? { brands: [String(brand)], models: (model ? { [String(brand)]: [String(model)] } : {}) } : { brands: [], models: {} };
+      const safeModel = model && !["imperial", "metric"].includes(String(model)) ? String(model) : "";
+      const brandModelFilters = brand
+        ? { brands: [String(brand)], models: (safeModel ? { [String(brand)]: [safeModel] } : {}) }
+        : { brands: [], models: {} };
       const teatSel = (() => {
         const acc = [];
         if (Array.isArray(teat_sizes)) acc.push(...teat_sizes.map(String));
@@ -124,11 +129,11 @@ export default function ProductsSearchPage() {
         parlor: parlor ? [String(parlor)] : [],
       };
       await saveProductPref(t, saveName.trim(), payload);
-      toast({ status: "success", title: "Preferenza salvata" });
+      toast({ status: "success", title: "Preference saved" });
       setSaveName("");
       saveCtrl.onClose();
     } catch (e) {
-      toast({ status: "error", title: e?.message || "Impossibile salvare" });
+      toast({ status: "error", title: e?.message || "Unable to save" });
     }
   };
 
@@ -144,14 +149,18 @@ export default function ProductsSearchPage() {
       const t = getToken();
       if (!t) return;
       setLoading(true);
-      // fetch products (brand/model filtering supported by backend)
-      const base = await listProducts(t, {
-        limit: 500,
-        ...(brand ? { brand } : {}),
-        ...(model ? { model } : {}),
-      }).catch(() => []);
+      // Build filter lists from query (support single or CSV values).
+      const toList = (v) => Array.isArray(v) ? v.map(String) : (typeof v === 'string' ? v.split(',').map(s=>s.trim()).filter(Boolean) : []);
+      const brandsList = (toList(brands).length ? toList(brands) : toList(brand));
+      const modelsList = (toList(models).length ? toList(models) : toList(model));
 
-      // filter client-side for shape/parlor/areas
+      // fetch products (avoid sending brand+model together, backend treats them as AND)
+      const serverFilters = { limit: 500 };
+      if (brandsList.length === 1 && modelsList.length === 0) serverFilters.brand = brandsList[0];
+      if (modelsList.length === 1 && brandsList.length === 0) serverFilters.model = modelsList[0];
+      const base = await listProducts(t, serverFilters).catch(() => []);
+
+      // filter client-side for brand/model/shape/parlor/areas
       const shapes = (() => {
         if (Array.isArray(barrel_shape)) return barrel_shape.map(String);
         if (typeof barrel_shape === 'string' && barrel_shape.includes(',')) return barrel_shape.split(',').map(s => s.trim()).filter(Boolean);
@@ -161,6 +170,12 @@ export default function ProductsSearchPage() {
       const areasSel = typeof areas === "string" && areas ? String(areas).split(",") : [];
 
       const filtered = (Array.isArray(base) ? base : []).filter((p) => {
+        let okBM = true;
+        if (brandsList.length > 0 || modelsList.length > 0) {
+          const hasBrand = p.brand && brandsList.includes(String(p.brand));
+          const hasModel = p.model && modelsList.includes(String(p.model));
+          okBM = hasBrand || hasModel;
+        }
         let okShape = true;
         if (shapes.length > 0) okShape = p.barrel_shape && shapes.includes(String(p.barrel_shape));
         let okParlor = true;
@@ -171,7 +186,7 @@ export default function ProductsSearchPage() {
           const list = Array.isArray(p.reference_areas) ? p.reference_areas : [];
           okArea = areasSel.some((a) => list.includes(a));
         }
-        return okShape && okParlor && okArea;
+        return okBM && okShape && okParlor && okArea;
       });
 
       // expand by teat sizes (support single, CSV, or teat_sizes param)
@@ -426,7 +441,7 @@ export default function ProductsSearchPage() {
         })()}
 
         {/* Action buttons */}
-        <SimpleGrid columns={{ base: 3, md: 3 }} gap={3} mb={4}>
+        <SimpleGrid columns={isAdmin ? { base: 3, md: 3 } : { base: 2, md: 2 }} gap={3} mb={4}>
           <Button
             variant="outline"
             px={{ base: 2, md: 3 }}
@@ -440,19 +455,21 @@ export default function ProductsSearchPage() {
               <Text fontSize={{ base: 'xs', md: 'sm' }} color="gray.600">Radar Map</Text>
             </Stack>
           </Button>
-          <Button
-            variant="outline"
-            px={{ base: 2, md: 3 }}
-            pt={{ base: 4, md: 2 }}
-            pb={{ base: 4, md: 2 }}
-            minH={{ base: 14, md: 'auto' }}
-            onClick={() => openAction({ title: "Tests Detail", min: 1, max: 5, route: "/tools/tests-detail" })}
-          >
-            <Stack direction={{ base: 'column', md: 'row' }} align="center" spacing={{ base: 1, md: 2 }}>
-              <Box as={RiFlaskLine} boxSize={{ base: 6, md: 5 }} color="#12305f" />
-              <Text fontSize={{ base: 'xs', md: 'sm' }} color="gray.600">Tests Detail</Text>
-            </Stack>
-          </Button>
+          {isAdmin ? (
+            <Button
+              variant="outline"
+              px={{ base: 2, md: 3 }}
+              pt={{ base: 4, md: 2 }}
+              pb={{ base: 4, md: 2 }}
+              minH={{ base: 14, md: 'auto' }}
+              onClick={() => openAction({ title: "Tests Detail", min: 1, max: 8, route: "/tools/tests-detail" })}
+            >
+              <Stack direction={{ base: 'column', md: 'row' }} align="center" spacing={{ base: 1, md: 2 }}>
+                <Box as={RiFlaskLine} boxSize={{ base: 6, md: 5 }} color="#12305f" />
+                <Text fontSize={{ base: 'xs', md: 'sm' }} color="gray.600">Tests Detail</Text>
+              </Stack>
+            </Button>
+          ) : null}
           <Button
             variant="outline"
             px={{ base: 2, md: 3 }}
@@ -550,7 +567,9 @@ export default function ProductsSearchPage() {
                 <VStack align="stretch" spacing={2}>
                   {filteredList.map(it => (
                     <HStack key={it.key} justify="space-between">
-                      <Text fontSize="sm">{it.brand} {it.model} • {it.size_mm} mm</Text>
+                      <Text fontSize="sm">
+                        {it.brand} {it.model} • {formatTeatSize(it.size_mm)}{it.size_mm ? ` (${it.size_mm} mm)` : ""}
+                      </Text>
                       <input type="checkbox" checked={selSelected.has(it.key)} onChange={() => toggleSel(it.key)} />
                     </HStack>
                   ))}

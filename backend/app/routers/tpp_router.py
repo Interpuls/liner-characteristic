@@ -8,7 +8,7 @@ from app.services.conversion_wrapper import convert_output
 
 from app.db import get_session
 from app.auth import get_current_user, require_role
-from app.model.kpi import KpiScale, KpiValue, TestMetric
+from app.model.kpi import KpiValue, TestMetric
 from app.model.tpp import TppRun
 from app.schema.kpi import KpiValueOut
 from app.schema.tpp import TppRunIn, TppRunOut

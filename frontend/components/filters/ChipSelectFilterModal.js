@@ -14,9 +14,12 @@ export default function ChipSelectFilterModal({
   single = false,
   count,
   loading,
+  renderLabel,
 }) {
   const [local, setLocal] = useState(value);
   useEffect(() => { if (isOpen) setLocal(value); }, [isOpen, value]);
+
+  const labelFor = (opt) => (typeof renderLabel === "function" ? renderLabel(opt) : opt);
 
   const toggle = (opt) => {
     if (single) {
@@ -49,7 +52,7 @@ export default function ChipSelectFilterModal({
                   onClick={() => toggle(opt)}
                   _hover={{ bg: local.includes(opt) ? "white" : "whiteAlpha.200" }}
                 >
-                  <TagLabel>{opt}</TagLabel>
+                  <TagLabel>{labelFor(opt)}</TagLabel>
                 </Tag>
               </WrapItem>
             ))}

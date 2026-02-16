@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException
 from sqlmodel import Session, select
 from typing import List
 from app.services.conversion_wrapper import convert_output
@@ -6,7 +6,7 @@ from app.services.conversion_wrapper import convert_output
 from app.db import get_session
 from app.auth import get_current_user, require_role, create_access_token
 from app.model.user import User, UserRole
-from app.schema.user import UserRead, UserCreate, UserUpdate, UserUpdateResponse
+from app.schema.user import UserRead, UserUpdate, UserUpdateResponse
 
 router = APIRouter()
 

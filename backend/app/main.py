@@ -5,7 +5,6 @@ import logging
 from datetime import datetime
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
-from fastapi.middleware.cors import CORSMiddleware
 from starlette.middleware.gzip import GZipMiddleware
 from sqlmodel import Session
 from app.model.audit_log import AuditLog
@@ -26,7 +25,8 @@ from app.model.access_log import AccessLog
 # Routers
 from app.routers import (
     auth_router, user_router, product_router, product_application_router,
-    kpi_router, tpp_router, massage_router, speed_router, smt_hood_router
+    kpi_router, tpp_router, massage_router, speed_router, smt_hood_router,
+    news_router
 )
 
 logger = setup_logging()
@@ -35,7 +35,8 @@ access_logger = logging.getLogger("liner-backend.access")
 app = FastAPI(
     title="Liner Characteristic API",
     version="1.0.0",
-    description="Backend per la gestione delle caratteristiche dei liner e test KPI."
+    description="Backend per la gestione delle caratteristiche dei liner e test KPI.",
+    debug=True
 )
 
 @app.on_event("startup")
@@ -52,6 +53,7 @@ app.include_router(tpp_router.router, prefix="/tpp", tags=["TPP Runs"])
 app.include_router(massage_router.router, prefix="/massage", tags=["Massage Runs"])
 app.include_router(speed_router.router, prefix="/speed", tags=["Speed Runs"])
 app.include_router(smt_hood_router.router, prefix="/smt-hood", tags=["SMT/Hood Runs"])
+app.include_router(news_router.router, prefix="/news", tags=["News"])
 
 @app.get("/", include_in_schema=False)
 def root():

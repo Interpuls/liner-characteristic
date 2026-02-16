@@ -93,7 +93,7 @@ export default function FancySelect({
               <Input
                 size="sm"
                 variant="unstyled"
-                placeholder="Cerca…"
+                placeholder="Search..."
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
                 color={isDarkMenu ? "gray.200" : undefined}

@@ -1,4 +1,3 @@
-from datetime import datetime
 from typing import Optional, List
 import json
 import sqlalchemy as sa

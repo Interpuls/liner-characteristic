@@ -83,13 +83,28 @@ export default function Products() {
     }
   }, [router.isReady, router.query?.preset]);
 
+  const normalizeModels = (modelsObj) => {
+    if (!modelsObj || typeof modelsObj !== "object") return [];
+    const raw = Object.values(modelsObj).flatMap((v) => {
+      if (Array.isArray(v)) return v;
+      if (typeof v === "string") {
+        return v.includes(",") ? v.split(",").map((s) => s.trim()).filter(Boolean) : [v];
+      }
+      return [];
+    });
+    return raw
+      .map(String)
+      .filter(Boolean)
+      .filter((v) => v !== "imperial" && v !== "metric");
+  };
+
   const onConfirm = () => {
     const params = new URLSearchParams();
     const { brandModel, teatSizes, shapes, parlor, areas } = selection || {};
 
     // Single-value params preserved for backend filtering compatibility
     if (brandModel?.brands && brandModel.brands.length === 1) params.set("brand", brandModel.brands[0]);
-    const allModels = Object.values(brandModel?.models || {}).flat();
+    const allModels = normalizeModels(brandModel?.models);
     if (allModels.length === 1) params.set("model", allModels[0]);
     if (teatSizes && teatSizes.length === 1) params.set("teat_size", teatSizes[0]);
 
@@ -305,11 +320,11 @@ export default function Products() {
       <Modal isOpen={!!prefToDelete} onClose={closeDeleteModal} isCentered>
         <ModalOverlay />
         <ModalContent bg="#0c1f44" color="white">
-          <ModalHeader>Elimina preference</ModalHeader>
+          <ModalHeader>Delete preference</ModalHeader>
           <ModalCloseButton />
           <ModalBody>
             <Text>
-              Sei sicuro di voler eliminare la preference{" "}
+              Are you sure you want to delete the preference{" "}
               <Text as="span" fontWeight="semibold">
                 {prefToDelete?.name}
               </Text>
@@ -318,10 +333,10 @@ export default function Products() {
           </ModalBody>
           <ModalFooter gap={3}>
             <Button onClick={closeDeleteModal} variant="outline" colorScheme="whiteAlpha" isDisabled={isDeletingPref}>
-              Annulla
+              Cancel
             </Button>
             <Button colorScheme="red" onClick={confirmDeletePref} isLoading={isDeletingPref}>
-              Elimina
+              Delete
             </Button>
           </ModalFooter>
         </ModalContent>

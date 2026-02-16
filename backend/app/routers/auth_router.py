@@ -12,7 +12,7 @@ from app.schema.auth import Token
 router = APIRouter()
 
 
-ALLOWED_EMAIL_DOMAIN = "milkrite.com"  #eventualmente da spostare in un .env ??
+ALLOWED_EMAIL_DOMAIN = "milkrite-interpuls.com"  #eventualmente da spostare in un .env ??
 
 
 # ---------------- AUTH ENDPOINTS ----------------
@@ -32,7 +32,7 @@ def register(payload: UserCreate, session: Session = Depends(get_session)):
         email=payload.email,
         hashed_password=hash_password(payload.password),
         role=payload.role or UserRole.USER,
-        unit_system=payload.unit_system or UnitSystem.METRIC,
+        unit_system=payload.unit_system or UnitSystem.metric,
     )
     session.add(user)
     session.commit()
@@ -53,8 +53,8 @@ def login(
         )
 
     role_value = getattr(user.role, "value", user.role)
-    unit_pref = getattr(user, "unit_system", UnitSystem.METRIC)
-    unit_system_value = getattr(unit_pref, "value", unit_pref) or UnitSystem.METRIC
+    unit_pref = getattr(user, "unit_system", UnitSystem.metric)
+    unit_system_value = getattr(unit_pref, "value", unit_pref) or UnitSystem.metric
     token = create_access_token(sub=user.email, role=role_value, unit_system=unit_system_value)
     return Token(access_token=token, unit_system=unit_system_value)
 
