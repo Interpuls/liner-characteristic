@@ -1,4 +1,5 @@
 import logging
+from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.responses import JSONResponse
 from starlette.middleware.gzip import GZipMiddleware
@@ -12,20 +13,25 @@ from app.routers import (
     kpi_router, tpp_router, massage_router, speed_router, smt_hood_router,
     news_router
 )
+from app.routers.setting_calculator import router as setting_calculator_router
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    init_db()
+    yield
+
 
 app = FastAPI(
     title="Liner Characteristic API",
     version="1.0.0",
     description="Backend per la gestione delle caratteristiche dei liner e test KPI.",
-    debug=True
+    debug=True,
+    lifespan=lifespan,
 )
 
 logger = logging.getLogger("liner-backend")
 logging.basicConfig(level=logging.INFO)
-
-@app.on_event("startup")
-def on_startup():
-    init_db()
 
 # Routers
 app.include_router(auth_router.router, prefix="/auth", tags=["Authentication"])
@@ -38,6 +44,7 @@ app.include_router(massage_router.router, prefix="/massage", tags=["Massage Runs
 app.include_router(speed_router.router, prefix="/speed", tags=["Speed Runs"])
 app.include_router(smt_hood_router.router, prefix="/smt-hood", tags=["SMT/Hood Runs"])
 app.include_router(news_router.router, prefix="/news", tags=["News"])
+app.include_router(setting_calculator_router, prefix="/setting-calculator", tags=["Setting Calculator"])
 
 @app.get("/", include_in_schema=False)
 def root():

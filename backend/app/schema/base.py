@@ -19,6 +19,11 @@ class MetricNormalizedModel(BaseModel):
             "milk_oz": ("milk_ml", UnitConverter.oz_to_ml),
             "flow_lb_min": ("flow_l_min", UnitConverter.lbmin_to_lmin) if hasattr(UnitConverter, "lbmin_to_lmin") else None,
             "flow_gpm": ("flow_l_min", UnitConverter.gpm_to_lmin) if hasattr(UnitConverter, "gpm_to_lmin") else None,
+            
+             # --- Setting calculator (imperial -> metric) ---
+            "milkingVacuumMaxInHg": ("milkingVacuumMaxKpa", UnitConverter.inhg_to_kpa),
+            "pfVacuumInHg": ("pfVacuumKpa", UnitConverter.inhg_to_kpa),
+            "omVacuumInHg": ("omVacuumKpa", UnitConverter.inhg_to_kpa),
         }
 
         for imperial_field, item in RULES.items():
@@ -27,7 +32,7 @@ class MetricNormalizedModel(BaseModel):
             metric_field, converter = item
 
             if imperial_field in data and data.get(imperial_field) is not None:
-                # Convert only if metric missing or None
+                # Converto sempre in metric anche se mancante o None
                 data[metric_field] = converter(data[imperial_field])
 
         return data

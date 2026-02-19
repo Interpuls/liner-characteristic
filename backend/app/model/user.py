@@ -1,10 +1,14 @@
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Optional
 from enum import Enum
 from sqlmodel import SQLModel, Field
 from sqlalchemy import UniqueConstraint, Index
 import sqlalchemy as sa
 from app.common.enums import UserRole
+
+
+def utcnow():
+    return datetime.now(timezone.utc)
 
 class UnitSystem(str, Enum):
     metric = "metric"
@@ -27,7 +31,7 @@ class User(SQLModel, table=True):
         ),
     )
     is_active: bool = Field(default=True)
-    created_at: datetime = Field(default_factory=datetime.utcnow, nullable=False)
+    created_at: datetime = Field(default_factory=utcnow, nullable=False)
     unit_system: UnitSystem = Field(
         default=UnitSystem.metric,
         sa_column=sa.Column(

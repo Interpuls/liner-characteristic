@@ -1,9 +1,13 @@
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Optional
 from sqlmodel import SQLModel, Field, Relationship
 import sqlalchemy as sa
 
 from .product import ProductApplication
+
+
+def utcnow():
+    return datetime.now(timezone.utc)
 
 
 class SmtHoodRun(SQLModel, table=True):
@@ -13,7 +17,7 @@ class SmtHoodRun(SQLModel, table=True):
     product_application_id: int = Field(foreign_key="product_applications.id", index=True)
     performed_at: Optional[datetime] = None
     notes: Optional[str] = None
-    created_at: datetime = Field(default_factory=datetime.utcnow, nullable=False)
+    created_at: datetime = Field(default_factory=utcnow, nullable=False)
 
     __table_args__ = (
         sa.Index("ix_smt_hood_runs_created_at", "created_at"),
@@ -34,7 +38,7 @@ class SmtHoodPoint(SQLModel, table=True):
     smt_max: float = Field(nullable=False)
     hood_min: float = Field(nullable=False)
     hood_max: float = Field(nullable=False)
-    created_at: datetime = Field(default_factory=datetime.utcnow, nullable=False)
+    created_at: datetime = Field(default_factory=utcnow, nullable=False)
 
 #vincoli
     __table_args__ = (

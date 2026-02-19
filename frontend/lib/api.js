@@ -199,3 +199,7 @@ export const getLatestSmtHoodRun = (token, productApplicationId) =>
 
 export const upsertSmtHoodPoints = (token, runId, points) =>
   http(`smt-hood/runs/${runId}/points`, { method: "PUT", token, body: points });
+
+// ---------------------------- SETTING CALCULATOR ----------------------------
+export const compareSettingCalculator = (token, body) =>
+  http(`setting-calculator/compare`, { method: "POST", token, body });
