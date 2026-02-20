@@ -56,6 +56,9 @@ function validateSide(values, sideName) {
   if (out.omVacuumKpa != null && out.milkingVacuumMaxKpa != null && out.omVacuumKpa > out.milkingVacuumMaxKpa) {
     errs.omVacuumKpa = "Must be <= Milking Vacuum Max";
   }
+  if (out.omVacuumKpa != null && out.pfVacuumKpa != null && out.omVacuumKpa > out.pfVacuumKpa) {
+    errs.omVacuumKpa = "Must be <= PF Vacuum";
+  }
 
   if (out.frequencyBpm && out.ratioPct) {
     const tMs = 60000 / out.frequencyBpm;

@@ -33,22 +33,24 @@ def validate_user_inputs(side: str, inputs: UserInputsV1) -> List[FieldError]:
         if err: errs.append(err)
     if errs: return errs    
 
-    # Coerenze vacuum
+    # Vincoli Milking Vacuum
     if inputs.pfVacuumKpa > inputs.milkingVacuumMaxKpa:
         errs.append(FieldError(f"{p}.pfVacuumKpa", "must be <= milkingVacuumMaxKpa"))
 
     if inputs.omVacuumKpa > inputs.milkingVacuumMaxKpa:
         errs.append(FieldError(f"{p}.omVacuumKpa", "must be <= milkingVacuumMaxKpa"))
 
-    # (opzionale, da verific)
+    if inputs.milkingVacuumMaxKpa <= 0: 
+        errs.append(FieldError(f"{p}.milkingVacuumMaxKpa", "must be > 0"))
+
+    # (opzionale, da verific con alle)
     if inputs.pfVacuumKpa < inputs.omVacuumKpa:
         errs.append(FieldError(f"{p}.pfVacuumKpa", "should be >= omVacuumKpa"))
 
+    # Vincoli percentuale tra 0 e 100 (non inclusi)
     if inputs.ratioPct <= 0 or inputs.ratioPct >= 100: 
         errs.append(FieldError(f"{p}.ratioPct", "must be between 0 and 100"))
 
-    if inputs.milkingVacuumMaxKpa <= 0: 
-        errs.append(FieldError(f"{p}.milkingVacuumMaxKpa", "must be > 0"))
 
     # Derivate fasi
     # tMs = 60000 / f
@@ -56,7 +58,7 @@ def validate_user_inputs(side: str, inputs: UserInputsV1) -> List[FieldError]:
     on_ms = t_ms * (inputs.ratioPct / 100.0)
     off_ms = t_ms - on_ms
 
-    # Consistenza ratio (ridondante perché ratioPct è (0,100), ma teniamo la guardia)
+    # Consistenza ratio (ridondante perché ratioPct è ma teniamolo per sicurezza)
     if on_ms <= 0:
         errs.append(FieldError(f"{p}.ratioPct", "ratioPct results in ON_ms <= 0"))
     if off_ms <= 0:

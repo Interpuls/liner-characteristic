@@ -19,7 +19,7 @@ import AppFooter from "../../components/AppFooter";
 import InputsComparisonTable from "../../components/setting-calculator/InputsComparisonTable";
 import { getToken } from "../../lib/auth";
 import { compareSettingCalculator, getProduct } from "../../lib/api";
-import { createDefaultInputs, validateCompareInputs } from "../../lib/settingCalculator";
+import { SETTING_INPUT_FIELDS, createDefaultInputs, validateCompareInputs } from "../../lib/settingCalculator";
 import { formatTeatSize } from "../../lib/teatSizes";
 
 function buildRequestId() {
@@ -35,8 +35,29 @@ function safeParseJson(raw) {
   }
 }
 
+function emptySideErrors() {
+  return { left: {}, right: {} };
+}
+
+function applyBackendErrorsToForm(fields) {
+  const mapped = emptySideErrors();
+  if (!Array.isArray(fields)) return mapped;
+
+  for (const f of fields) {
+    const path = String(f?.path || "");
+    const reason = String(f?.reason || "Invalid value");
+    const m = path.match(/^(left|right)\.inputs\.(.+)$/);
+    if (!m) continue;
+    const side = m[1];
+    const field = m[2];
+    mapped[side][field] = reason;
+  }
+
+  return mapped;
+}
+
 function extractApiErrorInfo(err) {
-  const emptyFields = { left: {}, right: {} };
+  const emptyFields = emptySideErrors();
 
   let payload = err?.payload ?? null;
   if (!payload && typeof err?.message === "string") {
@@ -51,36 +72,26 @@ function extractApiErrorInfo(err) {
   if (detail && typeof detail === "object") {
     const fieldList = detail?.error?.fields;
     if (Array.isArray(fieldList)) {
-      const mapped = { left: {}, right: {} };
-
-      for (const f of fieldList) {
-        const path = String(f?.path || "");
-        const reason = String(f?.reason || "Invalid value");
-        const m = path.match(/^(left|right)\.inputs\.(.+)$/);
-        if (!m) continue;
-        const side = m[1];
-        const field = m[2];
-        mapped[side][field] = reason;
-      }
+      const mapped = applyBackendErrorsToForm(fieldList);
 
       const hasMapped = Object.keys(mapped.left).length > 0 || Object.keys(mapped.right).length > 0;
       const message = detail?.error?.message || "Invalid inputs";
-      return { message, fieldErrors: hasMapped ? mapped : emptyFields };
+      return { message, fieldErrors: hasMapped ? mapped : emptyFields, isValidation: true };
     }
 
     if (typeof detail?.detail === "string") {
-      return { message: detail.detail, fieldErrors: emptyFields };
+      return { message: detail.detail, fieldErrors: emptyFields, isValidation: err?.status === 422 };
     }
     if (typeof detail?.message === "string") {
-      return { message: detail.message, fieldErrors: emptyFields };
+      return { message: detail.message, fieldErrors: emptyFields, isValidation: err?.status === 422 };
     }
   }
 
   if (typeof err?.message === "string" && err.message.trim()) {
-    return { message: err.message, fieldErrors: emptyFields };
+    return { message: err.message, fieldErrors: emptyFields, isValidation: err?.status === 422 };
   }
 
-  return { message: "Errore durante il confronto impostazioni.", fieldErrors: emptyFields };
+  return { message: "Errore durante il confronto impostazioni.", fieldErrors: emptyFields, isValidation: false };
 }
 
 export default function SettingCalculatorPage() {
@@ -97,11 +108,25 @@ export default function SettingCalculatorPage() {
 
   const [leftInputs, setLeftInputs] = useState(createDefaultInputs);
   const [rightInputs, setRightInputs] = useState(createDefaultInputs);
-  const [formErrors, setFormErrors] = useState({ left: {}, right: {} });
+  const [feErrors, setFeErrors] = useState(emptySideErrors);
+  const [backendErrors, setBackendErrors] = useState(emptySideErrors);
+  const [touched, setTouched] = useState(emptySideErrors);
+  const [hasSubmitted, setHasSubmitted] = useState(false);
   const [globalError, setGlobalError] = useState("");
+  const [backendSummary, setBackendSummary] = useState("");
   const [loadingSelection, setLoadingSelection] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [selection, setSelection] = useState({ left: null, right: null });
+
+  const visibleFeErrors = useMemo(() => {
+    const visible = emptySideErrors();
+    for (const field of SETTING_INPUT_FIELDS) {
+      const key = field.key;
+      if (hasSubmitted || touched.left?.[key]) visible.left[key] = feErrors.left?.[key];
+      if (hasSubmitted || touched.right?.[key]) visible.right[key] = feErrors.right?.[key];
+    }
+    return visible;
+  }, [feErrors, touched, hasSubmitted]);
 
   useEffect(() => {
     const run = async () => {
@@ -174,14 +199,50 @@ export default function SettingCalculatorPage() {
     run();
   }, [router.isReady, selectedIds, selectedKeys]);
 
+  const clearBackendFieldError = (side, field) => {
+    setBackendErrors((prev) => {
+      const next = {
+        left: { ...prev.left },
+        right: { ...prev.right },
+      };
+      delete next[side][field];
+      return next;
+    });
+    setBackendSummary("");
+  };
+
   const handleChangeLeft = (field, value) => {
-    setLeftInputs((prev) => ({ ...prev, [field]: value }));
-    if (formErrors.left?.[field]) setFormErrors((prev) => ({ ...prev, left: { ...prev.left, [field]: undefined } }));
+    setLeftInputs((prev) => {
+      const next = { ...prev, [field]: value };
+      const validation = validateCompareInputs(next, rightInputs);
+      setFeErrors(validation.errors);
+      return next;
+    });
+    clearBackendFieldError("left", field);
   };
 
   const handleChangeRight = (field, value) => {
-    setRightInputs((prev) => ({ ...prev, [field]: value }));
-    if (formErrors.right?.[field]) setFormErrors((prev) => ({ ...prev, right: { ...prev.right, [field]: undefined } }));
+    setRightInputs((prev) => {
+      const next = { ...prev, [field]: value };
+      const validation = validateCompareInputs(leftInputs, next);
+      setFeErrors(validation.errors);
+      return next;
+    });
+    clearBackendFieldError("right", field);
+  };
+
+  const handleBlurLeft = (field) => {
+    setTouched((prev) => ({
+      ...prev,
+      left: { ...prev.left, [field]: true },
+    }));
+  };
+
+  const handleBlurRight = (field) => {
+    setTouched((prev) => ({
+      ...prev,
+      right: { ...prev.right, [field]: true },
+    }));
   };
 
   const handleConfirm = async () => {
@@ -192,10 +253,12 @@ export default function SettingCalculatorPage() {
     }
 
     setGlobalError("");
-    setFormErrors({ left: {}, right: {} });
+    setBackendSummary("");
+    setBackendErrors(emptySideErrors());
+    setHasSubmitted(true);
     const validation = validateCompareInputs(leftInputs, rightInputs);
+    setFeErrors(validation.errors);
     if (validation.hasErrors) {
-      setFormErrors(validation.errors);
       return;
     }
 
@@ -236,8 +299,16 @@ export default function SettingCalculatorPage() {
       router.push(`/tools/setting-calculator-charts?requestId=${encodeURIComponent(requestId)}&from=${fromCurrent}`);
     } catch (e) {
       const parsed = extractApiErrorInfo(e);
-      setFormErrors(parsed.fieldErrors);
-      setGlobalError(parsed.message);
+      const hasFieldErrors =
+        Object.keys(parsed.fieldErrors.left || {}).length > 0 ||
+        Object.keys(parsed.fieldErrors.right || {}).length > 0;
+
+      if (parsed.isValidation || hasFieldErrors) {
+        setBackendErrors(parsed.fieldErrors);
+        setBackendSummary(parsed.message || "Invalid inputs");
+      } else {
+        setGlobalError(parsed.message);
+      }
     } finally {
       setSubmitting(false);
     }
@@ -260,6 +331,13 @@ export default function SettingCalculatorPage() {
             </Alert>
           ) : null}
 
+          {backendSummary ? (
+            <Alert status="error" borderRadius="md">
+              <AlertIcon />
+              <AlertDescription>{backendSummary}</AlertDescription>
+            </Alert>
+          ) : null}
+
           <Card>
             <CardBody>
               {loadingSelection ? (
@@ -273,10 +351,14 @@ export default function SettingCalculatorPage() {
                   rightProduct={selection.right}
                   leftValues={leftInputs}
                   rightValues={rightInputs}
-                  leftErrors={formErrors.left}
-                  rightErrors={formErrors.right}
+                  leftErrors={visibleFeErrors.left}
+                  rightErrors={visibleFeErrors.right}
+                  leftBackendErrors={backendErrors.left}
+                  rightBackendErrors={backendErrors.right}
                   onChangeLeft={handleChangeLeft}
                   onChangeRight={handleChangeRight}
+                  onBlurLeft={handleBlurLeft}
+                  onBlurRight={handleBlurRight}
                 />
               )}
             </CardBody>
@@ -287,7 +369,7 @@ export default function SettingCalculatorPage() {
               colorScheme="blue"
               onClick={handleConfirm}
               isLoading={submitting}
-              isDisabled={loadingSelection || !!globalError || !selection.left || !selection.right}
+              isDisabled={loadingSelection || submitting || !selection.left || !selection.right}
             >
               Conferma e Genera Grafici
             </Button>

@@ -94,8 +94,6 @@ def _build_liner_info(
 ) -> LinerInfoV1:
     app = _get_application_or_404(session, product_application_id)
 
-    # ProductApplication nel tuo model ha product_id (FK) e relationship product.
-    # Se relationship non è caricata, usiamo product_id.
     product_id = getattr(app, "product_id", None)
     if product_id is None and getattr(app, "product", None) is not None:
         product_id = app.product.id  # type: ignore
@@ -123,10 +121,8 @@ def _build_liner_info(
         intensityOmKpa=intensity_om_kpa,
     )
 
-
+#Calcolo perrcentuale per gli ultimi grafici
 def _pct(left: float, right: float) -> float:
-    # Convenzione: % change da left -> right
-    # (right - left) / left * 100
     if left == 0:
         return 0.0
     return ((right - left) / left) * 100.0
@@ -149,8 +145,6 @@ def compare_settings_v1(session: Session, req: CompareRequestV1) -> CompareRespo
     # 4) DiffPct
     diff = DiffPctV1(
         appliedVacuum=DiffPairV1(
-            # Per ora usiamo deltaKpa per entrambe le barre PF/OM (stesso delta).
-            # Se poi vuoi PF/OM distinti (es. usando pfVacuumKpa/omVacuumKpa), lo aggiorniamo.
             pf=_pct(left_res.derived.deltaKpa, right_res.derived.deltaKpa),
             om=_pct(left_res.derived.deltaKpa, right_res.derived.deltaKpa),
         ),

@@ -13,7 +13,7 @@ import {
 } from "@chakra-ui/react";
 import { SETTING_INPUT_FIELDS } from "../../lib/settingCalculator";
 
-function NumericInput({ value, onChange, field, error }) {
+function NumericInput({ value, onChange, onBlur, field, error }) {
   return (
     <FormControl isInvalid={!!error}>
       <Input
@@ -21,6 +21,7 @@ function NumericInput({ value, onChange, field, error }) {
         inputMode="decimal"
         value={value}
         onChange={(e) => onChange(e.target.value)}
+        onBlur={onBlur}
         step={field.step || "0.1"}
         min={field.min ?? 0}
       />
@@ -29,7 +30,7 @@ function NumericInput({ value, onChange, field, error }) {
   );
 }
 
-function SideColumn({ title, subtitle, values, onFieldChange, errors }) {
+function SideColumn({ title, subtitle, values, onFieldChange, onFieldBlur, errors }) {
   return (
     <Box borderWidth="1px" borderRadius="md" p={4}>
       <Heading size="sm" mb={1}>{title}</Heading>
@@ -43,6 +44,7 @@ function SideColumn({ title, subtitle, values, onFieldChange, errors }) {
             <NumericInput
               value={values[field.key]}
               onChange={(next) => onFieldChange(field.key, next)}
+              onBlur={() => onFieldBlur?.(field.key)}
               field={field}
               error={errors?.[field.key]}
             />
@@ -60,9 +62,26 @@ export default function InputsComparisonTable({
   rightValues,
   leftErrors,
   rightErrors,
+  leftBackendErrors,
+  rightBackendErrors,
   onChangeLeft,
   onChangeRight,
+  onBlurLeft,
+  onBlurRight,
 }) {
+  const mergedLeftErrors = Object.fromEntries(
+    SETTING_INPUT_FIELDS.map((f) => [
+      f.key,
+      leftBackendErrors?.[f.key] || leftErrors?.[f.key] || undefined,
+    ])
+  );
+  const mergedRightErrors = Object.fromEntries(
+    SETTING_INPUT_FIELDS.map((f) => [
+      f.key,
+      rightBackendErrors?.[f.key] || rightErrors?.[f.key] || undefined,
+    ])
+  );
+
   const isMobile = useBreakpointValue({ base: true, md: false });
 
   if (isMobile) {
@@ -72,15 +91,17 @@ export default function InputsComparisonTable({
           title={leftProduct?.label || "Left Product"}
           subtitle={leftProduct?.subtitle}
           values={leftValues}
-          errors={leftErrors}
+          errors={mergedLeftErrors}
           onFieldChange={onChangeLeft}
+          onFieldBlur={onBlurLeft}
         />
         <SideColumn
           title={rightProduct?.label || "Right Product"}
           subtitle={rightProduct?.subtitle}
           values={rightValues}
-          errors={rightErrors}
+          errors={mergedRightErrors}
           onFieldChange={onChangeRight}
+          onFieldBlur={onBlurRight}
         />
       </Stack>
     );
@@ -93,8 +114,9 @@ export default function InputsComparisonTable({
           title={leftProduct?.label || "Left Product"}
           subtitle={leftProduct?.subtitle}
           values={leftValues}
-          errors={leftErrors}
+          errors={mergedLeftErrors}
           onFieldChange={onChangeLeft}
+          onFieldBlur={onBlurLeft}
         />
       </GridItem>
       <GridItem>
@@ -102,8 +124,9 @@ export default function InputsComparisonTable({
           title={rightProduct?.label || "Right Product"}
           subtitle={rightProduct?.subtitle}
           values={rightValues}
-          errors={rightErrors}
+          errors={mergedRightErrors}
           onFieldChange={onChangeRight}
+          onFieldBlur={onBlurRight}
         />
       </GridItem>
     </Grid>
