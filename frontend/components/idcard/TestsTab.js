@@ -130,9 +130,9 @@ export default function TestsTab({ product, unitSystem = "metric" }) {
       </Text>
       <ScrollableBars data={data} pressureLabel={pressureLabel} onBarSelect={setMassageHighlight} />
       {massageHighlight && (
-        <Text fontSize="xs" color="gray.500" textAlign={{ base: 'left', md: 'center' }} mt={1}>
-          {massageHighlight}
-        </Text>
+        <Box mt={1} px={3} py={2} bg="gray.50" borderWidth="1px" borderRadius="md" w="fit-content">
+          <Text fontSize="sm" color="gray.700">{massageHighlight}</Text>
+        </Box>
       )}
       <Legend />
       <Divider my={{ base: 2, md: 4 }} />
@@ -142,9 +142,9 @@ export default function TestsTab({ product, unitSystem = "metric" }) {
       </Text>
       <ScrollableSmtBars data={smtData} pressureLabel={pressureLabel} isImperial={isImperial} onBarSelect={setSmtHighlight} />
       {smtHighlight && (
-        <Text fontSize="xs" color="gray.500" textAlign={{ base: 'left', md: 'center' }} mt={1}>
-          {smtHighlight}
-        </Text>
+        <Box mt={1} px={3} py={2} bg="gray.50" borderWidth="1px" borderRadius="md" w="fit-content">
+          <Text fontSize="sm" color="gray.700">{smtHighlight}</Text>
+        </Box>
       )}
       <Divider my={{ base: 2, md: 4 }} />
 
@@ -153,9 +153,9 @@ export default function TestsTab({ product, unitSystem = "metric" }) {
       </Text>
       <ScrollableSmtBars data={hoodData} pressureLabel={pressureLabel} isImperial={isImperial} onBarSelect={setHoodHighlight} />
       {hoodHighlight && (
-        <Text fontSize="xs" color="gray.500" textAlign={{ base: 'left', md: 'center' }} mt={1}>
-          {hoodHighlight}
-        </Text>
+        <Box mt={1} px={3} py={2} bg="gray.50" borderWidth="1px" borderRadius="md" w="fit-content">
+          <Text fontSize="sm" color="gray.700">{hoodHighlight}</Text>
+        </Box>
       )}
     </VStack>
   );

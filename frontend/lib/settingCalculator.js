@@ -9,6 +9,16 @@ export const SETTING_INPUT_FIELDS = [
   { key: "phaseCMs", label: "Phase C", unit: "ms", step: "0.1", min: 0, required: true },
 ];
 
+const PRESSURE_KEYS = new Set(["milkingVacuumMaxKpa", "pfVacuumKpa", "omVacuumKpa"]);
+
+export function getSettingInputFields(unitSystem = "metric") {
+  const isImperial = unitSystem === "imperial";
+  return SETTING_INPUT_FIELDS.map((f) => ({
+    ...f,
+    unit: PRESSURE_KEYS.has(f.key) && isImperial ? "inHg" : f.unit,
+  }));
+}
+
 export function createDefaultInputs() {
   return {
     milkingVacuumMaxKpa: "",
@@ -19,6 +29,32 @@ export function createDefaultInputs() {
     ratioPct: "",
     phaseAMs: "",
     phaseCMs: "",
+  };
+}
+
+export function buildInputsPayloadByUnit(normalizedSideInputs, unitSystem = "metric") {
+  if (unitSystem === "imperial") {
+    return {
+      milkingVacuumMaxInHg: normalizedSideInputs.milkingVacuumMaxKpa,
+      pfVacuumInHg: normalizedSideInputs.pfVacuumKpa,
+      omVacuumInHg: normalizedSideInputs.omVacuumKpa,
+      omDurationSec: normalizedSideInputs.omDurationSec,
+      frequencyBpm: normalizedSideInputs.frequencyBpm,
+      ratioPct: normalizedSideInputs.ratioPct,
+      phaseAMs: normalizedSideInputs.phaseAMs,
+      phaseCMs: normalizedSideInputs.phaseCMs,
+    };
+  }
+
+  return {
+    milkingVacuumMaxKpa: normalizedSideInputs.milkingVacuumMaxKpa,
+    pfVacuumKpa: normalizedSideInputs.pfVacuumKpa,
+    omVacuumKpa: normalizedSideInputs.omVacuumKpa,
+    omDurationSec: normalizedSideInputs.omDurationSec,
+    frequencyBpm: normalizedSideInputs.frequencyBpm,
+    ratioPct: normalizedSideInputs.ratioPct,
+    phaseAMs: normalizedSideInputs.phaseAMs,
+    phaseCMs: normalizedSideInputs.phaseCMs,
   };
 }
 

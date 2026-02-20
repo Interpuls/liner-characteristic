@@ -15,13 +15,19 @@ export function applyBackendErrorsToForm(fields) {
   const mapped = emptySideErrors();
   if (!Array.isArray(fields)) return mapped;
 
+  const fieldAlias = {
+    milkingVacuumMaxInHg: "milkingVacuumMaxKpa",
+    pfVacuumInHg: "pfVacuumKpa",
+    omVacuumInHg: "omVacuumKpa",
+  };
+
   for (const f of fields) {
     const path = String(f?.path || "");
     const reason = String(f?.reason || "Invalid value");
     const m = path.match(/^(left|right)\.inputs\.(.+)$/);
     if (!m) continue;
     const side = m[1];
-    const field = m[2];
+    const field = fieldAlias[m[2]] || m[2];
     mapped[side][field] = reason;
   }
 

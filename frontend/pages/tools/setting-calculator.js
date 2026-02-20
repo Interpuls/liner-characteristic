@@ -18,8 +18,14 @@ import AppHeader from "../../components/AppHeader";
 import AppFooter from "../../components/AppFooter";
 import InputsComparisonTable from "../../components/setting-calculator/InputsComparisonTable";
 import { getToken } from "../../lib/auth";
-import { compareSettingCalculator, getProduct } from "../../lib/api";
-import { SETTING_INPUT_FIELDS, createDefaultInputs, validateCompareInputs } from "../../lib/settingCalculator";
+import { compareSettingCalculator, getMe, getProduct } from "../../lib/api";
+import {
+  SETTING_INPUT_FIELDS,
+  buildInputsPayloadByUnit,
+  createDefaultInputs,
+  getSettingInputFields,
+  validateCompareInputs,
+} from "../../lib/settingCalculator";
 import { emptySideErrors, extractApiErrorInfo } from "../../lib/settingCalculatorErrors";
 import { formatTeatSize } from "../../lib/teatSizes";
 
@@ -50,6 +56,9 @@ export default function SettingCalculatorPage() {
   const [loadingSelection, setLoadingSelection] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [selection, setSelection] = useState({ left: null, right: null });
+  const [unitSystem, setUnitSystem] = useState("metric");
+
+  const inputFields = useMemo(() => getSettingInputFields(unitSystem), [unitSystem]);
 
   const visibleFeErrors = useMemo(() => {
     const visible = emptySideErrors();
@@ -69,6 +78,13 @@ export default function SettingCalculatorPage() {
       if (!token) {
         window.location.replace("/login");
         return;
+      }
+
+      try {
+        const me = await getMe(token);
+        setUnitSystem(me?.unit_system === "imperial" ? "imperial" : "metric");
+      } catch {
+        // global 401 handler in http.js will redirect if needed
       }
 
       if (selectedIds.length !== 2) {
@@ -206,11 +222,11 @@ export default function SettingCalculatorPage() {
       requestId,
       left: {
         productApplicationId: Number(selection.left.appId),
-        inputs: validation.normalized.left,
+        inputs: buildInputsPayloadByUnit(validation.normalized.left, unitSystem),
       },
       right: {
         productApplicationId: Number(selection.right.appId),
-        inputs: validation.normalized.right,
+        inputs: buildInputsPayloadByUnit(validation.normalized.right, unitSystem),
       },
     };
 
@@ -256,6 +272,9 @@ export default function SettingCalculatorPage() {
           <Text fontSize="sm" color="gray.600">
             Insert the parameters for the two selected products, then confirm to generate the comparative charts.
           </Text>
+          <Text fontSize="xs" color="gray.500">
+            Unit system: {unitSystem === "imperial" ? "Imperial (inHg for pressure)" : "Metric (kPa)"}
+          </Text>
 
           {globalError ? (
             <Alert status="error" borderRadius="md">
@@ -280,6 +299,7 @@ export default function SettingCalculatorPage() {
                 </VStack>
               ) : (
                 <InputsComparisonTable
+                  fields={inputFields}
                   leftProduct={selection.left}
                   rightProduct={selection.right}
                   leftValues={leftInputs}
