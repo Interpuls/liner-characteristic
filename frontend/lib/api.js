@@ -93,6 +93,21 @@ export const putKpiScales = (token, code, body) =>
 export const getKpiScales = (token, code) =>
   http(`kpis/${code}/scales`, { token });
 
+export const getOverviewRankings = (
+  token,
+  {
+    kpis = "CLOSURE,FITTING,CONGESTION_RISK,HYPERKERATOSIS_RISK,SPEED,RESPRAY,FLUYDODINAMIC,SLIPPAGE,RINGING_RISK",
+    teat_sizes = "XS,S,M,L",
+    limit = 3,
+  } = {}
+) =>
+  http(
+    `rankings/overview?kpis=${encodeURIComponent(kpis)}&teat_sizes=${encodeURIComponent(
+      teat_sizes
+    )}&limit=${encodeURIComponent(limit)}`,
+    { token }
+  );
+
 // --- KPI (valori calcolati) ---
 export async function getKpiValuesByPA(token, productApplicationId) {
   return http(`kpis/values?product_application_id=${productApplicationId}`, {

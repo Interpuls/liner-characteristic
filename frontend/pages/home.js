@@ -3,7 +3,7 @@ import { useEffect, useState, useRef } from "react";
 import NextLink from "next/link";
 import Image from "next/image";
 import {
-  Box, Button, Heading, SimpleGrid, LinkBox, LinkOverlay,
+  Box, Button, Heading, LinkBox, LinkOverlay,
   Text, HStack, VStack, useToast, AlertDialog, AlertDialogBody,
   AlertDialogFooter, AlertDialogHeader, AlertDialogContent, AlertDialogOverlay,
   useDisclosure, Show, Hide, Icon, Center, useBreakpointValue,
@@ -14,6 +14,7 @@ import {
 import { getToken, clearToken, setToken } from "../lib/auth";
 import { getMe, updateUserUnitSystem } from "../lib/api";
 import NewsSection from "../components/home/NewsSection";
+import RankingsSection from "../components/home/RankingsSection";
 import { FiSearch, FiCreditCard, FiSliders, FiSettings } from "react-icons/fi";
 import { RxHamburgerMenu } from "react-icons/rx";
 import AppHeader from "../components/AppHeader";
@@ -230,20 +231,6 @@ export default function Home() {
     </Box>
   );
 
-  const SectionRow = ({ title }) => (
-    <Box>
-      <Heading size="sm" color="gray.400" mb={2}>Teat size: {title}</Heading>
-      <HStack spacing={4} overflowX="auto" py={2} px={1}>
-        {[1,2,3,4].map((i) => (
-          <Box key={i} minW="220px" p={4} borderWidth="1px" borderColor="whiteAlpha.200" bg="whiteAlpha.100" rounded="lg">
-            <Text fontWeight="semibold" color="white">Closure</Text>
-            <Text fontSize="sm" color="whiteAlpha.800">Top 4 preview • #{i}</Text>
-          </Box>
-        ))}
-      </HStack>
-    </Box>
-  );
-
   return (
     <>
       <Hide below="md">
@@ -272,14 +259,7 @@ export default function Home() {
             backdropFilter="saturate(120%) blur(6px)"
           >
             <NewsSection isAdmin={isAdmin} />
-
-            <Heading size="md" color="gray.300" mb={4} mt={0}>Performance Rankings</Heading>
-            <SimpleGrid columns={{ base: 1 }} gap={6}>
-              <SectionRow title="XS" />
-              <SectionRow title="S" />
-              <SectionRow title="M" />
-              <SectionRow title="L" />
-            </SimpleGrid>
+            <RankingsSection token={getToken()} />
           </Box>
         </Box>
 
@@ -478,3 +458,4 @@ export default function Home() {
     </>
   );
 }
+

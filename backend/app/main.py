@@ -10,7 +10,7 @@ from app.deps import apply_cors
 # Routers
 from app.routers import (
     auth_router, user_router, product_router, product_application_router,
-    kpi_router, tpp_router, massage_router, speed_router, smt_hood_router,
+    kpi_router, ranking_router, tpp_router, massage_router, speed_router, smt_hood_router,
     news_router
 )
 from app.routers.setting_calculator import router as setting_calculator_router
@@ -39,6 +39,7 @@ app.include_router(user_router.router, prefix="/users", tags=["Users"])
 app.include_router(product_router.router, prefix="/products", tags=["Products"])
 app.include_router(product_application_router.router, prefix="/products", tags=["Product Applications"])
 app.include_router(kpi_router.router, prefix="/kpis", tags=["KPIs"])
+app.include_router(ranking_router.router, prefix="/rankings", tags=["Rankings"])
 app.include_router(tpp_router.router, prefix="/tpp", tags=["TPP Runs"])
 app.include_router(massage_router.router, prefix="/massage", tags=["Massage Runs"])
 app.include_router(speed_router.router, prefix="/speed", tags=["Speed Runs"])
