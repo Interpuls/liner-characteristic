@@ -214,7 +214,7 @@ export default function SettingCalculatorChartsPage() {
             <Alert status="warning" borderRadius="md">
               <AlertIcon />
               <AlertDescription>
-                Nessun risultato disponibile in sessione. Esegui prima il confronto dalla pagina Setting Calculator.
+                No result available in this session. Please run the comparison from the Setting Calculator page first.
               </AlertDescription>
             </Alert>
           ) : (
@@ -222,7 +222,7 @@ export default function SettingCalculatorChartsPage() {
               <Card>
                 <CardBody>
                   <VStack align="stretch" spacing={2}>
-                    <Heading size="sm">Confronto eseguito</Heading>
+                    <Heading size="sm">Comparison executed</Heading>
                     <Text fontSize="sm" color="gray.700">
                       {runData.leftProduct?.label} vs {runData.rightProduct?.label}
                     </Text>
