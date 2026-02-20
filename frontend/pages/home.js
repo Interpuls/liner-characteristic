@@ -133,7 +133,15 @@ export default function Home() {
   );
 
   const HeroUser = () => (
-    <Box position="relative" overflow="hidden" py={{ base: 24, md: 24 }}>
+    <Box
+      position="relative"
+      overflow="hidden"
+      py={{ base: 24, md: 24 }}
+      minH={{ base: "80dvh", md: "auto" }}
+      display="flex"
+      alignItems="center"
+      justifyContent="center"
+    >
       {/* Mobile burger inside hero */}
       <Show below="md">
         <IconButton
@@ -179,7 +187,7 @@ export default function Home() {
       <VStack position="relative" zIndex={1} spacing={5}>
         <Image src="/favicon.ico" alt="Logo" width={72} height={72} />
         <Heading size={{ base: "xl", md: "2xl" }} color="white" textAlign="center" letterSpacing="wide">Liner Characteristic</Heading>
-        <Text color="whiteAlpha.800" textAlign="center" maxW="2xl">Explore liners, compare KPIs and find the best fit.</Text>
+        <Text color="whiteAlpha.800" textAlign="center" maxW="2xl" mb={0}>Explore liners, compare KPIs and find the best fit.</Text>
         <HStack mt={{ base: 6, md: 8 }}>
           <Button
             as={NextLink}

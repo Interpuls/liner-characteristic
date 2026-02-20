@@ -10,6 +10,7 @@
         /massage* \
         /speed* \
         /smt-hood* \
+        /news* \
         /setting-calculator* \
         /healthz*
 
@@ -26,6 +27,7 @@
             /massage* \
             /speed* \
             /smt-hood* \
+            /news* \
             /setting-calculator* \
             /healthz*
     }
