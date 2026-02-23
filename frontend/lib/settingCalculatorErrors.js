@@ -68,5 +68,5 @@ export function extractApiErrorInfo(err) {
     return { message: err.message, fieldErrors: emptyFields, isValidation: err?.status === 422 };
   }
 
-  return { message: "Errore durante il confronto impostazioni.", fieldErrors: emptyFields, isValidation: false };
+  return { message: "Error during settings comparison.", fieldErrors: emptyFields, isValidation: false };
 }

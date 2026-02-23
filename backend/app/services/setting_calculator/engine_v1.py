@@ -175,3 +175,25 @@ def compute_side_result_v1(
         charts=charts,
         warnings=warnings,
     )
+
+def applied_vacuum_abs(inputs: UserInputsV1, derived: DerivedV1) -> tuple[float, float]:
+    
+    freq = float(inputs.frequencyBpm)
+    b_real_ms = float(derived.bRealMs)
+
+    pf = float(inputs.pfVacuumKpa) * freq * (b_real_ms / 60000.0)
+    om = float(inputs.omVacuumKpa) * freq * (b_real_ms / 60000.0)
+    return pf, om
+
+
+def applied_massage_abs(inputs: UserInputsV1, derived: DerivedV1, liner: LinerInfoV1) -> tuple[float, float]:
+
+    freq = float(inputs.frequencyBpm)
+    real_off_ms = float(derived.realOffMs)
+
+    pf_db = liner.intensityPfKpa
+    om_db = liner.intensityOmKpa
+
+    pf = pf_db * freq * (real_off_ms / 60000.0)
+    om = om_db * freq * (real_off_ms / 60000.0)
+    return pf, om

@@ -44,8 +44,8 @@ def validate_user_inputs(side: str, inputs: UserInputsV1) -> List[FieldError]:
         errs.append(FieldError(f"{p}.milkingVacuumMaxKpa", "must be > 0"))
 
     # (opzionale, da verific con alle)
-    if inputs.pfVacuumKpa < inputs.omVacuumKpa:
-        errs.append(FieldError(f"{p}.pfVacuumKpa", "should be >= omVacuumKpa"))
+    if inputs.pfVacuumKpa > inputs.omVacuumKpa:
+        errs.append(FieldError(f"{p}.pfVacuumKpa", "should be <= omVacuumKpa"))
 
     # Vincoli percentuale tra 0 e 100 (non inclusi)
     if inputs.ratioPct <= 0 or inputs.ratioPct >= 100: 

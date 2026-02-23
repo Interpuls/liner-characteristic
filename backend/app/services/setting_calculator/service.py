@@ -22,7 +22,11 @@ from app.schema.setting_calculator.errors import (
 )
 
 from app.services.setting_calculator.validation_v1 import validate_compare_request
-from app.services.setting_calculator.engine_v1 import compute_side_result_v1
+from app.services.setting_calculator.engine_v1 import (
+    compute_side_result_v1, 
+    applied_vacuum_abs, 
+    applied_massage_abs
+)
 
 
 ENGINE_VERSION = "setting-calculator-engine@1.0.0"
@@ -143,14 +147,23 @@ def compare_settings_v1(session: Session, req: CompareRequestV1) -> CompareRespo
     right_res: SideResultV1 = compute_side_result_v1(right_liner, req.right.inputs)
 
     # 4) DiffPct
+
+    # 4.1 Vacuum
+    left_pf_abs, left_om_abs = applied_vacuum_abs(req.left.inputs, left_res.derived)
+    right_pf_abs, right_om_abs = applied_vacuum_abs(req.right.inputs, right_res.derived)
+
+    # 4.2 Massage intensity
+    left_pf_massage, left_om_massage = applied_massage_abs(req.left.inputs, left_res.derived, left_liner)
+    right_pf_massage, right_om_massage = applied_massage_abs(req.right.inputs, right_res.derived, right_liner)
+
     diff = DiffPctV1(
         appliedVacuum=DiffPairV1(
-            pf=_pct(left_res.derived.deltaKpa, right_res.derived.deltaKpa),
-            om=_pct(left_res.derived.deltaKpa, right_res.derived.deltaKpa),
+            pf=_pct(left_pf_abs, right_pf_abs),
+            om=_pct(left_om_abs, right_om_abs),
         ),
         massageIntensity=DiffPairV1(
-            pf=_pct(left_liner.intensityPfKpa, right_liner.intensityPfKpa),
-            om=_pct(left_liner.intensityOmKpa, right_liner.intensityOmKpa),
+            pf=_pct(left_pf_massage, right_pf_massage),
+            om=_pct(left_om_massage, right_om_massage),
         ),
     )
 
