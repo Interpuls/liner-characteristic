@@ -88,7 +88,7 @@ def compute_side_result_v1(
     # 3) BUILD CHARTS
     # -------------------------
 
-    # Pulsation trapezoid
+    # Pulsation grafico
     pulsation_curve = CurveV1(
         label=liner.model,
         points=[

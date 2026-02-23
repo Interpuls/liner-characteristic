@@ -26,7 +26,7 @@ app = FastAPI(
     title="Liner Characteristic API",
     version="1.0.0",
     description="Backend per la gestione delle caratteristiche dei liner e test KPI.",
-    debug=True,
+    debug=False,
     lifespan=lifespan,
 )
 
