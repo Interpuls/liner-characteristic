@@ -71,8 +71,16 @@ def get_overview_rankings(
                 partition_by=(pa.c.size_mm, latest.c.kpi_code),
                 order_by=(
                     latest.c.score.desc(),
+                    sa.case(
+                        (
+                            sa.func.upper(sa.func.coalesce(prod.c.brand, "")) == "MI",
+                            0,
+                        ),
+                        else_=1,
+                    ).asc(),
                     latest.c.computed_at.desc(),
                     latest.c.value_num.desc(),
+                    prod.c.model.asc(),
                 ),
             )
             .label("rank_pos"),
