@@ -272,9 +272,6 @@ export default function SettingCalculatorPage() {
           <Text fontSize="sm" color="gray.600">
             Insert the parameters for the two selected products, then confirm to generate the comparative charts.
           </Text>
-          <Text fontSize="xs" color="gray.500">
-            Unit system: {unitSystem === "imperial" ? "Imperial (inHg for pressure)" : "Metric (kPa)"}
-          </Text>
 
           {globalError ? (
             <Alert status="error" borderRadius="md">
@@ -290,8 +287,13 @@ export default function SettingCalculatorPage() {
             </Alert>
           ) : null}
 
-          <Card>
-            <CardBody>
+          <Card
+            bg={{ base: "transparent", md: "white" }}
+            boxShadow={{ base: "none", md: "sm" }}
+            borderWidth={{ base: "0", md: "1px" }}
+            borderColor={{ base: "transparent", md: "gray.200" }}
+          >
+            <CardBody p={{ base: 0, md: 6 }}>
               {loadingSelection ? (
                 <VStack py={8} spacing={3}>
                   <Spinner />
@@ -317,14 +319,14 @@ export default function SettingCalculatorPage() {
             </CardBody>
           </Card>
 
-          <HStack justify="flex-end">
+          <HStack justify="flex-end" mb={{ base: 4, md: 0 }}>
             <Button
               colorScheme="blue"
               onClick={handleConfirm}
               isLoading={submitting}
               isDisabled={loadingSelection || submitting || !selection.left || !selection.right}
             >
-              Confirm and Generate Charts
+              Confirm
             </Button>
           </HStack>
         </VStack>

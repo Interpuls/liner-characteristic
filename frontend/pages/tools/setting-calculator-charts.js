@@ -105,7 +105,7 @@ export default function SettingCalculatorChartsPage() {
           )}
 
           <HStack justify="flex-end">
-            <Button variant="outline" onClick={() => router.push("/tools/setting-calculator")}>
+            <Button variant="outline" onClick={() => router.push(backHref)}>
               Back to Inputs
             </Button>
           </HStack>

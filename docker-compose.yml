@@ -22,7 +22,7 @@ services:
   backend:
     build:
       context: ./backend
-      dockerfile: dockerfile   # lascialo così solo se il tuo file si chiama davvero "dockerfile"
+      dockerfile: dockerfile   
     image: liner-backend:latest
     container_name: liner-backend
     environment:
