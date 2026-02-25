@@ -9,6 +9,10 @@ class AccessLog(SQLModel, table=True):
     __tablename__ = "access_logs"
 
     id: Optional[int] = Field(default=None, primary_key=True)
+    request_id: Optional[str] = Field(
+        default=None,
+        sa_column=sa.Column(sa.String(length=64), nullable=True, index=True),
+    )
     user_id: Optional[int] = Field(default=None, index=True, foreign_key="users.id")
     method: str = Field(sa_column=sa.Column(sa.String(length=10), nullable=False))
     path: str = Field(sa_column=sa.Column(sa.Text(), nullable=False))

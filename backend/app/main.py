@@ -39,6 +39,7 @@ async def lifespan(app: FastAPI):
 
 logger = setup_logging()
 access_logger = logging.getLogger("liner-backend.access")
+AUDIT_BODY_MAX_BYTES = 50 * 1024
 
 app = FastAPI(
     title="Liner Characteristic API",
@@ -87,24 +88,53 @@ async def log_requests(request: Request, call_next):
     audit_payload = None
     if request.method in ("POST", "PUT", "PATCH", "DELETE"):
         ctype = (request.headers.get("content-type") or "").lower()
+        content_length_header = request.headers.get("content-length")
         try:
-            # Read body once and cache for downstream handlers
-            body_bytes = await request.body()
-            try:
-                request._body = body_bytes  # type: ignore[attr-defined]
-            except Exception:
-                pass
-        except Exception:
-            body_bytes = b""
+            content_length = int(content_length_header) if content_length_header else None
+        except ValueError:
+            content_length = None
 
-        if "application/json" in ctype:
+        body_bytes = b""
+        should_read_body = False
+        if "multipart/form-data" in ctype:
+            audit_payload = {
+                "_skipped_multipart": True,
+                "content_length": content_length,
+            }
+        elif "application/json" in ctype or "application/x-www-form-urlencoded" in ctype:
+            if content_length is None:
+                audit_payload = {
+                    "_skipped_no_content_length": True,
+                    "max_bytes": AUDIT_BODY_MAX_BYTES,
+                }
+            elif content_length > AUDIT_BODY_MAX_BYTES:
+                audit_payload = {
+                    "_truncated": True,
+                    "content_length": content_length,
+                    "max_bytes": AUDIT_BODY_MAX_BYTES,
+                }
+            else:
+                should_read_body = True
+
+        if should_read_body:
+            try:
+                # Starlette caches request.body(); we keep the explicit cache assignment
+                # to avoid consuming the stream for downstream handlers in edge cases.
+                body_bytes = await request.body()
+                try:
+                    request._body = body_bytes  # type: ignore[attr-defined]
+                except Exception:
+                    pass
+            except Exception:
+                body_bytes = b""
+
+        if should_read_body and "application/json" in ctype:
             try:
                 import json
                 audit_payload = json.loads(body_bytes.decode() or "{}")
             except Exception:
                 audit_payload = {"_invalid_json": True}
-        elif "application/x-www-form-urlencoded" in ctype or "multipart/form-data" in ctype:
-            # Avoid reading potentially large uploads; keep just metadata
+        elif should_read_body and "application/x-www-form-urlencoded" in ctype:
             try:
                 from urllib.parse import parse_qs
                 parsed = parse_qs(body_bytes.decode() if body_bytes else "")
@@ -150,6 +180,7 @@ async def log_requests(request: Request, call_next):
         try:
             with Session(engine, expire_on_commit=False) as session:
                 log_row = AccessLog(
+                    request_id=request_id,
                     user_id=user_id,
                     method=request.method,
                     path=request.url.path,
