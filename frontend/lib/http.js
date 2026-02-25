@@ -16,7 +16,8 @@ function handleUnauthorized() {
 }
 
 export async function http(path, { method = "GET", token, body } = {}) {
-  const base = process.env.NEXT_PUBLIC_API_URL || "";
+  const rawBase = process.env.NEXT_PUBLIC_API_URL || "";
+  const base = rawBase.replace(/\/+$/, "");
   const normPath =
     typeof path === "string" && path
       ? (path.startsWith("/") ? path : "/" + path)
