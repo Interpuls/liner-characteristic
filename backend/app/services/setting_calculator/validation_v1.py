@@ -30,8 +30,10 @@ def validate_user_inputs(side: str, inputs: UserInputsV1) -> List[FieldError]:
       "frequencyBpm","ratioPct","phaseAMs","phaseCMs","omDurationSec"
     ]:
         err = _require(side, f, getattr(inputs, f))
-        if err: errs.append(err)
-    if errs: return errs    
+        if err:
+            errs.append(err)
+    if errs:
+        return errs
 
     # Vincoli Milking Vacuum
     if inputs.pfVacuumKpa > inputs.milkingVacuumMaxKpa:
