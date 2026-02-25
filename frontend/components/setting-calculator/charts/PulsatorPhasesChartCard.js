@@ -291,7 +291,7 @@ export default function PulsatorPhasesChartCard({ runData }) {
               </HStack>
             ) : null}
             <Text fontSize="xs" color="gray.500" mb={4}>
-              A-D segments in ms for each liner.
+              A-D phases in ms for each liner.
             </Text>
             <Box h={{ base: "360px", md: "260px" }}>
               <Bar data={chartData} options={chartOptions} plugins={[phaseValueLabelsPlugin]} aria-label="Pulsator phases stacked chart" />

@@ -284,7 +284,7 @@ export default function RealMilkingMassageChartCard({ runData }) {
               </HStack>
             ) : null}
             <Text fontSize="xs" color="gray.500" mb={4}>
-              Real duration in ms during the cycle.
+              Real ON/OFF duration in ms during the cycle.
             </Text>
             <Box h={{ base: "320px", md: "240px" }}>
               <Bar
