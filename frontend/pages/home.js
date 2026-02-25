@@ -7,15 +7,16 @@ import {
   Text, HStack, VStack, useToast, AlertDialog, AlertDialogBody,
   AlertDialogFooter, AlertDialogHeader, AlertDialogContent, AlertDialogOverlay,
   useDisclosure, Show, Hide, Icon, Center, useBreakpointValue,
-  Drawer, DrawerOverlay, DrawerContent, DrawerHeader, DrawerBody, DrawerCloseButton,
-  Stack, IconButton, Divider as CkDivider, Modal, ModalOverlay, ModalContent,
+  Drawer, DrawerOverlay, DrawerContent, DrawerHeader, DrawerBody, DrawerCloseButton, DrawerFooter,
+  Stack, IconButton, Modal, ModalOverlay, ModalContent,
   ModalHeader, ModalCloseButton, ModalBody, ModalFooter
 } from "@chakra-ui/react";
 import { getToken, clearToken, setToken } from "../lib/auth";
 import { getMe, updateUserUnitSystem } from "../lib/api";
 import NewsSection from "../components/home/NewsSection";
 import RankingsSection from "../components/home/RankingsSection";
-import { FiSearch, FiCreditCard, FiSliders, FiSettings } from "react-icons/fi";
+import { FiSearch, FiSettings, FiBarChart2, FiLogOut, FiPackage } from "react-icons/fi";
+import { LuFlaskConical } from "react-icons/lu";
 import { RxHamburgerMenu } from "react-icons/rx";
 import AppHeader from "../components/AppHeader";
 import AppFooter from "../components/AppFooter";
@@ -284,19 +285,20 @@ export default function Home() {
                     variant="ghost"
                     color="gray.200"
                     justifyContent="flex-start"
+                    leftIcon={<FiSearch />}
                     onClick={menuCtrl.onClose}
                   >
                     Browse Products
                   </Button>
                   {isAdmin && (
                     <>
-                      <Button as={NextLink} href="/admin/product" variant="ghost" color="gray.200" justifyContent="flex-start" onClick={menuCtrl.onClose}>
+                      <Button as={NextLink} href="/admin/product" variant="ghost" color="gray.200" justifyContent="flex-start" leftIcon={<FiPackage />} onClick={menuCtrl.onClose}>
                         Manage Product
                       </Button>
-                      <Button as={NextLink} href="/admin/tests" variant="ghost" color="gray.200" justifyContent="flex-start" onClick={menuCtrl.onClose}>
+                      <Button as={NextLink} href="/admin/tests" variant="ghost" color="gray.200" justifyContent="flex-start" leftIcon={<LuFlaskConical />} onClick={menuCtrl.onClose}>
                         Test Campaign
                       </Button>
-                      <Button as={NextLink} href="/admin/kpis" variant="ghost" color="gray.200" justifyContent="flex-start" onClick={menuCtrl.onClose}>
+                      <Button as={NextLink} href="/admin/kpis" variant="ghost" color="gray.200" justifyContent="flex-start" leftIcon={<FiBarChart2 />} onClick={menuCtrl.onClose}>
                         KPI Scales
                       </Button>
                     </>
@@ -348,13 +350,19 @@ export default function Home() {
                 </Stack>
               </Box>
 
-              <CkDivider />
-
-              <Button backgroundColor="rgba(20, 23, 41, 1)" color="white" onClick={() => { menuCtrl.onClose(); onOpen(); }}>
-                Logout
-              </Button>
             </Stack>
           </DrawerBody>
+          <DrawerFooter borderTopWidth="1px" borderTopColor="whiteAlpha.200" mb={5}>
+            <Button
+              w="full"
+              leftIcon={<FiLogOut />}
+              backgroundColor="rgba(143, 10, 10, 1)"
+              color="white"
+              onClick={() => { menuCtrl.onClose(); onOpen(); }}
+            >
+              Logout
+            </Button>
+          </DrawerFooter>
         </DrawerContent>
       </Drawer>
 
