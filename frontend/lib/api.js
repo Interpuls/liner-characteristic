@@ -1,7 +1,8 @@
 import { http } from "./http";
 
 export const loginApi = async (email, password) => {
-  const base = process.env.NEXT_PUBLIC_API_URL || "";
+  const rawBase = process.env.NEXT_PUBLIC_API_URL || "";
+  const base = rawBase.replace(/\/+$/, "");
   const body = new URLSearchParams({ username: email, password });
 
   const res = await fetch(`${base}/auth/login`, {
