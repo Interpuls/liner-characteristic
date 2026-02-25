@@ -35,6 +35,11 @@ COPY --from=builder /app/public ./public
 COPY --from=builder /app/.next/standalone ./
 COPY --from=builder /app/.next/static ./.next/static
 
+# Ensure image optimizer dependencies and writable cache path exist at runtime
+RUN npm install --omit=dev --no-audit --no-fund sharp \
+ && mkdir -p /app/.next/cache \
+ && chown -R nextjs:nodejs /app/.next /app/public /app/node_modules
+
 EXPOSE 3000
 USER nextjs
 CMD ["node", "server.js"]
