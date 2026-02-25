@@ -1,6 +1,7 @@
 import time
 import uuid
 import logging
+from contextlib import asynccontextmanager
 from datetime import datetime
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
@@ -24,9 +25,17 @@ from app.model.access_log import AccessLog
 # Routers
 from app.routers import (
     auth_router, user_router, product_router, product_application_router,
-    kpi_router, tpp_router, massage_router, speed_router, smt_hood_router,
+    kpi_router, ranking_router, tpp_router, massage_router, speed_router, smt_hood_router,
     news_router
 )
+from app.routers.setting_calculator import router as setting_calculator_router
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    init_db()
+    yield
+
 
 logger = setup_logging()
 access_logger = logging.getLogger("liner-backend.access")
@@ -35,12 +44,9 @@ app = FastAPI(
     title="Liner Characteristic API",
     version="1.0.0",
     description="Backend per la gestione delle caratteristiche dei liner e test KPI.",
-    debug=True
+    debug=False,
+    lifespan=lifespan,
 )
-
-@app.on_event("startup")
-def on_startup():
-    init_db()
 
 # Routers
 app.include_router(auth_router.router, prefix="/auth", tags=["Authentication"])
@@ -48,11 +54,13 @@ app.include_router(user_router.router, prefix="/users", tags=["Users"])
 app.include_router(product_router.router, prefix="/products", tags=["Products"])
 app.include_router(product_application_router.router, prefix="/products", tags=["Product Applications"])
 app.include_router(kpi_router.router, prefix="/kpis", tags=["KPIs"])
+app.include_router(ranking_router.router, prefix="/rankings", tags=["Rankings"])
 app.include_router(tpp_router.router, prefix="/tpp", tags=["TPP Runs"])
 app.include_router(massage_router.router, prefix="/massage", tags=["Massage Runs"])
 app.include_router(speed_router.router, prefix="/speed", tags=["Speed Runs"])
 app.include_router(smt_hood_router.router, prefix="/smt-hood", tags=["SMT/Hood Runs"])
 app.include_router(news_router.router, prefix="/news", tags=["News"])
+app.include_router(setting_calculator_router, prefix="/setting-calculator", tags=["Setting Calculator"])
 
 @app.get("/", include_in_schema=False)
 def root():

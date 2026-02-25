@@ -1,7 +1,11 @@
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Optional, Dict, Any
 from sqlmodel import SQLModel, Field, Column, JSON
 import sqlalchemy as sa
+
+
+def utcnow():
+    return datetime.now(timezone.utc)
 
 #search preferences model
 class SearchPreference(SQLModel, table=True):
@@ -20,7 +24,7 @@ class SearchPreference(SQLModel, table=True):
     #JSON di filtri 
     filters: Dict[str, Any] = Field(sa_column=Column(JSON))
 
-    created_at: datetime = Field(default_factory=datetime.utcnow, nullable=False)
+    created_at: datetime = Field(default_factory=utcnow, nullable=False)
 
     __table_args__ = (
         sa.UniqueConstraint("user_id", "name", name="uq_user_pref_name"),

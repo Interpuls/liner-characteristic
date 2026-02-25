@@ -1,5 +1,6 @@
 from datetime import datetime
 from typing import List, Optional, Dict, Any
+from pydantic import ConfigDict
 from .base import MetricNormalizedModel
 # Use the same enums as the ORM models to avoid mismatch
 from ..model.kpi import FormulaType, TestKind
@@ -25,8 +26,7 @@ class KpiDefOut(KpiDefBase):
     id: int
     created_at: Optional[datetime] = None
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 # --------------- KPI SCALE ----------------------------
 
@@ -50,5 +50,4 @@ class KpiValueOut(MetricNormalizedModel):
     context_json: Optional[str] = None
     computed_at: datetime
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)

@@ -1,3 +1,20 @@
+import { clearToken } from "./auth";
+
+function handleUnauthorized() {
+  if (typeof window === "undefined") return;
+
+  clearToken();
+
+  const currentPath = window.location.pathname || "/";
+  const currentSearch = window.location.search || "";
+  const current = `${currentPath}${currentSearch}`;
+  const from = encodeURIComponent(current);
+
+  if (currentPath !== "/login") {
+    window.location.replace(`/login?from=${from}`);
+  }
+}
+
 export async function http(path, { method = "GET", token, body } = {}) {
   const base = process.env.NEXT_PUBLIC_API_URL || "";
   const normPath =
@@ -48,6 +65,11 @@ export async function http(path, { method = "GET", token, body } = {}) {
     err.status = res.status;
     err.payload = json ?? raw ?? null;
     err.url = url;
+
+    if (res.status === 401) {
+      handleUnauthorized();
+    }
+
     throw err;
   }
 

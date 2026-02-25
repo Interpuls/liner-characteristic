@@ -1,8 +1,12 @@
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Optional
 from sqlmodel import SQLModel, Field, Column, JSON
 import sqlalchemy as sa
 from app.common.enums import FormulaType, TestKind
+
+
+def utcnow():
+    return datetime.now(timezone.utc)
 
 #--------------- KPI MODELS --------------------------
 
@@ -22,7 +26,7 @@ class KpiDef(SQLModel, table=True):
 
     weight: float = 1.0
 
-    created_at: datetime = Field(default_factory=datetime.utcnow, nullable=False)
+    created_at: datetime = Field(default_factory=utcnow, nullable=False)
 
 #vincoli
     __table_args__ = (
@@ -43,7 +47,7 @@ class KpiScale(SQLModel, table=True):
     score: int = Field(index=True)  # 1..4
     label: Optional[str] = None
 
-    created_at: datetime = Field(default_factory=datetime.utcnow, nullable=False)
+    created_at: datetime = Field(default_factory=utcnow, nullable=False)
 
 #--------------- TEST METRICHE --------------------------
 #metriche derivate generiche
@@ -62,7 +66,7 @@ class TestMetric(SQLModel, table=True):
     value_num: float
     unit: Optional[str] = None
     context_json: Optional[str] = None# JSON string (usiamo TEXT per compatibilità)
-    computed_at: datetime = Field(default_factory=datetime.utcnow, nullable=False)
+    computed_at: datetime = Field(default_factory=utcnow, nullable=False)
 
 #vincoli
     __table_args__ = (
@@ -90,7 +94,7 @@ class KpiValue(SQLModel, table=True):
     score: int
     unit: Optional[str] = None
     context_json: Optional[str] = None
-    computed_at: datetime = Field(default_factory=datetime.utcnow, nullable=False)
+    computed_at: datetime = Field(default_factory=utcnow, nullable=False)
 
 #vincoli
     __table_args__ = (

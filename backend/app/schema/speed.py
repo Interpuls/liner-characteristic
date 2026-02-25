@@ -1,5 +1,6 @@
 from datetime import datetime
 from typing import Optional
+from pydantic import ConfigDict
 from .base import MetricNormalizedModel
 
 
@@ -21,5 +22,4 @@ class SpeedRunOut(SpeedRunBase):
     measure_ml: Optional[float]
     created_at: datetime
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)

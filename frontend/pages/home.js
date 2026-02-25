@@ -3,18 +3,20 @@ import { useEffect, useState, useRef } from "react";
 import NextLink from "next/link";
 import Image from "next/image";
 import {
-  Box, Button, Heading, SimpleGrid, LinkBox, LinkOverlay,
+  Box, Button, Heading, LinkBox, LinkOverlay,
   Text, HStack, VStack, useToast, AlertDialog, AlertDialogBody,
   AlertDialogFooter, AlertDialogHeader, AlertDialogContent, AlertDialogOverlay,
   useDisclosure, Show, Hide, Icon, Center, useBreakpointValue,
-  Drawer, DrawerOverlay, DrawerContent, DrawerHeader, DrawerBody, DrawerCloseButton,
-  Stack, IconButton, Divider as CkDivider, Modal, ModalOverlay, ModalContent,
+  Drawer, DrawerOverlay, DrawerContent, DrawerHeader, DrawerBody, DrawerCloseButton, DrawerFooter,
+  Stack, IconButton, Modal, ModalOverlay, ModalContent,
   ModalHeader, ModalCloseButton, ModalBody, ModalFooter
 } from "@chakra-ui/react";
 import { getToken, clearToken, setToken } from "../lib/auth";
 import { getMe, updateUserUnitSystem } from "../lib/api";
 import NewsSection from "../components/home/NewsSection";
-import { FiSearch, FiCreditCard, FiSliders, FiSettings } from "react-icons/fi";
+import RankingsSection from "../components/home/RankingsSection";
+import { FiSearch, FiSettings, FiBarChart2, FiLogOut, FiPackage } from "react-icons/fi";
+import { LuFlaskConical } from "react-icons/lu";
 import { RxHamburgerMenu } from "react-icons/rx";
 import AppHeader from "../components/AppHeader";
 import AppFooter from "../components/AppFooter";
@@ -133,7 +135,15 @@ export default function Home() {
   );
 
   const HeroUser = () => (
-    <Box position="relative" overflow="hidden" py={{ base: 24, md: 24 }}>
+    <Box
+      position="relative"
+      overflow="hidden"
+      py={{ base: 24, md: 24 }}
+      minH={{ base: "80dvh", md: "auto" }}
+      display="flex"
+      alignItems="center"
+      justifyContent="center"
+    >
       {/* Mobile burger inside hero */}
       <Show below="md">
         <IconButton
@@ -179,7 +189,7 @@ export default function Home() {
       <VStack position="relative" zIndex={1} spacing={5}>
         <Image src="/favicon.ico" alt="Logo" width={72} height={72} />
         <Heading size={{ base: "xl", md: "2xl" }} color="white" textAlign="center" letterSpacing="wide">Liner Characteristic</Heading>
-        <Text color="whiteAlpha.800" textAlign="center" maxW="2xl">Explore liners, compare KPIs and find the best fit.</Text>
+        <Text color="whiteAlpha.800" textAlign="center" maxW="2xl" mb={0}>Explore liners, compare KPIs and find the best fit.</Text>
         <HStack mt={{ base: 6, md: 8 }}>
           <Button
             as={NextLink}
@@ -222,20 +232,6 @@ export default function Home() {
     </Box>
   );
 
-  const SectionRow = ({ title }) => (
-    <Box>
-      <Heading size="sm" color="gray.400" mb={2}>Teat size: {title}</Heading>
-      <HStack spacing={4} overflowX="auto" py={2} px={1}>
-        {[1,2,3,4].map((i) => (
-          <Box key={i} minW="220px" p={4} borderWidth="1px" borderColor="whiteAlpha.200" bg="whiteAlpha.100" rounded="lg">
-            <Text fontWeight="semibold" color="white">Closure</Text>
-            <Text fontSize="sm" color="whiteAlpha.800">Top 4 preview • #{i}</Text>
-          </Box>
-        ))}
-      </HStack>
-    </Box>
-  );
-
   return (
     <>
       <Hide below="md">
@@ -264,14 +260,7 @@ export default function Home() {
             backdropFilter="saturate(120%) blur(6px)"
           >
             <NewsSection isAdmin={isAdmin} />
-
-            <Heading size="md" color="gray.300" mb={4} mt={0}>Performance Rankings</Heading>
-            <SimpleGrid columns={{ base: 1 }} gap={6}>
-              <SectionRow title="XS" />
-              <SectionRow title="S" />
-              <SectionRow title="M" />
-              <SectionRow title="L" />
-            </SimpleGrid>
+            <RankingsSection token={getToken()} />
           </Box>
         </Box>
 
@@ -296,19 +285,20 @@ export default function Home() {
                     variant="ghost"
                     color="gray.200"
                     justifyContent="flex-start"
+                    leftIcon={<FiSearch />}
                     onClick={menuCtrl.onClose}
                   >
                     Browse Products
                   </Button>
                   {isAdmin && (
                     <>
-                      <Button as={NextLink} href="/admin/product" variant="ghost" color="gray.200" justifyContent="flex-start" onClick={menuCtrl.onClose}>
+                      <Button as={NextLink} href="/admin/product" variant="ghost" color="gray.200" justifyContent="flex-start" leftIcon={<FiPackage />} onClick={menuCtrl.onClose}>
                         Manage Product
                       </Button>
-                      <Button as={NextLink} href="/admin/tests" variant="ghost" color="gray.200" justifyContent="flex-start" onClick={menuCtrl.onClose}>
+                      <Button as={NextLink} href="/admin/tests" variant="ghost" color="gray.200" justifyContent="flex-start" leftIcon={<LuFlaskConical />} onClick={menuCtrl.onClose}>
                         Test Campaign
                       </Button>
-                      <Button as={NextLink} href="/admin/kpis" variant="ghost" color="gray.200" justifyContent="flex-start" onClick={menuCtrl.onClose}>
+                      <Button as={NextLink} href="/admin/kpis" variant="ghost" color="gray.200" justifyContent="flex-start" leftIcon={<FiBarChart2 />} onClick={menuCtrl.onClose}>
                         KPI Scales
                       </Button>
                     </>
@@ -360,13 +350,19 @@ export default function Home() {
                 </Stack>
               </Box>
 
-              <CkDivider />
-
-              <Button backgroundColor="rgba(20, 23, 41, 1)" color="white" onClick={() => { menuCtrl.onClose(); onOpen(); }}>
-                Logout
-              </Button>
             </Stack>
           </DrawerBody>
+          <DrawerFooter borderTopWidth="1px" borderTopColor="whiteAlpha.200" mb={5}>
+            <Button
+              w="full"
+              leftIcon={<FiLogOut />}
+              backgroundColor="rgba(143, 10, 10, 1)"
+              color="white"
+              onClick={() => { menuCtrl.onClose(); onOpen(); }}
+            >
+              Logout
+            </Button>
+          </DrawerFooter>
         </DrawerContent>
       </Drawer>
 
@@ -470,3 +466,4 @@ export default function Home() {
     </>
   );
 }
+

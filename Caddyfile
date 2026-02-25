@@ -6,10 +6,13 @@
         /users* \
         /products* \
         /kpis* \
+        /rankings* \
         /tpp* \
         /massage* \
         /speed* \
         /smt-hood* \
+        /news* \
+        /setting-calculator* \
         /healthz*
 
     reverse_proxy @backend liner-backend:8080
@@ -21,10 +24,13 @@
             /users* \
             /products* \
             /kpis* \
+            /rankings* \
             /tpp* \
             /massage* \
             /speed* \
             /smt-hood* \
+            /news* \
+            /setting-calculator* \
             /healthz*
     }
 
