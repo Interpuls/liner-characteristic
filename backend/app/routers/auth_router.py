@@ -1,5 +1,6 @@
-from fastapi import APIRouter, Depends, HTTPException, status
-from fastapi.security import OAuth2PasswordRequestForm
+from typing import Optional
+
+from fastapi import APIRouter, Depends, HTTPException, status, Request
 from sqlmodel import Session, select
 from app.services.conversion_wrapper import convert_output
 
@@ -39,14 +40,79 @@ def register(payload: UserCreate, session: Session = Depends(get_session)):
     session.refresh(user)
     return user
 
+# Helper: accetta sia JSON che form-url-encoded; legge il raw body una sola volta
+async def _extract_credentials(request: Request) -> tuple[str, str]:
+    ctype = (request.headers.get("content-type") or "").lower()
+    username: Optional[str] = None
+    password: Optional[str] = None
+
+    # Leggi il body (cached se già consumato da middleware)
+    try:
+        raw = await request.body()
+    except Exception:
+        raw = b""
+    # DEBUG TEMP: log contenuto body e headers
+    try:
+        import logging
+        logging.getLogger("liner-backend.auth").info(
+            "login: ctype=%s len(raw)=%s", ctype, len(raw)
+        )
+    except Exception:
+        pass
+
+    # 1) prova JSON se header indica json
+    if raw and "application/json" in ctype:
+        try:
+            data = json.loads(raw.decode() or "{}")
+        except Exception:
+            data = {}
+        username = data.get("username") or data.get("email")
+        password = data.get("password")
+
+    # 2) prova querystring parsing (valido per x-www-form-urlencoded)
+    if raw and (not username or not password):
+        try:
+            from urllib.parse import parse_qs
+            parsed = {k: v[0] for k, v in parse_qs(raw.decode()).items() if v}
+            username = username or parsed.get("username") or parsed.get("email")
+            password = password or parsed.get("password")
+        except Exception:
+            pass
+
+    # 3) extrema ratio: prova anche request.form (multipart)
+    if not username or not password:
+        try:
+            form = await request.form()
+            try:
+                import logging
+                logging.getLogger("liner-backend.auth").info(
+                    "login: form keys=%s", list(form.keys())
+                )
+            except Exception:
+                pass
+            username = username or form.get("username") or form.get("email")
+            password = password or form.get("password")
+        except Exception:
+            pass
+
+    if not username or not password:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="Missing username/password",
+        )
+    return username, password
+
+
 #Effettua il login e genera un token JWT
 @router.post("/login", response_model=Token)
-def login(
-    form: OAuth2PasswordRequestForm = Depends(),
+async def login(
+    request: Request,
+    creds: tuple[str, str] = Depends(_extract_credentials),
     session: Session = Depends(get_session),
 ):
-    user = session.exec(select(User).where(User.email == form.username)).first()
-    if not user or not verify_password(form.password, user.hashed_password):
+    username, password = creds
+    user = session.exec(select(User).where(User.email == username)).first()
+    if not user or not verify_password(password, user.hashed_password):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid credentials",

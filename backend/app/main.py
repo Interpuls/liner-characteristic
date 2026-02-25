@@ -80,16 +80,28 @@ async def log_requests(request: Request, call_next):
     audit_payload = None
     if request.method in ("POST", "PUT", "PATCH", "DELETE"):
         ctype = (request.headers.get("content-type") or "").lower()
+        try:
+            # Read body once and cache for downstream handlers
+            body_bytes = await request.body()
+            try:
+                request._body = body_bytes  # type: ignore[attr-defined]
+            except Exception:
+                pass
+        except Exception:
+            body_bytes = b""
+
         if "application/json" in ctype:
             try:
-                audit_payload = await request.json()
+                import json
+                audit_payload = json.loads(body_bytes.decode() or "{}")
             except Exception:
                 audit_payload = {"_invalid_json": True}
         elif "application/x-www-form-urlencoded" in ctype or "multipart/form-data" in ctype:
             # Avoid reading potentially large uploads; keep just metadata
             try:
-                form = await request.form()
-                audit_payload = {k: "***REDACTED***" for k in form.keys()}
+                from urllib.parse import parse_qs
+                parsed = parse_qs(body_bytes.decode() if body_bytes else "")
+                audit_payload = {k: "***REDACTED***" for k in parsed.keys()}
             except Exception:
                 audit_payload = {"_form_read_failed": True}
 
