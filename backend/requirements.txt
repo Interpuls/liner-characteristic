@@ -5,7 +5,7 @@ python-jose[cryptography]==3.4.0
 passlib[bcrypt]==1.7.4
 # Pin bcrypt to 3.x for passlib compatibility (avoid __about__ error in 4.x)
 bcrypt==3.2.2
-python-multipart==0.0.12
+python-multipart==0.0.22
 psycopg2-binary==2.9.10
 email-validator==2.1.0.post1
 alembic==1.16.4
