@@ -1,4 +1,4 @@
-:80 {
+mi-linerlens.milkrite-interpuls.com {
 
     # Tutte le chiamate API vere del backend FastAPI
     @backend path \
