@@ -10,5 +10,4 @@ exec python -m uvicorn app.main:app \
   --port "$PORT" \
   --proxy-headers \
   --forwarded-allow-ips="*" \
-  --log-config /app/logging.json \
   --access-log
