@@ -9,5 +9,6 @@ exec python -m uvicorn app.main:app \
   --host 0.0.0.0 \
   --port "$PORT" \
   --proxy-headers \
-  --log-level debug \
+  --forwarded-allow-ips="*" \
+  --log-config /app/logging.json \
   --access-log
