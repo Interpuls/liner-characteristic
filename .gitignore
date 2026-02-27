@@ -39,4 +39,4 @@ Thumbs.db
 
 # Logs
 *.log
-*.err
+*.errdocker-compose.local.yml
