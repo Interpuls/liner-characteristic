@@ -2,6 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException, Path
 from sqlmodel import Session, select
 from sqlalchemy.exc import IntegrityError
 from app.services.conversion_wrapper import convert_output
+from pydantic import BaseModel
 
 from app.db import get_session
 from app.auth import get_current_user, require_role
@@ -11,9 +12,47 @@ from app.schema.product import ProductApplicationIn, ProductApplicationOut, SIZE
 router = APIRouter()
 
 
+class ProductApplicationsBatchIn(BaseModel):
+    product_ids: list[int]
+
+
 # --------------------------------------------------------------------------
 # ------------------------ PRODUCT APPLICATIONS ----------------------------
 # --------------------------------------------------------------------------
+
+@router.post("/applications/batch-by-products", response_model=dict[str, list[ProductApplicationOut]])
+@convert_output
+def list_product_applications_batch(
+    payload: ProductApplicationsBatchIn,
+    session: Session = Depends(get_session),
+    user=Depends(get_current_user),
+):
+    raw_ids = payload.product_ids or []
+    deduped_ids = list(dict.fromkeys(int(x) for x in raw_ids if int(x) > 0))
+    if not deduped_ids:
+        return {}
+    if len(deduped_ids) > 200:
+        raise HTTPException(status_code=422, detail="Maximum 200 product_ids allowed")
+
+    is_admin = getattr(user, "role", "") == "admin"
+    products = session.exec(select(Product).where(Product.id.in_(deduped_ids))).all()
+    visible = [p for p in products if is_admin or not p.only_admin]
+    visible_ids = {p.id for p in visible}
+
+    rows = session.exec(
+        select(ProductApplication)
+        .where(ProductApplication.product_id.in_(visible_ids))
+        .order_by(
+            ProductApplication.product_id.asc(),
+            ProductApplication.size_mm.asc(),
+            ProductApplication.created_at.asc(),
+        )
+    ).all() if visible_ids else []
+
+    grouped: dict[str, list[ProductApplicationOut]] = {str(pid): [] for pid in visible_ids}
+    for row in rows:
+        grouped[str(row.product_id)].append(row)
+    return grouped
 
 #Restituisce la lista di applicazioni (teat sizes) associate a un prodotto
 @router.get(
@@ -28,6 +67,9 @@ def list_product_applications(
 ):
     prod = session.get(Product, product_id)
     if not prod:
+        raise HTTPException(status_code=404, detail="Product not found")
+    is_admin = getattr(user, "role", "") == "admin"
+    if not is_admin and prod.only_admin:
         raise HTTPException(status_code=404, detail="Product not found")
 
     q = (

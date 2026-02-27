@@ -13,6 +13,7 @@ import AppHeader from "../../components/AppHeader";
 import AppFooter from "../../components/AppFooter";
 import { getToken } from "../../lib/auth";
 import { getMe, listProducts } from "../../lib/api";
+import PageLoader from "../../components/ui/PageLoader";
 import DetailsTab from "../../components/idcard/DetailsTab";
 import KpisTab from "../../components/idcard/KpisTab";
 import TestsTab from "../../components/idcard/TestsTab";
@@ -69,7 +70,7 @@ export default function IdResultPage() {
     })();
   }, [me, router.isReady, brand, model, toast, router]);
 
-  if (!me) return <Box p={6}>Caricamento…</Box>;
+  if (!me) return <PageLoader />;
 
   return (
     <Box minH="100vh" display="flex" flexDirection="column">
@@ -92,7 +93,7 @@ export default function IdResultPage() {
         >
           <CardBody pt={{ base: 2, md: 3 }}>
             {loading ? (
-              <Text py={8} color="gray.600">Caricamento…</Text>
+              <PageLoader minH="120px" />
             ) : !product ? (
               <VStack py={8} spacing={2}>
                 <Text color="gray.600">Nessun prodotto corrispondente.</Text>

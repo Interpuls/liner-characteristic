@@ -51,3 +51,7 @@ class KpiValueOut(MetricNormalizedModel):
     computed_at: datetime
 
     model_config = ConfigDict(from_attributes=True)
+
+
+class KpiValuesBatchIn(MetricNormalizedModel):
+    product_application_ids: List[int]

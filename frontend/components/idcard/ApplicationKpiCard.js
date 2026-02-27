@@ -1,8 +1,5 @@
-import { useEffect, useMemo, useState } from "react";
+import { useMemo } from "react";
 import { Box, HStack, SimpleGrid, GridItem, Stat, StatNumber, Text, Tooltip, VStack, Divider } from "@chakra-ui/react";
-import { getToken } from "../../lib/auth";
-import { getKpiValuesByPA } from "../../lib/api";
-import { latestKpiByCode } from "../../lib/kpi";
 // import { AppSizePill } from "../ui/AppSizePill";
 import { formatTeatSize } from "../../lib/teatSizes";
 
@@ -57,25 +54,9 @@ function KpiChip({ code, value }) {
 }
 
 export default function ApplicationKpiCard({ application, product, kpisByCode }) {
-  const [kpis, setKpis] = useState(kpisByCode || null);
-
-  useEffect(() => {
-    let alive = true;
-    (async () => {
-      if (kpisByCode || !application?.id) return; // already provided or no id
-      const t = getToken();
-      if (!t) return;
-      try {
-        const values = await getKpiValuesByPA(t, application.id);
-        const latest = latestKpiByCode(values);
-        if (alive) setKpis(latest);
-      } catch {}
-    })();
-    return () => { alive = false; };
-  }, [application?.id, kpisByCode]);
+  const kpis = kpisByCode || {};
 
   const sizeLabel = useMemo(() => formatTeatSize(application?.size_mm), [application?.size_mm]);
-  const sizeValue = useMemo(() => (application?.size_mm != null ? String(application.size_mm) : ''), [application?.size_mm]);
 
   return (
     <Box borderWidth="1px" rounded="md" p={{ base: 4, md: 4 }} mx={{ base: -4, md: 0 }}>

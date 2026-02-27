@@ -20,6 +20,7 @@ import { LuFlaskConical } from "react-icons/lu";
 import { RxHamburgerMenu } from "react-icons/rx";
 import AppHeader from "../components/AppHeader";
 import AppFooter from "../components/AppFooter";
+import PageLoader from "../components/ui/PageLoader";
 
 function NavCard({ href, title, desc, icon: IconComp }) {
   return (
@@ -115,7 +116,7 @@ export default function Home() {
     unitDialog.onClose();
   };
 
-  if (!me) return <Box p="8">Loading…</Box>;
+  if (!me) return <PageLoader bg="#0b1f45" />;
   const isAdmin = me?.role === "admin";
 
   const AdminNav = () => (

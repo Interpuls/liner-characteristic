@@ -20,6 +20,7 @@ import ProductModal from "../../components/ProductModal";
 import ProductEditModal from "../../components/ProductEditModal";
 import ProductCard from "../../components/ProductCard";
 import ProductDetailModal from "../../components/ProductDetailModal";
+import PageLoader from "../../components/ui/PageLoader";
 
 import AppHeader from "@/components/AppHeader";
 
@@ -142,7 +143,7 @@ export default function AdminProducts() {
     return () => clearTimeout(id);
   }, [me, params]);
 
-  if (!me) return <Box p="6">Caricamento…</Box>;
+  if (!me) return <PageLoader />;
 
   return (
     <>

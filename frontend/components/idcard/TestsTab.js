@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Box, VStack, HStack, Text, Spinner, Center, Divider } from "@chakra-ui/react";
 import { getToken } from "../../lib/auth";
 import { listProductApplications, getLatestMassageRun, getLatestSmtHoodRun } from "../../lib/api";
@@ -20,7 +20,10 @@ export default function TestsTab({ product, unitSystem = "metric" }) {
   const isImperial = unitSystem === "imperial";
   const pressureLabel = isImperial ? "inHg" : "kPa";
   const kpaToInhg = (v) => v == null ? null : Number((v * 0.295299830714).toFixed(2));
-  const pressureVal = (value, imperialValue) => isImperial ? imperialValue ?? (value != null ? kpaToInhg(value) : null) : value;
+  const pressureVal = useCallback(
+    (value, imperialValue) => (isImperial ? imperialValue ?? (value != null ? kpaToInhg(value) : null) : value),
+    [isImperial]
+  );
 
   const pid = product?.id;
 
@@ -65,54 +68,52 @@ export default function TestsTab({ product, unitSystem = "metric" }) {
         }));
         if (alive) setData(entries);
 
-        // SMT/HOOD latest per application (smt_max by flow)
+        // SMT/HOOD latest per application (single fetch reused for both charts)
         const flows = [0.5, 1.9, 3.6];
-        const smtEntries = await Promise.all(arr.map(async (a) => {
+        const latestSmtHoodByApp = await Promise.all(arr.map(async (a) => {
           try {
             const res = await getLatestSmtHoodRun(t, a.id);
-            const points = (res?.points?.length ? res.points : res?.run?.points) || [];
-            const by = new Map(points.map(p => [Number(p.flow_lpm).toFixed(1), p]));
-            const flowsObj = Object.fromEntries(flows.map(fl => {
-              const key = fl.toFixed(1);
-              const p = by.get(key);
-              return [key, p ? {
-                min: pressureVal(Number(p.smt_min), p.smt_min_inhg != null ? Number(p.smt_min_inhg) : null),
-                max: pressureVal(Number(p.smt_max), p.smt_max_inhg != null ? Number(p.smt_max_inhg) : null),
-              } : null];
-            }));
-            return { label: formatTeatSize(a.size_mm), flows: flowsObj };
+            return { label: formatTeatSize(a.size_mm), res };
           } catch {
-            return { label: formatTeatSize(a.size_mm), flows: { '0.5': null, '1.9': null, '3.6': null } };
+            return { label: formatTeatSize(a.size_mm), res: null };
           }
         }));
+        const smtEntries = latestSmtHoodByApp.map(({ label, res }) => {
+          const points = (res?.points?.length ? res.points : res?.run?.points) || [];
+          const by = new Map(points.map((p) => [Number(p.flow_lpm).toFixed(1), p]));
+          const flowsObj = Object.fromEntries(flows.map((fl) => {
+            const key = fl.toFixed(1);
+            const p = by.get(key);
+            return [key, p ? {
+              min: pressureVal(Number(p.smt_min), p.smt_min_inhg != null ? Number(p.smt_min_inhg) : null),
+              max: pressureVal(Number(p.smt_max), p.smt_max_inhg != null ? Number(p.smt_max_inhg) : null),
+            } : null];
+          }));
+          return { label, flows: flowsObj };
+        });
         if (alive) setSmtData(smtEntries);
 
         // HOOD min/max per application
-        const hoodEntries = await Promise.all(arr.map(async (a) => {
-          try {
-            const res = await getLatestSmtHoodRun(t, a.id);
-            const points = (res?.points?.length ? res.points : res?.run?.points) || [];
-            const by = new Map(points.map(p => [Number(p.flow_lpm).toFixed(1), p]));
-            const flowsObj = Object.fromEntries(flows.map(fl => {
-              const key = fl.toFixed(1);
-              const p = by.get(key);
-              return [key, p ? {
-                min: pressureVal(Number(p.hood_min), p.hood_min_inhg != null ? Number(p.hood_min_inhg) : null),
-                max: pressureVal(Number(p.hood_max), p.hood_max_inhg != null ? Number(p.hood_max_inhg) : null),
-              } : null];
-            }));
-            return { label: formatTeatSize(a.size_mm), flows: flowsObj };
-          } catch {
-            return { label: formatTeatSize(a.size_mm), flows: { '0.5': null, '1.9': null, '3.6': null } };
-          }
-        }));
+        const hoodEntries = latestSmtHoodByApp.map(({ label, res }) => {
+          const points = (res?.points?.length ? res.points : res?.run?.points) || [];
+          const by = new Map(points.map((p) => [Number(p.flow_lpm).toFixed(1), p]));
+          const flowsObj = Object.fromEntries(flows.map((fl) => {
+            const key = fl.toFixed(1);
+            const p = by.get(key);
+            return [key, p ? {
+              min: pressureVal(Number(p.hood_min), p.hood_min_inhg != null ? Number(p.hood_min_inhg) : null),
+              max: pressureVal(Number(p.hood_max), p.hood_max_inhg != null ? Number(p.hood_max_inhg) : null),
+            } : null];
+          }));
+          return { label, flows: flowsObj };
+        });
         if (alive) setHoodData(hoodEntries);
       } finally {
         if (alive) setLoading(false);
       }
     })();
     return () => { alive = false; };
-  }, [pid, isImperial]);
+  }, [pid, pressureVal]);
 
   if (!pid) return <Box py={8} textAlign="center" color="gray.600">No product selected.</Box>;
   if (loading) return (

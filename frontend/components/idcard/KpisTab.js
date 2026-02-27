@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Box, SimpleGrid, Text, useToast, Spinner, Center, VStack, HStack } from "@chakra-ui/react";
 import { getToken } from "../../lib/auth";
-import { listProductApplications, getKpiValuesByPA } from "../../lib/api";
+import { listProductApplications, getKpiValuesBatch } from "../../lib/api";
 import { latestKpiByCode } from "../../lib/kpi";
 import ApplicationKpiCard from "./ApplicationKpiCard";
 import { formatTeatSize } from "../../lib/teatSizes";
@@ -33,14 +33,17 @@ export default function KpisTab({ product, isAdmin }) {
         const list = await listProductApplications(t, pid);
         const arr = Array.isArray(list) ? list : [];
         if (alive) setApps(arr);
-        // prefetch KPIs for radar and cards
-        const entries = await Promise.all(arr.map(async (a) => {
-          try {
-            const values = await getKpiValuesByPA(t, a.id);
-            return [a.id, latestKpiByCode(values)];
-          } catch { return [a.id, {}]; }
-        }));
-        if (alive) setKpisByApp(Object.fromEntries(entries));
+        // prefetch KPIs in a single batch request (one call for all applications)
+        const appIds = arr.map((a) => a.id).filter(Boolean);
+        if (!appIds.length) {
+          if (alive) setKpisByApp({});
+        } else {
+          const byId = await getKpiValuesBatch(t, appIds);
+          const mapped = Object.fromEntries(
+            appIds.map((appId) => [appId, latestKpiByCode(byId?.[String(appId)] || byId?.[appId] || [])])
+          );
+          if (alive) setKpisByApp(mapped);
+        }
       } catch (e) {
         // non-bloccante: mostro messaggio leggero
         toast({ status: "error", title: "Cannot load applications" });
