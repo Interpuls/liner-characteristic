@@ -316,6 +316,7 @@ export default function ProductsSearchPage() {
   const [selConfig, setSelConfig] = useState({ title: "", min: 1, max: 5, route: "/tools/radar-map" });
   const [selSearch, setSelSearch] = useState("");
   const [selSelected, setSelSelected] = useState(new Set()); // stores application keys
+  const [selSubmitting, setSelSubmitting] = useState(false);
   const filteredList = useMemo(() => {
     const q = (selSearch || "").toLowerCase();
     const base = Array.isArray(items) ? items : [];
@@ -340,26 +341,39 @@ export default function ProductsSearchPage() {
     });
   };
   const confirmSel = async () => {
-    if (!isValidSel) return;
-    // Ensure we have an applications map (key -> application_id)
-    let appMap = appIdByKey;
-    if (!Object.keys(appMap).length) {
-      const token = getToken();
-      if (token) {
-        appMap = await buildApplicationsMap(token, items);
-        setAppIdByKey(appMap);
+    if (!isValidSel || selSubmitting) return;
+    setSelSubmitting(true);
+    try {
+      const keys = Array.from(selSelected);
+      // Ensure we have an applications map (key -> application_id).
+      // Build only for selected items to avoid long silent waits on mobile.
+      let appMap = appIdByKey;
+      if (!Object.keys(appMap).length) {
+        const token = getToken();
+        if (token) {
+          const selectedItems = items.filter((it) => keys.includes(it.key));
+          appMap = await buildApplicationsMap(token, selectedItems);
+          setAppIdByKey(appMap);
+        }
       }
+      const appIds = keys.map((k) => appMap[k]).filter(Boolean);
+      // Prefer passing both when we can (ids for precision, keys for labels)
+      const params = new URLSearchParams();
+      if (appIds.length) params.set("app_ids", appIds.join(","));
+      if (keys.length) params.set("keys", keys.join(","));
+      const from = encodeURIComponent(router.asPath || "/product/result");
+      params.set("from", from);
+      await router.push(`${selConfig.route}?${params.toString()}`);
+      setSelOpen(false);
+    } catch (e) {
+      toast({
+        status: "error",
+        title: "Unable to continue",
+        description: e?.message || "Please try again.",
+      });
+    } finally {
+      setSelSubmitting(false);
     }
-    const keys = Array.from(selSelected);
-    const appIds = keys.map(k => appMap[k]).filter(Boolean);
-    // Prefer passing both when we can (ids for precision, keys for labels)
-    const params = new URLSearchParams();
-    if (appIds.length) params.set('app_ids', appIds.join(','));
-    if (keys.length) params.set('keys', keys.join(','));
-    const from = encodeURIComponent(router.asPath || "/product/result");
-    params.set('from', from);
-    router.push(`${selConfig.route}?${params.toString()}`);
-    setSelOpen(false);
   };
 
   // Quando vorrai collegare il backend:
@@ -591,7 +605,7 @@ export default function ProductsSearchPage() {
           <ModalFooter>
             <HStack w="full" justify="space-between">
               <Button variant="ghost" onClick={() => setSelOpen(false)}>Cancel</Button>
-              <Button colorScheme="blue" onClick={confirmSel} isDisabled={!isValidSel}>Confirm</Button>
+              <Button colorScheme="blue" onClick={confirmSel} isDisabled={!isValidSel || selSubmitting} isLoading={selSubmitting}>Confirm</Button>
             </HStack>
           </ModalFooter>
         </ModalContent>
