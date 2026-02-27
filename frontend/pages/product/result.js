@@ -345,21 +345,11 @@ export default function ProductsSearchPage() {
     setSelSubmitting(true);
     try {
       const keys = Array.from(selSelected);
-      // Ensure we have an applications map (key -> application_id).
-      // Build only for selected items to avoid long silent waits on mobile.
-      let appMap = appIdByKey;
-      if (!Object.keys(appMap).length) {
-        const token = getToken();
-        if (token) {
-          const selectedItems = items.filter((it) => keys.includes(it.key));
-          appMap = await buildApplicationsMap(token, selectedItems);
-          setAppIdByKey(appMap);
-        }
-      }
-      const appIds = keys.map((k) => appMap[k]).filter(Boolean);
-      // Prefer passing both when we can (ids for precision, keys for labels)
+      // Navigate immediately with keys to avoid blocking on heavy app-id mapping.
+      // If ids are already available in cache, include them too.
+      const appIds = keys.map((k) => appIdByKey[k]).filter(Boolean);
       const params = new URLSearchParams();
-      if (appIds.length) params.set("app_ids", appIds.join(","));
+      if (appIds.length === keys.length) params.set("app_ids", appIds.join(","));
       if (keys.length) params.set("keys", keys.join(","));
       const from = encodeURIComponent(router.asPath || "/product/result");
       params.set("from", from);

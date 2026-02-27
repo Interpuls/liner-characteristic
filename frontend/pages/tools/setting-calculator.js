@@ -1,4 +1,4 @@
-import { useRouter } from "next/router";
+﻿import { useRouter } from "next/router";
 import { useEffect, useMemo, useState } from "react";
 import {
   Alert,
@@ -18,7 +18,7 @@ import AppHeader from "../../components/AppHeader";
 import AppFooter from "../../components/AppFooter";
 import InputsComparisonTable from "../../components/setting-calculator/InputsComparisonTable";
 import { getToken } from "../../lib/auth";
-import { compareSettingCalculator, getMe, getProduct } from "../../lib/api";
+import { compareSettingCalculator, getMe, getProduct, listProductApplications } from "../../lib/api";
 import {
   SETTING_INPUT_FIELDS,
   buildInputsPayloadByUnit,
@@ -87,47 +87,54 @@ export default function SettingCalculatorPage() {
         // global 401 handler in http.js will redirect if needed
       }
 
-      if (selectedIds.length !== 2) {
+      if (selectedIds.length !== 2 && selectedKeys.length !== 2) {
         setGlobalError("Setting Calculator requires exactly 2 products selected.");
-        setLoadingSelection(false);
-        return;
-      }
-
-      const fallback = selectedIds.map((appId, index) => ({
-        appId: Number(appId),
-        label: `Product ${index + 1}`,
-        brand: "Brand",
-        sizeLabel: "-",
-        subtitle: `Application ID ${appId}`,
-      }));
-
-      if (selectedKeys.length !== selectedIds.length) {
-        setSelection({ left: fallback[0], right: fallback[1] });
         setLoadingSelection(false);
         return;
       }
 
       try {
         const entries = await Promise.all(
-          selectedIds.map(async (appId, index) => {
+          [0, 1].map(async (index) => {
             const [productIdRaw, sizeRaw] = String(selectedKeys[index] || "").split("-");
             const productId = Number(productIdRaw);
             const sizeMm = Number(sizeRaw);
+            const appIdFromQuery = Number(selectedIds[index]);
 
             if (!Number.isFinite(productId)) {
-              return fallback[index];
+              const safeId = Number.isFinite(appIdFromQuery) ? appIdFromQuery : null;
+              return {
+                appId: safeId,
+                label: `Product ${index + 1}`,
+                brand: "Brand",
+                sizeLabel: "-",
+                subtitle: safeId ? `Application ID ${safeId}` : "Application not resolved",
+              };
             }
 
-            const product = await getProduct(token, productId);
+            let product = null;
+            let appId = Number.isFinite(appIdFromQuery) ? appIdFromQuery : null;
+            try {
+              product = await getProduct(token, productId);
+            } catch {}
+
+            if (!appId && Number.isFinite(sizeMm)) {
+              try {
+                const apps = await listProductApplications(token, productId);
+                const match = (Array.isArray(apps) ? apps : []).find((a) => Number(a.size_mm) === sizeMm);
+                if (match?.id != null) appId = Number(match.id);
+              } catch {}
+            }
+
             const label = product?.model || product?.name || `Product ${index + 1}`;
             const sizeLabel = Number.isFinite(sizeMm) ? formatTeatSize(sizeMm) : null;
             const subtitle = [
               product?.brand || null,
               sizeLabel ? `${sizeLabel}${sizeMm ? ` (${sizeMm} mm)` : ""}` : null,
-            ].filter(Boolean).join(" • ") || `Application ID ${appId}`;
+            ].filter(Boolean).join(" • ") || (appId ? `Application ID ${appId}` : "Application not resolved");
 
             return {
-              appId: Number(appId),
+              appId,
               label,
               brand: product?.brand || "Brand",
               sizeLabel: sizeLabel || "-",
@@ -139,7 +146,10 @@ export default function SettingCalculatorPage() {
         setSelection({ left: entries[0], right: entries[1] });
       } catch (e) {
         setGlobalError(e?.message || "Error during the loading of selected products.");
-        setSelection({ left: fallback[0], right: fallback[1] });
+        setSelection({
+          left: { appId: null, label: "Product 1", brand: "Brand", sizeLabel: "-", subtitle: "Application not resolved" },
+          right: { appId: null, label: "Product 2", brand: "Brand", sizeLabel: "-", subtitle: "Application not resolved" },
+        });
       } finally {
         setLoadingSelection(false);
       }
