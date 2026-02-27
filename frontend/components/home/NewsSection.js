@@ -3,6 +3,7 @@ import {
   Box,
   Badge,
   Button,
+  Center,
   FormControl,
   FormLabel,
   Heading,
@@ -17,6 +18,7 @@ import {
   ModalOverlay,
   Text,
   Textarea,
+  Spinner,
   useDisclosure,
   useToast,
   VStack,
@@ -27,6 +29,7 @@ import {
   AlertDialogHeader,
   AlertDialogOverlay,
 } from "@chakra-ui/react";
+import { FiInfo } from "react-icons/fi";
 import { getToken } from "../../lib/auth";
 import { listNews, listNewsAdmin, createNews, updateNews, deleteNews } from "../../lib/api";
 
@@ -159,7 +162,6 @@ export default function NewsSection({ isAdmin }) {
 
   return (
     <>
-      <Heading size="md" color="gray.300" mb={4} mt={0}>News</Heading>
       <Box
         mb={8}
         p={{ base: 4, md: 5 }}
@@ -168,6 +170,10 @@ export default function NewsSection({ isAdmin }) {
         bg="rgba(16, 26, 54, 0.85)"
         borderRadius="xl"
       >
+      <HStack spacing={2} mb={4} mt={0} align="center">
+        <Box as={FiInfo} color="blue.200" boxSize={4} />
+        <Heading size="md" color="gray.300">News</Heading>
+      </HStack>
 
       {isAdmin ? (
         <Box
@@ -233,7 +239,9 @@ export default function NewsSection({ isAdmin }) {
       ) : null}
 
       {newsLoading ? (
-        <Text color="gray.400">Loading news…</Text>
+        <Center py={6}>
+          <Spinner size="md" color="blue.300" />
+        </Center>
       ) : newsItems.length === 0 ? (
         <Text color="gray.400">No news available.</Text>
       ) : (

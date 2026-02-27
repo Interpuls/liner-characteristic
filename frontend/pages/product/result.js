@@ -14,11 +14,32 @@ import FiltersSummaryCard from "../../components/result/FiltersSummaryCard";
 import ApplicationsHeader from "../../components/result/ApplicationsHeader";
 import PaginationBar from "../../components/result/PaginationBar";
 import { getToken } from "../../lib/auth";
-import { getMe, listProducts, saveProductPref, listProductApplications, getKpiValuesByPA } from "../../lib/api";
+import { getMe, listProducts, saveProductPref, listProductApplications, listProductApplicationsBatchByProducts, getKpiValuesBatch } from "../../lib/api";
 import { latestKpiByCode } from "../../lib/kpi";
 import { RiFlaskLine } from "react-icons/ri";
 import { TbChartRadar, TbArrowsRightLeft } from "react-icons/tb";
 import { formatTeatSize } from "../../lib/teatSizes";
+
+// In-memory cache to dedupe repeated /products/{id}/applications calls in this tab/session.
+const productAppsCache = new Map(); // productId -> applications[]
+const productAppsInFlight = new Map(); // productId -> Promise<applications[]>
+
+async function getProductApplicationsCached(token, productId) {
+  if (!productId) return [];
+  if (productAppsCache.has(productId)) return productAppsCache.get(productId);
+  if (productAppsInFlight.has(productId)) return productAppsInFlight.get(productId);
+  const p = listProductApplications(token, productId)
+    .then((apps) => {
+      const safe = Array.isArray(apps) ? apps : [];
+      productAppsCache.set(productId, safe);
+      return safe;
+    })
+    .finally(() => {
+      productAppsInFlight.delete(productId);
+    });
+  productAppsInFlight.set(productId, p);
+  return p;
+}
 
 export default function ProductsSearchPage() {
   const router = useRouter();
@@ -257,12 +278,20 @@ export default function ProductsSearchPage() {
     const byKey = {};
     const byProduct = new Map();
     const uniqProducts = [...new Set(list.map(i => i.product_id))];
-    await Promise.all(uniqProducts.map(async (pid) => {
-      try {
-        const apps = await listProductApplications(token, pid);
-        byProduct.set(pid, apps || []);
-      } catch {}
-    }));
+    try {
+      const grouped = await listProductApplicationsBatchByProducts(token, uniqProducts);
+      uniqProducts.forEach((pid) => {
+        byProduct.set(pid, Array.isArray(grouped?.[String(pid)]) ? grouped[String(pid)] : []);
+      });
+    } catch {
+      // Fallback to per-product calls if batch endpoint is temporarily unavailable.
+      await Promise.all(uniqProducts.map(async (pid) => {
+        try {
+          const apps = await getProductApplicationsCached(token, pid);
+          byProduct.set(pid, apps || []);
+        } catch {}
+      }));
+    }
     for (const it of list) {
       const apps = byProduct.get(it.product_id) || [];
       const found = apps.find(a => Number(a.size_mm) === Number(it.size_mm));
@@ -270,6 +299,37 @@ export default function ProductsSearchPage() {
     }
     return byKey;
   };
+
+  const mergeScoresFromBatch = (prevScores, batchMap, keyByAppId) => {
+    const next = { ...prevScores };
+    Object.entries(batchMap || {}).forEach(([appIdRaw, values]) => {
+      const key = keyByAppId[Number(appIdRaw)];
+      if (!key) return;
+      const latest = latestKpiByCode(Array.isArray(values) ? values : []);
+      const byCode = Object.fromEntries(
+        Object.entries(latest).map(([code, v]) => [code, { score: v.score, value_num: v.value_num }])
+      );
+      next[key] = { ...(next[key] || {}), ...byCode };
+    });
+    return next;
+  };
+
+  // Build key->application map once per filter result set.
+  useEffect(() => {
+    let alive = true;
+    const run = async () => {
+      if (!items.length) return;
+      const token = getToken();
+      if (!token) return;
+      try {
+        const map = await buildApplicationsMap(token, items);
+        if (!alive) return;
+        setAppIdByKey((prev) => ({ ...prev, ...map }));
+      } catch {}
+    };
+    run();
+    return () => { alive = false; };
+  }, [items]);
 
   async function ensureScoresFor(sortCode) {
     const token = getToken();
@@ -285,22 +345,46 @@ export default function ProductsSearchPage() {
 
       // fetch KPI values for keys missing this sortCode
       const missingKeys = items.filter(i => !(kpiScores[i.key]?.[sortCode])).map(i => i.key);
-      const newScores = { ...kpiScores };
-      await Promise.all(missingKeys.map(async (key) => {
-        const appId = appMap[key];
-        if (!appId) return;
-        try {
-          const values = await getKpiValuesByPA(token, appId);
-          const latest = latestKpiByCode(values);
-          const byCode = Object.fromEntries(Object.entries(latest).map(([code, v]) => [code, { score: v.score, value_num: v.value_num }]));
-          newScores[key] = { ...(newScores[key] || {}), ...byCode };
-        } catch {}
-      }));
-      setKpiScores(newScores);
+      const missingAppIds = missingKeys.map((key) => appMap[key]).filter(Boolean);
+      if (!missingAppIds.length) return;
+      const keyByAppId = Object.fromEntries(
+        missingKeys
+          .map((key) => [appMap[key], key])
+          .filter(([appId]) => !!appId)
+      );
+      const batch = await getKpiValuesBatch(token, missingAppIds);
+      setKpiScores((prev) => mergeScoresFromBatch(prev, batch, keyByAppId));
     } finally {
       setSortingBusy(false);
     }
   }
+
+  // Load KPI values for visible cards in one batch request.
+  useEffect(() => {
+    let alive = true;
+    const run = async () => {
+      if (!pagedItems.length) return;
+      const token = getToken();
+      if (!token) return;
+      const keys = pagedItems.map((it) => it.key);
+      const missingKeys = keys.filter((key) => !kpiScores[key]);
+      if (!missingKeys.length) return;
+      const appIds = missingKeys.map((key) => appIdByKey[key]).filter(Boolean);
+      if (!appIds.length) return;
+      const keyByAppId = Object.fromEntries(
+        missingKeys
+          .map((key) => [appIdByKey[key], key])
+          .filter(([appId]) => !!appId)
+      );
+      try {
+        const batch = await getKpiValuesBatch(token, appIds);
+        if (!alive) return;
+        setKpiScores((prev) => mergeScoresFromBatch(prev, batch, keyByAppId));
+      } catch {}
+    };
+    run();
+    return () => { alive = false; };
+  }, [pagedItems, appIdByKey, kpiScores]);
 
   const onSelectSortKpi = async (code) => {
     // Default to descending when a KPI is selected
@@ -523,6 +607,8 @@ export default function ProductsSearchPage() {
                       compound={a.compound}
                       isAdmin={me?.role === 'admin'}
                       sizeMm={a.size_mm}
+                      applicationId={appIdByKey[a.key]}
+                      kpis={kpiScores[a.key] || {}}
                     />
                   ))}
                 </SimpleGrid>
