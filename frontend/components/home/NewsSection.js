@@ -29,7 +29,7 @@ import {
   AlertDialogHeader,
   AlertDialogOverlay,
 } from "@chakra-ui/react";
-import { FiInfo } from "react-icons/fi";
+import { HiOutlineNewspaper } from "react-icons/hi";
 import { getToken } from "../../lib/auth";
 import { listNews, listNewsAdmin, createNews, updateNews, deleteNews } from "../../lib/api";
 
@@ -170,9 +170,16 @@ export default function NewsSection({ isAdmin }) {
         bg="rgba(16, 26, 54, 0.85)"
         borderRadius="xl"
       >
-      <HStack spacing={2} mb={4} mt={0} align="center">
-        <Box as={FiInfo} color="blue.200" boxSize={4} />
-        <Heading size="md" color="gray.300">News</Heading>
+      <HStack spacing={3} mb={4} mt={0} align="center">
+        <Box
+          as={HiOutlineNewspaper}
+          color="blue.200"
+          boxSize={{ base: 9, md: 10 }}
+          flexShrink={0}
+        />
+        <Box>
+          <Heading size="lg" color="gray.300">Latest News</Heading>
+        </Box>
       </HStack>
 
       {isAdmin ? (
