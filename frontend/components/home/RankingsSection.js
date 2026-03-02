@@ -1,8 +1,8 @@
 import { useEffect, useState } from "react";
 import NextLink from "next/link";
 import { useRouter } from "next/router";
-import { Box, Heading, HStack, SimpleGrid, Spinner, Text, VStack, Badge } from "@chakra-ui/react";
-import { FiAward } from "react-icons/fi";
+import { Box, Heading, HStack, Spinner, Text, VStack, Badge, Select, Center } from "@chakra-ui/react";
+import { FiAward, FiBarChart2 } from "react-icons/fi";
 import { getOverviewRankings } from "../../lib/api";
 
 function RankBadge({ rank }) {
@@ -35,10 +35,10 @@ function RankingRow({ item, teatSize, fromPath }) {
       py={2}
       borderWidth="1px"
       borderColor="whiteAlpha.200"
-      bg="whiteAlpha.50"
+      bg="rgba(17, 30, 66, 0.85)"
       borderRadius="md"
       transition="all 0.15s ease"
-      _hover={{ bg: "whiteAlpha.100", borderColor: "blue.200" }}
+      _hover={{ bg: "rgba(24, 42, 90, 0.95)", borderColor: "blue.200" }}
     >
       <HStack spacing={2} minW={0} w="full" align="center">
         <RankBadge rank={item.rank} />
@@ -55,12 +55,9 @@ function RankingRow({ item, teatSize, fromPath }) {
   );
 }
 
-function SectionRow({ title, kpis = [], fromPath }) {
+function RankingsCarousel({ teatSize, kpis = [], fromPath }) {
   return (
     <Box>
-      <Heading size="sm" color="gray.300" mb={2}>
-        Teat size: {title}
-      </Heading>
       <HStack spacing={4} overflowX="auto" py={2} px={1} align="stretch">
         {kpis.map((kpi) => (
           <Box
@@ -68,15 +65,15 @@ function SectionRow({ title, kpis = [], fromPath }) {
             minW={{ base: "250px", md: "280px" }}
             p={0}
             borderWidth="1px"
-            borderColor="whiteAlpha.300"
-            bgGradient="linear(165deg, rgba(255,255,255,0.14), rgba(255,255,255,0.06))"
+            borderColor="whiteAlpha.200"
+            bg="rgba(12, 22, 48, 0.9)"
             rounded="xl"
             overflow="hidden"
             transition="all 0.2s ease"
             _hover={{
               transform: "translateY(-2px)",
               borderColor: "blue.200",
-              bgGradient: "linear(165deg, rgba(255,255,255,0.18), rgba(255,255,255,0.09))",
+              bg: "rgba(17, 30, 66, 0.95)",
             }}
           >
             <HStack
@@ -86,10 +83,10 @@ function SectionRow({ title, kpis = [], fromPath }) {
               py={3}
               borderBottomWidth="1px"
               borderBottomColor="whiteAlpha.200"
-              bg="whiteAlpha.80"
+              bg="rgba(10, 20, 44, 0.85)"
             >
               <HStack spacing={2}>
-                <Box as={FiAward} color="whiteAlpha.900" />
+                <Box as={FiAward} color="blue.200" />
                 <Text fontWeight="bold" color="white" fontSize="sm">
                   {kpi.kpi_code}
                 </Text>
@@ -101,7 +98,7 @@ function SectionRow({ title, kpis = [], fromPath }) {
                 <RankingRow
                   key={`${kpi.kpi_code}-${item.rank}-${item.brand}-${item.model}`}
                   item={item}
-                  teatSize={title}
+                  teatSize={teatSize}
                   fromPath={fromPath}
                 />
               ))}
@@ -121,6 +118,7 @@ function SectionRow({ title, kpis = [], fromPath }) {
 export default function RankingsSection({ token }) {
   const router = useRouter();
   const [rankings, setRankings] = useState([]);
+  const [selectedTeatSize, setSelectedTeatSize] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
@@ -149,34 +147,87 @@ export default function RankingsSection({ token }) {
     };
   }, [token]);
 
+  const teatSizes = rankings.map((item) => item?.teat_size).filter(Boolean);
+  const activeTeatSize = selectedTeatSize && teatSizes.includes(selectedTeatSize)
+    ? selectedTeatSize
+    : teatSizes[0] || "";
+  const activeRanking = rankings.find((item) => item?.teat_size === activeTeatSize) || null;
+
+  useEffect(() => {
+    if (!teatSizes.length) {
+      setSelectedTeatSize("");
+      return;
+    }
+    if (!selectedTeatSize || !teatSizes.includes(selectedTeatSize)) {
+      setSelectedTeatSize(teatSizes[0]);
+    }
+  }, [selectedTeatSize, teatSizes]);
+
   return (
-    <>
-      <Heading size="md" color="gray.300" mb={4} mt={0}>
-        Performance Rankings
-      </Heading>
-      {loading && (
-        <HStack spacing={3} color="gray.300" py={4}>
-          <Spinner size="sm" />
-          <Text>Loading rankings...</Text>
+    <Box
+      mb={8}
+      p={{ base: 4, md: 5 }}
+      borderWidth="1px"
+      borderColor="whiteAlpha.200"
+      bg="rgba(16, 26, 54, 0.85)"
+      borderRadius="xl"
+    >
+      <HStack spacing={3} mb={4} mt={0} align="center">
+        <Box as={FiBarChart2} color="blue.200" boxSize={{ base: 9, md: 10 }} />
+        <Heading size="lg" color="gray.300">Performance Rankings</Heading>
+      </HStack>
+
+      {!loading && !error && teatSizes.length > 0 && (
+        <HStack spacing={3} mb={3} align="center">
+          <Text fontSize="sm" color="gray.300" fontWeight="semibold">
+            Teat Size
+          </Text>
+          <Select
+            size="sm"
+            value={activeTeatSize}
+            onChange={(e) => setSelectedTeatSize(e.target.value)}
+            maxW={{ base: "140px", md: "180px" }}
+            bg="rgba(10, 20, 44, 0.85)"
+            borderColor="whiteAlpha.300"
+            color="white"
+            _hover={{ borderColor: "blue.300" }}
+            _focus={{ borderColor: "blue.300", boxShadow: "0 0 0 1px rgba(99, 179, 237, 0.8)" }}
+            sx={{
+              option: {
+                color: "#12305f",
+                background: "#ffffff",
+              },
+            }}
+          >
+            {teatSizes.map((size) => (
+              <option key={size} value={size}>
+                {size}
+              </option>
+            ))}
+          </Select>
         </HStack>
+      )}
+
+      {loading && (
+        <Center py={6}>
+          <Spinner size="md" color="blue.300" />
+        </Center>
       )}
       {!loading && error && (
         <Text color="red.300" py={2}>
           {error}
         </Text>
       )}
-      {!loading && !error && (
-        <SimpleGrid columns={{ base: 1 }} gap={6}>
-          {rankings.map((item) => (
-            <SectionRow
-              key={`${item.teat_size}-${item.size_mm}`}
-              title={item.teat_size}
-              kpis={item.kpis || []}
-              fromPath={router.asPath || "/"}
-            />
-          ))}
-        </SimpleGrid>
+      {!loading && !error && activeRanking && (
+        <RankingsCarousel
+          teatSize={activeTeatSize}
+          kpis={activeRanking.kpis || []}
+          fromPath={router.asPath || "/"}
+        />
       )}
-    </>
+      {!loading && !error && !activeRanking && (
+        <Text color="gray.400">No rankings available.</Text>
+      )}
+    </Box>
   );
 }
