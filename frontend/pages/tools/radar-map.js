@@ -211,22 +211,25 @@ function Legend({ items, hidden, onToggle, isAdmin }) {
 }
 
 function ResponsiveRadar({ series, hidden }) {
-  const svgWidth = useBreakpointValue({ base: 300, sm: 340, md: 560 });
-  const svgHeight = useBreakpointValue({ base: 300, sm: 320, md: 420 });
+  const svgWidth = useBreakpointValue({ base: 360, sm: 420, md: 560 });
+  const svgHeight = useBreakpointValue({ base: 320, sm: 340, md: 420 });
   const colored = series.map((s, i) => ({ ...s, _colorIndex: i }));
   const visible = colored.filter(s => !(hidden?.has(s.appId)));
   return (
-    <Box w="100%" display="flex" justifyContent="center">
+    <Box w="100%" display="flex" justifyContent="center" overflowX={{ base: "auto", md: "visible" }}>
       <RadarChart width={svgWidth} height={svgHeight} series={visible} />
     </Box>
   );
 }
 
 function RadarChart({ width = 560, height = 420, series = [] }) {
-  const margin = 40;
+  const sidePadding = width < 420 ? 62 : 46;
+  const topBottomPadding = width < 420 ? 44 : 40;
+  const labelOffset = width < 420 ? 12 : 16;
+  const labelFontSize = width < 420 ? 9 : 10;
   const cx = width / 2;
   const cy = height / 2 + 10;
-  const radius = Math.min(width, height) / 2 - margin;
+  const radius = Math.min((width - sidePadding * 2) / 2, (height - topBottomPadding * 2) / 2);
   const axes = KPI_ORDER;
   const levels = 4; // grid levels for 0–4 scale
   const angleFor = (i) => (Math.PI * 2 * i / axes.length) - Math.PI / 2; // start at top
@@ -256,12 +259,12 @@ function RadarChart({ width = 560, height = 420, series = [] }) {
       {axes.map((code, i) => {
         const p = polarToCart(cx, cy, radius, angleFor(i));
         // label position slightly outside
-        const lp = polarToCart(cx, cy, radius + 16, angleFor(i));
+        const lp = polarToCart(cx, cy, radius + labelOffset, angleFor(i));
         const anchor = Math.abs(Math.cos(angleFor(i))) < 0.3 ? 'middle' : (Math.cos(angleFor(i)) > 0 ? 'start' : 'end');
         return (
           <g key={code}>
             <line x1={cx} y1={cy} x2={p.x} y2={p.y} stroke="#cbd5e1" strokeWidth="1" />
-            <text x={lp.x} y={lp.y} textAnchor={anchor} fontSize="10" fill="#475569">{code}</text>
+            <text x={lp.x} y={lp.y} textAnchor={anchor} fontSize={labelFontSize} fill="#475569">{code}</text>
           </g>
         );
       })}
