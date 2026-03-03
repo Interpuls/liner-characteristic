@@ -66,6 +66,80 @@ jobs:
             echo "pytest not installed - skipping tests"
           fi
 
+  db-migration-check:
+    name: Backend - DB migration check
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+    services:
+      postgres:
+        image: postgres:15-alpine
+        env:
+          POSTGRES_USER: liner
+          POSTGRES_PASSWORD: linerpass
+          POSTGRES_DB: linerdb_ci
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U liner -d linerdb_ci"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      DATABASE_URL: postgresql+psycopg2://liner:linerpass@127.0.0.1:5432/linerdb_ci
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: "pip"
+          cache-dependency-path: backend/requirements.txt
+
+      - name: Install deps
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Wait for PostgreSQL
+        run: |
+          for i in {1..30}; do
+            python - <<'PY'
+import os, sys
+import psycopg2
+dsn = os.environ["DATABASE_URL"].replace("postgresql+psycopg2://", "postgresql://", 1)
+try:
+    conn = psycopg2.connect(dsn)
+    conn.close()
+    print("PostgreSQL is ready")
+    sys.exit(0)
+except Exception as e:
+    print(f"waiting: {e}")
+    sys.exit(1)
+PY
+            [ $? -eq 0 ] && exit 0
+            sleep 2
+          done
+          echo "PostgreSQL did not become ready in time"
+          exit 1
+
+      - name: Check alembic heads (single head)
+        run: |
+          heads_count=$(python -m alembic heads | grep -c "(head)" || true)
+          echo "alembic heads count: $heads_count"
+          if [ "$heads_count" -ne 1 ]; then
+            echo "Expected exactly 1 alembic head, found $heads_count"
+            python -m alembic heads
+            exit 1
+          fi
+
+      - name: Apply migrations
+        run: |
+          python -m alembic upgrade heads
+          python -m alembic current
+
   frontend:
     name: Frontend - lint/test/build
     runs-on: ubuntu-latest
