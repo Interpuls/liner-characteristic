@@ -1,7 +1,8 @@
 import { http } from "./http";
 
 export const loginApi = async (email, password) => {
-  const base = process.env.NEXT_PUBLIC_API_URL || "";
+  const rawBase = process.env.NEXT_PUBLIC_API_URL || "";
+  const base = rawBase.replace(/\/+$/, "");
   const body = new URLSearchParams({ username: email, password });
 
   const res = await fetch(`${base}/auth/login`, {
@@ -44,7 +45,7 @@ export const listProducts = (token, params = {}) => {
   const usp = new URLSearchParams();
   Object.entries(params).forEach(([k, v]) => { if (v != null && v !== "") usp.set(k, String(v)); });
   const qs = usp.toString() ? `?${usp.toString()}` : "";
-  return http(`products${qs}`, { token });
+  return http(`products/${qs}`, { token });
 };
 
 export const listProductPrefs = (token) => http("products/preferences", { token });
@@ -72,6 +73,22 @@ export const deleteProduct = (token, id) =>
 export const listProductApplications = (token, productId) =>
   http(`products/${productId}/applications`, { token });
 
+export const listProductApplicationsBatchByProducts = (token, productIds = []) => {
+  const ids = Array.from(
+    new Set(
+      (Array.isArray(productIds) ? productIds : [])
+        .map((v) => Number(v))
+        .filter((v) => Number.isFinite(v) && v > 0)
+    )
+  );
+  if (!ids.length) return Promise.resolve({});
+  return http("products/applications/batch-by-products", {
+    method: "POST",
+    token,
+    body: { product_ids: ids },
+  });
+};
+
 export const createProductApplication = (token, productId, body) =>
   http(`products/${productId}/applications`, { method: "POST", token, body });
 
@@ -93,11 +110,42 @@ export const putKpiScales = (token, code, body) =>
 export const getKpiScales = (token, code) =>
   http(`kpis/${code}/scales`, { token });
 
+export const getOverviewRankings = (
+  token,
+  {
+    kpis = "CLOSURE,FITTING,CONGESTION_RISK,HYPERKERATOSIS_RISK,SPEED,RESPRAY,FLUYDODINAMIC,SLIPPAGE,RINGING_RISK",
+    teat_sizes = "XS,S,M,L",
+    limit = 3,
+  } = {}
+) =>
+  http(
+    `rankings/overview?kpis=${encodeURIComponent(kpis)}&teat_sizes=${encodeURIComponent(
+      teat_sizes
+    )}&limit=${encodeURIComponent(limit)}`,
+    { token }
+  );
+
 // --- KPI (valori calcolati) ---
 export async function getKpiValuesByPA(token, productApplicationId) {
   return http(`kpis/values?product_application_id=${productApplicationId}`, {
     method: "GET",
     token,
+  });
+}
+
+export async function getKpiValuesBatch(token, productApplicationIds = []) {
+  const ids = Array.from(
+    new Set(
+      (Array.isArray(productApplicationIds) ? productApplicationIds : [])
+        .map((v) => Number(v))
+        .filter((v) => Number.isFinite(v) && v > 0)
+    )
+  );
+  if (!ids.length) return {};
+  return http("kpis/values/batch", {
+    method: "POST",
+    token,
+    body: { product_application_ids: ids },
   });
 }
 
@@ -199,3 +247,7 @@ export const getLatestSmtHoodRun = (token, productApplicationId) =>
 
 export const upsertSmtHoodPoints = (token, runId, points) =>
   http(`smt-hood/runs/${runId}/points`, { method: "PUT", token, body: points });
+
+// ---------------------------- SETTING CALCULATOR ----------------------------
+export const compareSettingCalculator = (token, body) =>
+  http(`setting-calculator/compare`, { method: "POST", token, body });

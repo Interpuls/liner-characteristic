@@ -1,9 +1,13 @@
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Optional
 from sqlmodel import SQLModel, Field, Relationship
 import sqlalchemy as sa
 
 from .product import ProductApplication
+
+
+def utcnow():
+    return datetime.now(timezone.utc)
 
 
 class TppRun(SQLModel, table=True):
@@ -14,7 +18,7 @@ class TppRun(SQLModel, table=True):
     performed_at: Optional[datetime] = None
     real_tpp: Optional[float] = None
     notes: Optional[str] = None
-    created_at: datetime = Field(default_factory=datetime.utcnow, nullable=False)
+    created_at: datetime = Field(default_factory=utcnow, nullable=False)
 
     __table_args__ = (
         sa.Index("ix_tpp_runs_created_at", "created_at"),

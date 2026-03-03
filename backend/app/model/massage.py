@@ -1,9 +1,13 @@
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Optional
 from sqlmodel import SQLModel, Field, Relationship
 import sqlalchemy as sa
 
 from .product import ProductApplication
+
+
+def utcnow():
+    return datetime.now(timezone.utc)
 
 
 class MassageRun(SQLModel, table=True):
@@ -13,7 +17,7 @@ class MassageRun(SQLModel, table=True):
     product_application_id: int = Field(foreign_key="product_applications.id", index=True)
     performed_at: Optional[datetime] = None
     notes: Optional[str] = None
-    created_at: datetime = Field(default_factory=datetime.utcnow, nullable=False)
+    created_at: datetime = Field(default_factory=utcnow, nullable=False)
 
     __table_args__ = (
         sa.Index("ix_massage_runs_created_at", "created_at"),
@@ -31,7 +35,7 @@ class MassagePoint(SQLModel, table=True):
     pressure_kpa: int = Field(index=True)  # 45, 40, 35
     min_val: float
     max_val: float
-    created_at: datetime = Field(default_factory=datetime.utcnow, nullable=False)
+    created_at: datetime = Field(default_factory=utcnow, nullable=False)
 
 #vincoli
     __table_args__ = (

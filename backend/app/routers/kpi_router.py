@@ -6,7 +6,7 @@ from app.services.conversion_wrapper import convert_output
 from app.db import get_session
 from app.auth import require_role, get_current_user
 from app.model.kpi import KpiDef, KpiScale, KpiValue
-from app.schema.kpi import KpiDefIn, KpiDefOut, KpiScaleUpsertIn
+from app.schema.kpi import KpiDefIn, KpiDefOut, KpiScaleUpsertIn, KpiValuesBatchIn
 
 router = APIRouter()
 
@@ -51,6 +51,48 @@ def list_kpis_for_application(
         }
         for r in rows
     ]
+
+
+@router.post("/values/batch", response_model=dict[str, list[dict]])
+@convert_output
+def list_kpis_for_applications_batch(
+    payload: KpiValuesBatchIn,
+    session: Session = Depends(get_session),
+    user=Depends(get_current_user),
+):
+    raw_ids = payload.product_application_ids or []
+    deduped_ids = list(dict.fromkeys(int(x) for x in raw_ids if int(x) > 0))
+    if not deduped_ids:
+        return {}
+    if len(deduped_ids) > 200:
+        raise HTTPException(status_code=422, detail="Maximum 200 product_application_ids allowed")
+
+    rows = session.exec(
+        select(KpiValue)
+        .where(KpiValue.product_application_id.in_(deduped_ids))
+        .order_by(
+            KpiValue.product_application_id.asc(),
+            KpiValue.kpi_code.asc(),
+            KpiValue.computed_at.desc(),
+        )
+    ).all()
+
+    out: dict[str, list[dict]] = {str(i): [] for i in deduped_ids}
+    for r in rows:
+        out[str(r.product_application_id)].append(
+            {
+                "product_application_id": r.product_application_id,
+                "kpi_code": r.kpi_code,
+                "value_num": r.value_num,
+                "score": r.score,
+                "run_type": r.run_type,
+                "run_id": r.run_id,
+                "unit": r.unit,
+                "context": r.context_json,
+                "computed_at": r.computed_at,
+            }
+        )
+    return out
 
 #Crea o aggiorna una definizione KPI (upsert). Solo admin.
 @router.post("/", response_model=KpiDefOut, dependencies=[Depends(require_role("admin"))])

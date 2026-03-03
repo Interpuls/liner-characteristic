@@ -1,5 +1,6 @@
 from datetime import datetime
 from typing import Optional
+from pydantic import ConfigDict
 
 from .base import MetricNormalizedModel
 
@@ -31,5 +32,4 @@ class NewsRead(NewsBase):
     created_at: datetime
     published_at: Optional[datetime] = None
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)

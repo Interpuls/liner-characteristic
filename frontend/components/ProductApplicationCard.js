@@ -1,9 +1,6 @@
-import { useEffect, useMemo, useState } from "react";
+import { useMemo } from "react";
 import { useRouter } from "next/router";
-import { Box, HStack, Stack, Text, Tooltip, SimpleGrid, Stat, StatNumber, VStack, useToast, Divider, Heading, Tag, TagLabel } from "@chakra-ui/react";
-import { getToken } from "../lib/auth";
-import { listProductApplications, getKpiValuesByPA } from "../lib/api";
-import { latestKpiByCode } from "../lib/kpi";
+import { Box, HStack, Stack, Text, Tooltip, SimpleGrid, Stat, StatNumber, VStack, Divider, Heading, Tag, TagLabel } from "@chakra-ui/react";
 import { AppSizePill } from "./ui/AppSizePill";
 import { formatTeatSize } from "../lib/teatSizes";
 
@@ -61,43 +58,8 @@ function KpiChip({ code, value }) {
   );
 }
 
-export default function ProductApplicationCard({ productId, brand, model, sizeMm, compound, isAdmin }) {
-  const toast = useToast();
+export default function ProductApplicationCard({ productId, brand, model, sizeMm, compound, isAdmin, applicationId, kpis }) {
   const router = useRouter();
-  const [paId, setPaId] = useState(null);
-  const [kpis, setKpis] = useState(null); // map by code
-  const [loading, setLoading] = useState(true);
-  // Fixed KPI list for performance
-
-  useEffect(() => {
-    const t = getToken();
-    if (!t || !productId || !sizeMm) return;
-    let alive = true;
-    (async () => {
-      setLoading(true);
-      try {
-        // find application id for the given size
-        const apps = await listProductApplications(t, productId);
-        const found = (apps || []).find(a => Number(a.size_mm) === Number(sizeMm));
-        if (!found) {
-          if (alive) { setPaId(null); setKpis({}); }
-          setLoading(false);
-          return;
-        }
-        if (alive) setPaId(found.id);
-        // fetch KPI values for that application
-        const values = await getKpiValuesByPA(t, found.id);
-        const latest = latestKpiByCode(values);
-        if (alive) setKpis(latest);
-      } catch (e) {
-        // silent; optionally show toast
-        // toast({ status: "error", title: "Cannot load KPIs" });
-      } finally {
-        if (alive) setLoading(false);
-      }
-    })();
-    return () => { alive = false; };
-  }, [productId, sizeMm]);
 
   const sizeLabel = useMemo(() => formatTeatSize(sizeMm), [sizeMm]);
 
@@ -149,7 +111,7 @@ export default function ProductApplicationCard({ productId, brand, model, sizeMm
           ))}
         </SimpleGrid>
 
-        {!paId && !loading && (
+        {!applicationId && (
           <Text fontSize="xs" color="gray.500">No application found for this size.</Text>
         )}
       </Stack>

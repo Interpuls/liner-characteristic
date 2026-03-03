@@ -105,7 +105,7 @@ export default function FancySelect({
           <Box maxH={maxH} overflowY="auto" py={1} bg={isDarkMenu ? "rgba(4, 6, 20, 1)" : undefined}>
             {filtered.length === 0 ? (
               <Box px={3} py={2}>
-                <Text fontSize="sm" color={isDarkMenu ? "gray.400" : "gray.500"}>Nessun risultato</Text>
+                <Text fontSize="sm" color={isDarkMenu ? "gray.400" : "gray.500"}>No results</Text>
               </Box>
             ) : (
               filtered.map((o) => (

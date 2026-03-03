@@ -1,7 +1,11 @@
-from datetime import datetime, date
+from datetime import datetime, date, timezone
 from typing import Optional, List
 from sqlmodel import SQLModel, Field, Relationship
 import sqlalchemy as sa 
+
+
+def utcnow():
+    return datetime.now(timezone.utc)
 
 #modello tabella prodotti
 class Product(SQLModel, table=True):
@@ -54,7 +58,7 @@ class Product(SQLModel, table=True):
         sa_column=sa.Column(sa.JSON, nullable=True)
     )
 
-    created_at: datetime = Field(default_factory=datetime.utcnow, nullable=False)
+    created_at: datetime = Field(default_factory=utcnow, nullable=False)
 
     #Vincoli e indici
     __table_args__ = (
@@ -89,7 +93,7 @@ class ProductApplication(SQLModel, table=True):
     )
     size_mm: int = Field(index=True)
     label: str | None = None
-    created_at: datetime = Field(default_factory=datetime.utcnow, nullable=False)
+    created_at: datetime = Field(default_factory=utcnow, nullable=False)
 
     __table_args__ = (
         sa.Index("ix_product_applications_created_at", "created_at"),

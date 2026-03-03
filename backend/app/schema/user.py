@@ -1,5 +1,5 @@
 from typing import Optional
-from pydantic import EmailStr
+from pydantic import EmailStr, ConfigDict
 from enum import Enum
 from ..model.user import UserRole
 from .base import MetricNormalizedModel
@@ -23,11 +23,10 @@ class UserCreate(UserBase):
 #ex UserOut 
 class UserRead(UserBase):
     id: int
-    
+
     #questo permette di creare un modello Pydantic da un modello SQLAlchemy
     #e di convertire quindi direttamente i dati nei nostri schemi
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 #aggiorna lo unit_system dello user
 class UserUpdate(MetricNormalizedModel):

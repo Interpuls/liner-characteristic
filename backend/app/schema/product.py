@@ -1,6 +1,6 @@
 from datetime import datetime
 from typing import List, Optional, Dict, Any, ClassVar
-from pydantic import validator, Field
+from pydantic import field_validator, Field, ConfigDict
 from .base import MetricNormalizedModel
 
 
@@ -69,7 +69,8 @@ class ProductBase(MetricNormalizedModel):
         "squared",
     ]
 
-    @validator("reference_areas")
+    @field_validator("reference_areas")
+    @classmethod
     def _validate_reference_areas(cls, v):
         if v is None:
             return v
@@ -79,7 +80,8 @@ class ProductBase(MetricNormalizedModel):
             raise ValueError("If 'Global' is set, it must be the only value")
         return v
 
-    @validator("barrel_shape")
+    @field_validator("barrel_shape")
+    @classmethod
     def _validate_barrel_shape(cls, v):
         if v is None:
             return v
@@ -99,8 +101,7 @@ class ProductOut(ProductBase):
         id: int
         created_at: datetime
 
-        class Config:
-            from_attributes  = True
+        model_config = ConfigDict(from_attributes=True)
 
 # ------------------ PRODUCT PREFERENCE SCHEMAS ------------------
 #classi per salvataggio filtri 
@@ -115,8 +116,7 @@ class ProductPreferenceOut(MetricNormalizedModel):
     name: str
     filters: Dict[str, Any]
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 # ------------------ PRODUCT META SCHEMA ------------------
@@ -147,7 +147,8 @@ class ProductApplicationIn(MetricNormalizedModel):
     label: Optional[str] = None
 
 #validazione
-    @validator("size_mm")
+    @field_validator("size_mm")
+    @classmethod
     def validate_size(cls, v):
         if v not in ALLOWED_SIZES:
             raise ValueError(f"size_mm must be one of {ALLOWED_SIZES}")
@@ -162,5 +163,4 @@ class ProductApplicationOut(MetricNormalizedModel):
     label: str
     created_at: datetime
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)

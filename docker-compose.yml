@@ -22,7 +22,7 @@ services:
   backend:
     build:
       context: ./backend
-      dockerfile: dockerfile   # lascialo così solo se il tuo file si chiama davvero "dockerfile"
+      dockerfile: dockerfile   
     image: liner-backend:latest
     container_name: liner-backend
     environment:
@@ -54,9 +54,12 @@ services:
     container_name: liner-proxy
     restart: unless-stopped
     volumes:
-      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - ./Caddyfile.local:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
     ports:
       - "80:80"
+      - "443:443"
     depends_on:
       - frontend
       - backend
@@ -65,6 +68,8 @@ services:
 
 volumes:
   pgdata:
+  caddy_data:
+  caddy_config:
 
 networks:
   app-net:

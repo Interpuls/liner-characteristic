@@ -35,6 +35,7 @@ import {
 
 import ProductFilters from "../components/filters/ProductFilters";
 import FancySelect from "../components/ui/FancySelect";
+import PageLoader from "../components/ui/PageLoader";
 
 export default function Products() {
   const toast = useToast();
@@ -211,7 +212,7 @@ export default function Products() {
 
   // save is now handled in results page
 
-  if (!me) return <Box p="6">Caricamento…</Box>;
+  if (!me) return <PageLoader bg="#0b1f45" />;
 
   return (
     <>

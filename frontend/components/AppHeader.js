@@ -78,7 +78,7 @@ export default function AppHeader({
 
           {/* Colonna CENTRALE: icona + titolo + sottotitolo */}
           <GridItem minW={0}>
-            <HStack spacing={{ base: 2, md: 3 }} align="flex-start" minW={0}>
+            <HStack spacing={{ base: 2, md: 3 }} align="center" minW={0}>
               {LeftIcon ? (
                 <Box as={LeftIcon} boxSize={{ base: 5, md: 7 }} color="whiteAlpha.900" />
               ) : null}

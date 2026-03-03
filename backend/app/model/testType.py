@@ -1,7 +1,11 @@
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Optional
 from sqlmodel import Field, SQLModel, Index
 import sqlalchemy as sa
+
+
+def utcnow():
+    return datetime.now(timezone.utc)
 
 #test type model (definizione dei tipi di test)
 class TestType(SQLModel, table=True):
@@ -12,7 +16,7 @@ class TestType(SQLModel, table=True):
     code: str = Field(index=True)          
     name: str                              
     description: Optional[str] = None
-    created_at: datetime = Field(default_factory=datetime.utcnow, nullable=False)
+    created_at: datetime = Field(default_factory=utcnow, nullable=False)
 
 #vincoli
     __table_args__ = (
