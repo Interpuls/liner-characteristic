@@ -207,6 +207,20 @@ async def log_requests(request: Request, call_next):
                         )
                     )
                     session.commit()
+                logger.info(
+                    "api_audit method=%s path=%s status=%s user_id=%s ip=%s dur_ms=%.2f",
+                    request.method,
+                    request.url.path,
+                    status_code,
+                    user_id,
+                    client_ip,
+                    duration_ms,
+                )
+                print(
+                    f"api_audit method={request.method} path={request.url.path} "
+                    f"status={status_code} user_id={user_id} ip={client_ip} dur_ms={duration_ms:.2f}",
+                    flush=True,
+                )
             except Exception:
                 logger.warning("Failed to persist audit log", exc_info=True)
 
