@@ -173,8 +173,8 @@ export default function RankingsSection({ token }) {
       borderRadius="xl"
     >
       <HStack spacing={3} mb={4} mt={0} align="center">
-        <Box as={FiBarChart2} color="blue.200" boxSize={{ base: 9, md: 10 }} />
-        <Heading size="lg" color="gray.300">Performance Rankings</Heading>
+        <Box as={FiBarChart2} color="blue.200" boxSize={{ base: 7, md: 8 }} />
+        <Heading size="md" color="gray.300">Performance Rankings</Heading>
       </HStack>
 
       {!loading && !error && teatSizes.length > 0 && (

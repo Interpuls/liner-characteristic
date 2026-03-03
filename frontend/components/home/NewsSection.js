@@ -174,11 +174,11 @@ export default function NewsSection({ isAdmin }) {
         <Box
           as={HiOutlineNewspaper}
           color="blue.200"
-          boxSize={{ base: 9, md: 10 }}
+          boxSize={{ base: 7, md: 8 }}
           flexShrink={0}
         />
         <Box>
-          <Heading size="lg" color="gray.300">Latest News</Heading>
+          <Heading size="md" color="gray.300">Latest News</Heading>
         </Box>
       </HStack>
 
