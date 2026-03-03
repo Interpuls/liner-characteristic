@@ -58,7 +58,8 @@ def setup_logging() -> logging.Logger:
                 "uvicorn.access": {"handlers": ["default"], "level": log_level, "propagate": False},
                 "liner-backend": {"handlers": ["default"], "level": log_level, "propagate": False},
                 "liner-backend.db": {"handlers": ["default"], "level": log_level, "propagate": False},
-                "liner-backend.access": {"handlers": ["default"], "level": log_level, "propagate": False},
+                # Let access logger behave like liner-backend.auth: inherit and propagate to parent.
+                "liner-backend.access": {"level": "NOTSET", "propagate": True},
             },
         }
     )
