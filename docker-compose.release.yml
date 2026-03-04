@@ -1,0 +1,8 @@
+services:
+  backend:
+    image: ghcr.io/interpuls/liner-backend:${IMAGE_TAG}
+    build: null
+
+  frontend:
+    image: ghcr.io/interpuls/liner-frontend:${IMAGE_TAG}
+    build: null
