@@ -2,7 +2,8 @@ name: Build and push images (GHCR)
 
 on:
   push:
-    branches: [ "main" ]
+    branches: ["main"]
+    tags: ["v*.*.*"]
   workflow_dispatch:
 
 concurrency:
@@ -31,7 +32,8 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Build & push backend
+      - name: Build & push backend (main)
+        if: github.ref == 'refs/heads/main'
         uses: docker/build-push-action@v6
         with:
           context: ./backend
@@ -43,7 +45,8 @@ jobs:
             ghcr.io/interpuls/liner-backend:sha-${{ github.sha }}
             ghcr.io/interpuls/liner-backend:prod
 
-      - name: Build & push frontend
+      - name: Build & push frontend (main)
+        if: github.ref == 'refs/heads/main'
         uses: docker/build-push-action@v6
         with:
           context: ./frontend
@@ -54,5 +57,33 @@ jobs:
           tags: |
             ghcr.io/interpuls/liner-frontend:sha-${{ github.sha }}
             ghcr.io/interpuls/liner-frontend:prod
+          build-args: |
+            NEXT_PUBLIC_API_URL=${{ secrets.NEXT_PUBLIC_API_URL_PROD }}
+
+      - name: Build & push backend (release tag)
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: docker/build-push-action@v6
+        with:
+          context: ./backend
+          file: ./backend/Dockerfile
+          push: true
+          cache-from: type=gha,scope=backend
+          cache-to: type=gha,mode=max,scope=backend
+          tags: |
+            ghcr.io/interpuls/liner-backend:sha-${{ github.sha }}
+            ghcr.io/interpuls/liner-backend:${{ github.ref_name }}
+
+      - name: Build & push frontend (release tag)
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: docker/build-push-action@v6
+        with:
+          context: ./frontend
+          file: ./frontend/Dockerfile
+          push: true
+          cache-from: type=gha,scope=frontend
+          cache-to: type=gha,mode=max,scope=frontend
+          tags: |
+            ghcr.io/interpuls/liner-frontend:sha-${{ github.sha }}
+            ghcr.io/interpuls/liner-frontend:${{ github.ref_name }}
           build-args: |
             NEXT_PUBLIC_API_URL=${{ secrets.NEXT_PUBLIC_API_URL_PROD }}
