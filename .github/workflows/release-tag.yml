@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
     inputs:
       version:
-        description: "Release version without prefix (example: 1.2.3)"
+        description: "Release version without prefix (example: 1.2.3 or 1.2.3-rc.1)"
         required: true
         type: string
 
@@ -35,11 +35,16 @@ jobs:
       - name: Validate version format
         run: |
           VERSION="${{ github.event.inputs.version }}"
-          if ! [[ "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
-            echo "Version must match X.Y.Z (example: 1.2.3)"
+          if ! [[ "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+(-rc\.[0-9]+)?$ ]]; then
+            echo "Version must match X.Y.Z or X.Y.Z-rc.N (example: 1.2.3 or 1.2.3-rc.1)"
             exit 1
           fi
           echo "TAG=v$VERSION" >> "$GITHUB_ENV"
+          if [[ "$VERSION" == *"-rc."* ]]; then
+            echo "IS_PRERELEASE=true" >> "$GITHUB_ENV"
+          else
+            echo "IS_PRERELEASE=false" >> "$GITHUB_ENV"
+          fi
 
       - name: Check tag does not exist
         run: |
@@ -63,4 +68,5 @@ jobs:
         with:
           tag_name: ${{ env.TAG }}
           name: ${{ env.TAG }}
+          prerelease: ${{ env.IS_PRERELEASE }}
           generate_release_notes: true
