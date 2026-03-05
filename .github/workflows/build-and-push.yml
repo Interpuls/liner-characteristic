@@ -97,26 +97,44 @@ jobs:
       contents: read
       packages: read
     steps:
-      - name: Login to GHCR
-        uses: docker/login-action@v3
-        with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Login to GHCR (retry)
+        env:
+          GHCR_USER: ${{ github.actor }}
+          GHCR_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          for i in 1 2 3 4 5; do
+            echo "$GHCR_TOKEN" | docker login ghcr.io -u "$GHCR_USER" --password-stdin && exit 0
+            echo "GHCR login failed (attempt $i/5), retrying..."
+            sleep 5
+          done
+          echo "GHCR login failed after 5 attempts"
+          exit 1
 
       - name: Generate backend SBOM (CycloneDX JSON)
         run: |
-          docker run --rm \
-            ghcr.io/anchore/syft:latest \
-            ghcr.io/interpuls/liner-backend:${{ github.ref_name }} \
-            -o cyclonedx-json > sbom-backend-${{ github.ref_name }}.json
+          for i in 1 2 3; do
+            docker run --rm \
+              ghcr.io/anchore/syft:latest \
+              ghcr.io/interpuls/liner-backend:${{ github.ref_name }} \
+              -o cyclonedx-json > sbom-backend-${{ github.ref_name }}.json && exit 0
+            echo "Backend SBOM generation failed (attempt $i/3), retrying..."
+            sleep 5
+          done
+          echo "Backend SBOM generation failed after 3 attempts"
+          exit 1
 
       - name: Generate frontend SBOM (CycloneDX JSON)
         run: |
-          docker run --rm \
-            ghcr.io/anchore/syft:latest \
-            ghcr.io/interpuls/liner-frontend:${{ github.ref_name }} \
-            -o cyclonedx-json > sbom-frontend-${{ github.ref_name }}.json
+          for i in 1 2 3; do
+            docker run --rm \
+              ghcr.io/anchore/syft:latest \
+              ghcr.io/interpuls/liner-frontend:${{ github.ref_name }} \
+              -o cyclonedx-json > sbom-frontend-${{ github.ref_name }}.json && exit 0
+            echo "Frontend SBOM generation failed (attempt $i/3), retrying..."
+            sleep 5
+          done
+          echo "Frontend SBOM generation failed after 3 attempts"
+          exit 1
 
       - name: Upload SBOM artifacts
         uses: actions/upload-artifact@v4
