@@ -113,9 +113,11 @@ jobs:
       - name: Generate backend SBOM (CycloneDX JSON)
         run: |
           for i in 1 2 3; do
+            docker pull ghcr.io/interpuls/liner-backend:${{ github.ref_name }} && \
             docker run --rm \
+              -v /var/run/docker.sock:/var/run/docker.sock \
               ghcr.io/anchore/syft:latest \
-              ghcr.io/interpuls/liner-backend:${{ github.ref_name }} \
+              docker:ghcr.io/interpuls/liner-backend:${{ github.ref_name }} \
               -o cyclonedx-json > sbom-backend-${{ github.ref_name }}.json && exit 0
             echo "Backend SBOM generation failed (attempt $i/3), retrying..."
             sleep 5
@@ -126,9 +128,11 @@ jobs:
       - name: Generate frontend SBOM (CycloneDX JSON)
         run: |
           for i in 1 2 3; do
+            docker pull ghcr.io/interpuls/liner-frontend:${{ github.ref_name }} && \
             docker run --rm \
+              -v /var/run/docker.sock:/var/run/docker.sock \
               ghcr.io/anchore/syft:latest \
-              ghcr.io/interpuls/liner-frontend:${{ github.ref_name }} \
+              docker:ghcr.io/interpuls/liner-frontend:${{ github.ref_name }} \
               -o cyclonedx-json > sbom-frontend-${{ github.ref_name }}.json && exit 0
             echo "Frontend SBOM generation failed (attempt $i/3), retrying..."
             sleep 5
