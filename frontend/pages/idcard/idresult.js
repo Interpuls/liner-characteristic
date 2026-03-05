@@ -14,6 +14,7 @@ import AppFooter from "../../components/AppFooter";
 import { getToken } from "../../lib/auth";
 import { getMe, listProducts } from "../../lib/api";
 import PageLoader from "../../components/ui/PageLoader";
+import { safeInternalPath } from "../../lib/navigation";
 import DetailsTab from "../../components/idcard/DetailsTab";
 import KpisTab from "../../components/idcard/KpisTab";
 import TestsTab from "../../components/idcard/TestsTab";
@@ -30,7 +31,7 @@ export default function IdResultPage() {
   const isAdmin = me?.role === "admin";
 
   const { brand, model, teat_size, from } = router.query;
-  const backHref = typeof from === 'string' && from ? decodeURIComponent(from) : "/product/result";
+  const backHref = safeInternalPath(typeof from === "string" ? from : "", "/product/result");
 
   
 
