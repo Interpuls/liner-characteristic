@@ -5,6 +5,7 @@ import {
 } from "@chakra-ui/react";
 import { loginApi, getMe } from "../lib/api";
 import { setToken, getToken, clearToken } from "../lib/auth";
+import { safeInternalPath } from "../lib/navigation";
 
 export default function Login() {
   const [email, setEmail] = useState("");
@@ -19,7 +20,7 @@ export default function Login() {
       getMe(t)
         .then(() => {
           const next = new URLSearchParams(window.location.search).get("next");
-          window.location.replace(next || "/");
+          window.location.replace(safeInternalPath(next, "/"));
         })
         .catch(() => clearToken());
     }
@@ -32,7 +33,7 @@ export default function Login() {
       const { access_token } = await loginApi(email, password);
       setToken(access_token);
       const next = new URLSearchParams(window.location.search).get("next");
-      window.location.replace(next || "/");
+      window.location.replace(safeInternalPath(next, "/"));
     } catch (err) {
       toast({
         status: "error",

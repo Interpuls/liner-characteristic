@@ -23,11 +23,12 @@ import PercentageDifferenceChartCard from "../../components/setting-calculator/c
 import { FiPercent } from "react-icons/fi";
 import { getToken } from "../../lib/auth";
 import { getMe } from "../../lib/api";
+import { safeInternalPath } from "../../lib/navigation";
 
 export default function SettingCalculatorChartsPage() {
   const router = useRouter();
   const { requestId, from } = router.query;
-  const backHref = typeof from === "string" && from ? decodeURIComponent(from) : "/tools/setting-calculator";
+  const backHref = safeInternalPath(typeof from === "string" ? from : "", "/tools/setting-calculator");
   const [runData, setRunData] = useState(null);
   const [unitSystem, setUnitSystem] = useState("metric");
 
