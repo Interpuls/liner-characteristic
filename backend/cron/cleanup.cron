@@ -1,0 +1,2 @@
+# ogni giorno alle 03:10
+10 3 * * * python -m app.scripts.cleanup_logs

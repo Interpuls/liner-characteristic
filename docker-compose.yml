@@ -36,6 +36,22 @@ services:
     networks:
       - app-net
 
+  cron:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile.cron
+    image: liner-cron:latest
+    container_name: liner-cron
+    environment:
+      DATABASE_URL: postgresql+psycopg2://${POSTGRES_USER:-liner}:${POSTGRES_PASSWORD:-linerpass}@db:5432/${POSTGRES_DB:-linerdb}
+      LOG_RETENTION_DAYS: ${LOG_RETENTION_DAYS:-21}
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: unless-stopped
+    networks:
+      - app-net
+
   frontend:
     build:
       context: ./frontend
