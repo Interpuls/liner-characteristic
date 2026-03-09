@@ -197,23 +197,11 @@ async def login(
     email_attempted = username.strip().lower()
     ip = _request_ip(request)
     now = datetime.utcnow()
-
-    failed_recent = _count_recent_failed_attempts(session, email_attempted, ip, now)
-    if failed_recent >= MAX_FAILED_LOGIN_ATTEMPTS:
-        _register_login_event(
-            session,
-            request,
-            email_attempted=email_attempted,
-            user_id=None,
-            success=False,
-        )
-        raise HTTPException(
-            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
-            detail=f"Too many failed attempts. Retry in {LOGIN_BLOCK_MINUTES} minutes.",
-        )
-
     user = session.exec(select(User).where(User.email == email_attempted)).first()
-    if not user or not verify_password(password, user.hashed_password):
+    is_valid_credentials = bool(user and verify_password(password, user.hashed_password))
+
+    if not is_valid_credentials:
+        failed_recent = _count_recent_failed_attempts(session, email_attempted, ip, now)
         _register_login_event(
             session,
             request,
@@ -221,6 +209,11 @@ async def login(
             user_id=getattr(user, "id", None),
             success=False,
         )
+        if failed_recent + 1 >= MAX_FAILED_LOGIN_ATTEMPTS:
+            raise HTTPException(
+                status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+                detail=f"Too many failed attempts. Retry in {LOGIN_BLOCK_MINUTES} minutes.",
+            )
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid credentials",
