@@ -180,9 +180,10 @@ def applied_vacuum_abs(inputs: UserInputsV1, derived: DerivedV1) -> tuple[float,
     
     freq = float(inputs.frequencyBpm)
     b_real_ms = float(derived.bRealMs)
+    om_duration_sec = float(inputs.omDurationSec)
 
     pf = float(inputs.pfVacuumKpa) * freq * (b_real_ms / 60000.0)
-    om = float(inputs.omVacuumKpa) * freq * (b_real_ms / 60000.0)
+    om = float(inputs.omVacuumKpa) * freq * (b_real_ms / 60000.0) * om_duration_sec
     return pf, om
 
 
@@ -190,10 +191,11 @@ def applied_massage_abs(inputs: UserInputsV1, derived: DerivedV1, liner: LinerIn
 
     freq = float(inputs.frequencyBpm)
     real_off_ms = float(derived.realOffMs)
+    om_duration_sec = float(inputs.omDurationSec)
 
     pf_db = liner.intensityPfKpa
     om_db = liner.intensityOmKpa
 
     pf = pf_db * freq * (real_off_ms / 60000.0)
-    om = om_db * freq * (real_off_ms / 60000.0)
+    om = om_db * freq * (real_off_ms / 60000.0) * om_duration_sec
     return pf, om
