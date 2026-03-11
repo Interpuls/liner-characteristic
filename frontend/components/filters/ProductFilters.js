@@ -34,7 +34,11 @@ export default function ProductFilters({ meta, onSelectionsChange, onConfirm, va
   const refSummary = areas.length === 0 ? undefined : (areas.includes("Global") ? "Global" : `${areas.length} selected`);
   const bmSummary = (() => {
     const b = brandModelSel.brands?.length || 0;
-    const m = Object.values(brandModelSel.models || {}).reduce((acc, arr) => acc + (arr?.length || 0), 0);
+    const m = new Set(
+      Object.values(brandModelSel.models || {})
+        .flatMap((arr) => (Array.isArray(arr) ? arr : []))
+        .map(String)
+    ).size;
     const total = b + m;
     return total ? `${total} selected` : undefined;
   })();

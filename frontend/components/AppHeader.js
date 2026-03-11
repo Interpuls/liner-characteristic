@@ -41,6 +41,7 @@ export default function AppHeader({
   leftIcon: LeftIcon,
   logoSrc,
   backHref,
+  onBackClick,
   bg = "#12305f",
   color = "white",
   rightArea,
@@ -61,16 +62,28 @@ export default function AppHeader({
           {/* Colonna SINISTRA: back o logo */}
           <GridItem>
             {backHref ? (
-              <IconButton
-                as={NextLink}
-                href={backHref}
-                aria-label="Back"
-                icon={<ChevronLeftIcon boxSize={6} />}
-                size="sm"
-                variant="ghost"
-                color="white"
-                _hover={{ bg: "whiteAlpha.200" }}
-              />
+              onBackClick ? (
+                <IconButton
+                  aria-label="Back"
+                  icon={<ChevronLeftIcon boxSize={6} />}
+                  size="sm"
+                  variant="ghost"
+                  color="white"
+                  _hover={{ bg: "whiteAlpha.200" }}
+                  onClick={onBackClick}
+                />
+              ) : (
+                <IconButton
+                  as={NextLink}
+                  href={backHref}
+                  aria-label="Back"
+                  icon={<ChevronLeftIcon boxSize={6} />}
+                  size="sm"
+                  variant="ghost"
+                  color="white"
+                  _hover={{ bg: "whiteAlpha.200" }}
+                />
+              )
             ) : logoSrc ? (
               <Image src={logoSrc} alt={title} width={28} height={28} />
             ) : null}

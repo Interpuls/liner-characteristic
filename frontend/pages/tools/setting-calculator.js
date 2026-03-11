@@ -158,6 +158,20 @@ export default function SettingCalculatorPage() {
     run();
   }, [router.isReady, selectedIds, selectedKeys]);
 
+  useEffect(() => {
+    if (!router.isReady || typeof window === "undefined") return;
+    const raw = sessionStorage.getItem("settingCalculator:draftInputs");
+    if (!raw) return;
+    try {
+      const parsed = JSON.parse(raw);
+      if (parsed?.leftInputs) setLeftInputs((prev) => ({ ...prev, ...parsed.leftInputs }));
+      if (parsed?.rightInputs) setRightInputs((prev) => ({ ...prev, ...parsed.rightInputs }));
+      sessionStorage.removeItem("settingCalculator:draftInputs");
+    } catch {
+      sessionStorage.removeItem("settingCalculator:draftInputs");
+    }
+  }, [router.isReady]);
+
   const clearBackendFieldError = (side, field) => {
     setBackendErrors((prev) => {
       const next = {

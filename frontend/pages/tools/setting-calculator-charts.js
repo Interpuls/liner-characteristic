@@ -5,17 +5,12 @@ import {
   AlertDescription,
   AlertIcon,
   Box,
-  Button,
-  Card,
-  CardBody,
-  Heading,
-  HStack,
   SimpleGrid,
-  Text,
   VStack,
 } from "@chakra-ui/react";
 import AppHeader from "../../components/AppHeader";
 import AppFooter from "../../components/AppFooter";
+import FiltersSummaryCard from "../../components/setting-calculator/FiltersSummaryCard";
 import PulsationChartCard from "../../components/setting-calculator/charts/PulsationChartCard";
 import PulsatorPhasesChartCard from "../../components/setting-calculator/charts/PulsatorPhasesChartCard";
 import RealMilkingMassageChartCard from "../../components/setting-calculator/charts/RealMilkingMassageChartCard";
@@ -31,6 +26,32 @@ export default function SettingCalculatorChartsPage() {
   const backHref = safeInternalPath(typeof from === "string" ? from : "", "/tools/setting-calculator");
   const [runData, setRunData] = useState(null);
   const [unitSystem, setUnitSystem] = useState("metric");
+
+  const mapPayloadInputsToFormInputs = (payloadSideInputs = {}) => ({
+    milkingVacuumMaxKpa: payloadSideInputs.milkingVacuumMaxKpa ?? payloadSideInputs.milkingVacuumMaxInHg ?? "",
+    pfVacuumKpa: payloadSideInputs.pfVacuumKpa ?? payloadSideInputs.pfVacuumInHg ?? "",
+    omVacuumKpa: payloadSideInputs.omVacuumKpa ?? payloadSideInputs.omVacuumInHg ?? "",
+    omDurationSec: payloadSideInputs.omDurationSec ?? "",
+    frequencyBpm: payloadSideInputs.frequencyBpm ?? "",
+    ratioPct: payloadSideInputs.ratioPct ?? "",
+    phaseAMs: payloadSideInputs.phaseAMs ?? "",
+    phaseCMs: payloadSideInputs.phaseCMs ?? "",
+  });
+
+  const handleBackToInputs = () => {
+    try {
+      if (typeof window !== "undefined" && runData?.payload) {
+        sessionStorage.setItem(
+          "settingCalculator:draftInputs",
+          JSON.stringify({
+            leftInputs: mapPayloadInputsToFormInputs(runData.payload?.left?.inputs),
+            rightInputs: mapPayloadInputsToFormInputs(runData.payload?.right?.inputs),
+          })
+        );
+      }
+    } catch {}
+    router.push(backHref);
+  };
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -65,6 +86,7 @@ export default function SettingCalculatorChartsPage() {
         title="Setting Calculator Charts"
         subtitle="Comparison results"
         backHref={backHref}
+        onBackClick={handleBackToInputs}
       />
 
       <Box
@@ -75,6 +97,7 @@ export default function SettingCalculatorChartsPage() {
         mx="auto"
         px={{ base: 4, md: 8 }}
         pt={{ base: 4, md: 6 }}
+        pb={{ base: 6, md: 10 }}
       >
         <VStack align="stretch" spacing={4}>
           {!runData ? (
@@ -86,22 +109,16 @@ export default function SettingCalculatorChartsPage() {
             </Alert>
           ) : (
             <>
-              <Card>
-                <CardBody>
-                  <VStack align="stretch" spacing={2}>
-                    <Heading size="sm">Comparison executed</Heading>
-                    <Text fontSize="sm" color="gray.700">
-                      {runData.leftProduct?.label} vs {runData.rightProduct?.label}
-                    </Text>
-                    <Text fontSize="sm" color="gray.600">
-                      Request ID: {runData.payload?.requestId}
-                    </Text>
-                    <Text fontSize="sm" color="gray.600">
-                      Engine: {runData.response?.engineVersion}
-                    </Text>
-                  </VStack>
-                </CardBody>
-              </Card>
+              <FiltersSummaryCard
+                leftInputs={runData.response?.left?.inputsUsed}
+                rightInputs={runData.response?.right?.inputsUsed}
+                leftTitle={runData.leftProduct?.label || "Left"}
+                rightTitle={runData.rightProduct?.label || "Right"}
+                leftTeatSize={runData.leftProduct?.sizeLabel || ""}
+                rightTeatSize={runData.rightProduct?.sizeLabel || ""}
+                onBack={handleBackToInputs}
+                unitSystem={unitSystem}
+              />
               <PulsationChartCard runData={runData} unitSystem={unitSystem} />
               <PulsatorPhasesChartCard runData={runData} />
               <RealMilkingMassageChartCard runData={runData} />
@@ -123,12 +140,6 @@ export default function SettingCalculatorChartsPage() {
               </SimpleGrid>
             </>
           )}
-
-          <HStack justify="flex-end">
-            <Button variant="outline" onClick={() => router.push(backHref)}>
-              Back to Inputs
-            </Button>
-          </HStack>
         </VStack>
       </Box>
 
