@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Card, CardHeader, CardBody, Heading, Stack, HStack, Tag, TagLabel, Button, Text, IconButton, Spacer } from "@chakra-ui/react";
-import { ChevronDownIcon } from "@chakra-ui/icons";
+import { ChevronDownIcon, SettingsIcon } from "@chakra-ui/icons";
 import { formatTeatSize } from "../../lib/teatSizes";
 
 function toList(val) {
@@ -27,6 +27,7 @@ export default function FiltersSummaryCard({ brand, model, teat_size, areas = []
         }}
       >
         <HStack align="center">
+          <SettingsIcon color="blue.500" boxSize={4} />
           <Heading size="sm" color="#12305f">Active Filters</Heading>
           <Spacer />
           <IconButton
