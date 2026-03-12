@@ -25,6 +25,10 @@ ALLOWED_EMAIL_DOMAIN = "milkrite-interpuls.com"  #eventualmente da spostare in u
 MAX_FAILED_LOGIN_ATTEMPTS = int(os.getenv("MAX_FAILED_LOGIN_ATTEMPTS", "5"))
 FAILED_LOGIN_WINDOW_MINUTES = int(os.getenv("FAILED_LOGIN_WINDOW_MINUTES", "15"))
 LOGIN_BLOCK_MINUTES = int(os.getenv("LOGIN_BLOCK_MINUTES", "15"))
+SUCCESS_LOCATION_WINDOW_MINUTES = int(os.getenv("SUCCESS_LOCATION_WINDOW_MINUTES", "30"))
+MAX_DISTINCT_SUCCESS_LOCATIONS = int(os.getenv("MAX_DISTINCT_SUCCESS_LOCATIONS", "3"))
+LOCATION_KEY_USE_CITY = os.getenv("LOCATION_KEY_USE_CITY", "0").strip().lower() in ("1", "true", "yes")
+ENABLE_LOCATION_GUARD = os.getenv("ENABLE_LOCATION_GUARD", "0").strip().lower() in ("1", "true", "yes")
 
 
 # ---------------- AUTH ENDPOINTS ----------------
@@ -139,6 +143,14 @@ def _best_effort_geo_from_headers(request: Request) -> tuple[Optional[str], Opti
     return country, region, city, lat, lon
 
 
+def _location_key(country: Optional[str], region: Optional[str], city: Optional[str]) -> Optional[str]:
+    if not country or not region:
+        return None
+    if LOCATION_KEY_USE_CITY and city:
+        return f"{country.strip().upper()}|{region.strip().upper()}|{city.strip().upper()}"
+    return f"{country.strip().upper()}|{region.strip().upper()}"
+
+
 def _count_recent_failed_attempts(session: Session, email_attempted: str, ip: str, now: datetime) -> int:
     window_start = now - timedelta(minutes=FAILED_LOGIN_WINDOW_MINUTES)
     stmt = (
@@ -164,6 +176,17 @@ def _register_login_event(
         user_agent = request.headers.get("user-agent", "")
         request_id = request.headers.get("x-request-id") or str(uuid4())
         country, region, city, lat, lon = _best_effort_geo_from_headers(request)
+        logger.info(
+            "LOGIN_EVENT about_to_persist email=%s success=%s user_id=%s ip=%s request_id=%s country=%s region=%s city=%s",
+            email_attempted,
+            success,
+            user_id,
+            ip,
+            request_id,
+            country,
+            region,
+            city,
+        )
         session.add(
             LoginEvent(
                 user_id=user_id,
@@ -181,6 +204,13 @@ def _register_login_event(
             )
         )
         session.commit()
+        logger.info(
+            "LOGIN_EVENT persisted_ok email=%s success=%s user_id=%s request_id=%s",
+            email_attempted,
+            success,
+            user_id,
+            request_id,
+        )
     except Exception:
         session.rollback()
         logger.warning("Failed to persist login event", exc_info=True)
@@ -218,6 +248,39 @@ async def login(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid credentials",
         )
+
+    country, region, city, _lat, _lon = _best_effort_geo_from_headers(request)
+    current_location_key = _location_key(country, region, city)
+    if ENABLE_LOCATION_GUARD and user and current_location_key:
+        window_start = now - timedelta(minutes=SUCCESS_LOCATION_WINDOW_MINUTES)
+        rows = session.exec(
+            select(LoginEvent.country, LoginEvent.region, LoginEvent.city)
+            .where(LoginEvent.user_id == user.id)
+            .where(LoginEvent.success.is_(True))
+            .where(LoginEvent.created_at >= window_start)
+        ).all()
+        distinct_locations = {
+            key
+            for (c, r, ci) in rows
+            for key in [_location_key(c, r, ci)]
+            if key is not None
+        }
+        distinct_locations.add(current_location_key)
+        if len(distinct_locations) > MAX_DISTINCT_SUCCESS_LOCATIONS:
+            _register_login_event(
+                session,
+                request,
+                email_attempted=email_attempted,
+                user_id=user.id,
+                success=False,
+            )
+            raise HTTPException(
+                status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+                detail=(
+                    "Suspicious login pattern detected. "
+                    f"Too many different locations in {SUCCESS_LOCATION_WINDOW_MINUTES} minutes."
+                ),
+            )
 
     _register_login_event(
         session,
