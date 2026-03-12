@@ -1,6 +1,10 @@
 from typing import Optional
 
 import json
+import logging
+import os
+from datetime import datetime, timedelta
+from uuid import uuid4
 
 from fastapi import APIRouter, Depends, HTTPException, status, Request
 from sqlmodel import Session, select
@@ -9,13 +13,18 @@ from app.services.conversion_wrapper import convert_output
 from app.db import get_session
 from app.auth import hash_password, verify_password, create_access_token, get_current_user
 from app.model.user import User, UserRole, UnitSystem
+from app.model.login_event import LoginEvent
 from app.schema.user import UserCreate, UserRead
 from app.schema.auth import Token
 
 router = APIRouter()
+logger = logging.getLogger("liner-backend.auth")
 
 
 ALLOWED_EMAIL_DOMAIN = "milkrite-interpuls.com"  #eventualmente da spostare in un .env ??
+MAX_FAILED_LOGIN_ATTEMPTS = int(os.getenv("MAX_FAILED_LOGIN_ATTEMPTS", "5"))
+FAILED_LOGIN_WINDOW_MINUTES = int(os.getenv("FAILED_LOGIN_WINDOW_MINUTES", "15"))
+LOGIN_BLOCK_MINUTES = int(os.getenv("LOGIN_BLOCK_MINUTES", "15"))
 
 
 # ---------------- AUTH ENDPOINTS ----------------
@@ -105,6 +114,78 @@ async def _extract_credentials(request: Request) -> tuple[str, str]:
     return username, password
 
 
+def _request_ip(request: Request) -> str:
+    xfwd = request.headers.get("x-forwarded-for")
+    if xfwd:
+        return xfwd.split(",")[0].strip()
+    return request.client.host if request.client else "-"
+
+
+def _best_effort_geo_from_headers(request: Request) -> tuple[Optional[str], Optional[str], Optional[str], Optional[float], Optional[float]]:
+    # Works with common edge proxies/CDNs (Vercel/Cloudflare/etc.) when available.
+    country = request.headers.get("x-vercel-ip-country") or request.headers.get("cf-ipcountry")
+    region = request.headers.get("x-vercel-ip-country-region")
+    city = request.headers.get("x-vercel-ip-city")
+    lat_raw = request.headers.get("x-vercel-ip-latitude")
+    lon_raw = request.headers.get("x-vercel-ip-longitude")
+    try:
+        lat = float(lat_raw) if lat_raw else None
+    except ValueError:
+        lat = None
+    try:
+        lon = float(lon_raw) if lon_raw else None
+    except ValueError:
+        lon = None
+    return country, region, city, lat, lon
+
+
+def _count_recent_failed_attempts(session: Session, email_attempted: str, ip: str, now: datetime) -> int:
+    window_start = now - timedelta(minutes=FAILED_LOGIN_WINDOW_MINUTES)
+    stmt = (
+        select(LoginEvent)
+        .where(LoginEvent.success.is_(False))
+        .where(LoginEvent.created_at >= window_start)
+        .where(LoginEvent.email_attempted == email_attempted)
+        .where(LoginEvent.ip == ip)
+    )
+    return len(session.exec(stmt).all())
+
+
+def _register_login_event(
+    session: Session,
+    request: Request,
+    *,
+    email_attempted: str,
+    user_id: Optional[int],
+    success: bool,
+) -> None:
+    try:
+        ip = _request_ip(request)
+        user_agent = request.headers.get("user-agent", "")
+        request_id = request.headers.get("x-request-id") or str(uuid4())
+        country, region, city, lat, lon = _best_effort_geo_from_headers(request)
+        session.add(
+            LoginEvent(
+                user_id=user_id,
+                email_attempted=email_attempted,
+                success=success,
+                ip=ip,
+                user_agent=user_agent,
+                country=country,
+                region=region,
+                city=city,
+                lat=lat,
+                lon=lon,
+                request_id=request_id,
+                created_at=datetime.utcnow(),
+            )
+        )
+        session.commit()
+    except Exception:
+        session.rollback()
+        logger.warning("Failed to persist login event", exc_info=True)
+
+
 #Effettua il login e genera un token JWT
 @router.post("/login", response_model=Token)
 async def login(
@@ -113,12 +194,38 @@ async def login(
     session: Session = Depends(get_session),
 ):
     username, password = creds
-    user = session.exec(select(User).where(User.email == username)).first()
-    if not user or not verify_password(password, user.hashed_password):
+    email_attempted = username.strip().lower()
+    ip = _request_ip(request)
+    now = datetime.utcnow()
+    user = session.exec(select(User).where(User.email == email_attempted)).first()
+    is_valid_credentials = bool(user and verify_password(password, user.hashed_password))
+
+    if not is_valid_credentials:
+        failed_recent = _count_recent_failed_attempts(session, email_attempted, ip, now)
+        _register_login_event(
+            session,
+            request,
+            email_attempted=email_attempted,
+            user_id=getattr(user, "id", None),
+            success=False,
+        )
+        if failed_recent + 1 >= MAX_FAILED_LOGIN_ATTEMPTS:
+            raise HTTPException(
+                status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+                detail=f"Too many failed attempts. Retry in {LOGIN_BLOCK_MINUTES} minutes.",
+            )
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid credentials",
         )
+
+    _register_login_event(
+        session,
+        request,
+        email_attempted=email_attempted,
+        user_id=user.id,
+        success=True,
+    )
 
     role_value = getattr(user.role, "value", user.role)
     unit_pref = getattr(user, "unit_system", UnitSystem.metric)
