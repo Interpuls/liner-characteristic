@@ -1,6 +1,6 @@
 from collections import Counter
 from math import atan2, cos, radians, sin, sqrt
-from typing import Any, Optional
+from typing import Optional
 
 import json
 import logging
