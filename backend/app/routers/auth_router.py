@@ -1,4 +1,6 @@
-from typing import Optional
+from collections import Counter
+from math import atan2, cos, radians, sin, sqrt
+from typing import Any, Optional
 
 import json
 import logging
@@ -11,9 +13,10 @@ from sqlmodel import Session, select
 from app.services.conversion_wrapper import convert_output
 
 from app.db import get_session
-from app.auth import hash_password, verify_password, create_access_token, get_current_user
+from app.auth import hash_password, verify_password, create_access_token, get_current_user, require_role
 from app.model.user import User, UserRole, UnitSystem
 from app.model.login_event import LoginEvent
+from app.model.security_event import SecurityEvent
 from app.schema.user import UserCreate, UserRead
 from app.schema.auth import Token
 
@@ -22,13 +25,18 @@ logger = logging.getLogger("liner-backend.auth")
 
 
 ALLOWED_EMAIL_DOMAIN = "milkrite-interpuls.com"  #eventualmente da spostare in un .env ??
-MAX_FAILED_LOGIN_ATTEMPTS = int(os.getenv("MAX_FAILED_LOGIN_ATTEMPTS", "5"))
-FAILED_LOGIN_WINDOW_MINUTES = int(os.getenv("FAILED_LOGIN_WINDOW_MINUTES", "15"))
-LOGIN_BLOCK_MINUTES = int(os.getenv("LOGIN_BLOCK_MINUTES", "15"))
+MAX_FAILED_LOGIN_ATTEMPTS_PER_EMAIL = int(os.getenv("MAX_FAILED_LOGIN_ATTEMPTS_PER_EMAIL", "10"))
+MAX_FAILED_LOGIN_ATTEMPTS_PER_IP = int(os.getenv("MAX_FAILED_LOGIN_ATTEMPTS_PER_IP", "20"))
+FAILED_LOGIN_WINDOW_MINUTES = int(os.getenv("FAILED_LOGIN_WINDOW_MINUTES", "10"))
+LOGIN_BLOCK_MINUTES = int(os.getenv("LOGIN_BLOCK_MINUTES", str(FAILED_LOGIN_WINDOW_MINUTES)))
 SUCCESS_LOCATION_WINDOW_MINUTES = int(os.getenv("SUCCESS_LOCATION_WINDOW_MINUTES", "30"))
 MAX_DISTINCT_SUCCESS_LOCATIONS = int(os.getenv("MAX_DISTINCT_SUCCESS_LOCATIONS", "3"))
 LOCATION_KEY_USE_CITY = os.getenv("LOCATION_KEY_USE_CITY", "0").strip().lower() in ("1", "true", "yes")
 ENABLE_LOCATION_GUARD = os.getenv("ENABLE_LOCATION_GUARD", "0").strip().lower() in ("1", "true", "yes")
+ENABLE_IMPOSSIBLE_TRAVEL_GUARD = os.getenv("ENABLE_IMPOSSIBLE_TRAVEL_GUARD", "0").strip().lower() in ("1", "true", "yes")
+IMPOSSIBLE_TRAVEL_WINDOW_MINUTES = int(os.getenv("IMPOSSIBLE_TRAVEL_WINDOW_MINUTES", "30"))
+IMPOSSIBLE_TRAVEL_DISTANCE_KM = float(os.getenv("IMPOSSIBLE_TRAVEL_DISTANCE_KM", "800"))
+SECURITY_DASHBOARD_WINDOW_HOURS = int(os.getenv("SECURITY_DASHBOARD_WINDOW_HOURS", "24"))
 
 
 # ---------------- AUTH ENDPOINTS ----------------
@@ -151,16 +159,35 @@ def _location_key(country: Optional[str], region: Optional[str], city: Optional[
     return f"{country.strip().upper()}|{region.strip().upper()}"
 
 
-def _count_recent_failed_attempts(session: Session, email_attempted: str, ip: str, now: datetime) -> int:
+def _count_recent_failed_attempts_for_email(session: Session, email_attempted: str, now: datetime) -> int:
     window_start = now - timedelta(minutes=FAILED_LOGIN_WINDOW_MINUTES)
     stmt = (
         select(LoginEvent)
         .where(LoginEvent.success.is_(False))
         .where(LoginEvent.created_at >= window_start)
         .where(LoginEvent.email_attempted == email_attempted)
+    )
+    return len(session.exec(stmt).all())
+
+
+def _count_recent_failed_attempts_for_ip(session: Session, ip: str, now: datetime) -> int:
+    window_start = now - timedelta(minutes=FAILED_LOGIN_WINDOW_MINUTES)
+    stmt = (
+        select(LoginEvent)
+        .where(LoginEvent.success.is_(False))
+        .where(LoginEvent.created_at >= window_start)
         .where(LoginEvent.ip == ip)
     )
     return len(session.exec(stmt).all())
+
+
+def _haversine_km(lat1: float, lon1: float, lat2: float, lon2: float) -> float:
+    radius_km = 6371.0
+    d_lat = radians(lat2 - lat1)
+    d_lon = radians(lon2 - lon1)
+    a = sin(d_lat / 2) ** 2 + cos(radians(lat1)) * cos(radians(lat2)) * sin(d_lon / 2) ** 2
+    c = 2 * atan2(sqrt(a), sqrt(1 - a))
+    return radius_km * c
 
 
 def _register_login_event(
@@ -216,6 +243,37 @@ def _register_login_event(
         logger.warning("Failed to persist login event", exc_info=True)
 
 
+def _register_security_event(
+    session: Session,
+    request: Request,
+    *,
+    rule_code: str,
+    severity: str,
+    user_id: Optional[int],
+    email_attempted: Optional[str],
+    details_json: Optional[dict],
+) -> None:
+    try:
+        ip = _request_ip(request)
+        request_id = request.headers.get("x-request-id") or str(uuid4())
+        session.add(
+            SecurityEvent(
+                user_id=user_id,
+                email_attempted=email_attempted,
+                ip=ip,
+                rule_code=rule_code,
+                severity=severity,
+                details_json=details_json,
+                request_id=request_id,
+                created_at=datetime.utcnow(),
+            )
+        )
+        session.commit()
+    except Exception:
+        session.rollback()
+        logger.warning("Failed to persist security event", exc_info=True)
+
+
 #Effettua il login e genera un token JWT
 @router.post("/login", response_model=Token)
 async def login(
@@ -231,7 +289,8 @@ async def login(
     is_valid_credentials = bool(user and verify_password(password, user.hashed_password))
 
     if not is_valid_credentials:
-        failed_recent = _count_recent_failed_attempts(session, email_attempted, ip, now)
+        failed_recent_email = _count_recent_failed_attempts_for_email(session, email_attempted, now)
+        failed_recent_ip = _count_recent_failed_attempts_for_ip(session, ip, now)
         _register_login_event(
             session,
             request,
@@ -239,10 +298,41 @@ async def login(
             user_id=getattr(user, "id", None),
             success=False,
         )
-        if failed_recent + 1 >= MAX_FAILED_LOGIN_ATTEMPTS:
+        if failed_recent_email + 1 >= MAX_FAILED_LOGIN_ATTEMPTS_PER_EMAIL:
+            _register_security_event(
+                session,
+                request,
+                rule_code="RATE_LIMIT_EMAIL",
+                severity="high",
+                user_id=getattr(user, "id", None),
+                email_attempted=email_attempted,
+                details_json={
+                    "window_minutes": FAILED_LOGIN_WINDOW_MINUTES,
+                    "failed_attempts": failed_recent_email + 1,
+                    "threshold": MAX_FAILED_LOGIN_ATTEMPTS_PER_EMAIL,
+                },
+            )
             raise HTTPException(
                 status_code=status.HTTP_429_TOO_MANY_REQUESTS,
-                detail=f"Too many failed attempts. Retry in {LOGIN_BLOCK_MINUTES} minutes.",
+                detail=f"Too many failed attempts for this user. Retry in {LOGIN_BLOCK_MINUTES} minutes.",
+            )
+        if failed_recent_ip + 1 >= MAX_FAILED_LOGIN_ATTEMPTS_PER_IP:
+            _register_security_event(
+                session,
+                request,
+                rule_code="RATE_LIMIT_IP",
+                severity="high",
+                user_id=getattr(user, "id", None),
+                email_attempted=email_attempted,
+                details_json={
+                    "window_minutes": FAILED_LOGIN_WINDOW_MINUTES,
+                    "failed_attempts": failed_recent_ip + 1,
+                    "threshold": MAX_FAILED_LOGIN_ATTEMPTS_PER_IP,
+                },
+            )
+            raise HTTPException(
+                status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+                detail=f"Too many failed attempts from this IP. Retry in {LOGIN_BLOCK_MINUTES} minutes.",
             )
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
@@ -267,6 +357,20 @@ async def login(
         }
         distinct_locations.add(current_location_key)
         if len(distinct_locations) > MAX_DISTINCT_SUCCESS_LOCATIONS:
+            _register_security_event(
+                session,
+                request,
+                rule_code="LOCATION_ANOMALY",
+                severity="medium",
+                user_id=user.id,
+                email_attempted=email_attempted,
+                details_json={
+                    "window_minutes": SUCCESS_LOCATION_WINDOW_MINUTES,
+                    "distinct_locations": len(distinct_locations),
+                    "threshold": MAX_DISTINCT_SUCCESS_LOCATIONS,
+                    "location_key": current_location_key,
+                },
+            )
             _register_login_event(
                 session,
                 request,
@@ -281,6 +385,51 @@ async def login(
                     f"Too many different locations in {SUCCESS_LOCATION_WINDOW_MINUTES} minutes."
                 ),
             )
+
+    if ENABLE_IMPOSSIBLE_TRAVEL_GUARD and user and _lat is not None and _lon is not None:
+        previous_success = session.exec(
+            select(LoginEvent)
+            .where(LoginEvent.user_id == user.id)
+            .where(LoginEvent.success.is_(True))
+            .where(LoginEvent.lat.is_not(None))
+            .where(LoginEvent.lon.is_not(None))
+            .order_by(LoginEvent.created_at.desc())
+        ).first()
+        if previous_success is not None:
+            elapsed_minutes = (now - previous_success.created_at).total_seconds() / 60.0
+            if elapsed_minutes <= IMPOSSIBLE_TRAVEL_WINDOW_MINUTES:
+                distance_km = _haversine_km(
+                    float(previous_success.lat),
+                    float(previous_success.lon),
+                    float(_lat),
+                    float(_lon),
+                )
+                if distance_km >= IMPOSSIBLE_TRAVEL_DISTANCE_KM:
+                    _register_security_event(
+                        session,
+                        request,
+                        rule_code="IMPOSSIBLE_TRAVEL",
+                        severity="high",
+                        user_id=user.id,
+                        email_attempted=email_attempted,
+                        details_json={
+                            "distance_km": distance_km,
+                            "elapsed_minutes": elapsed_minutes,
+                            "distance_threshold_km": IMPOSSIBLE_TRAVEL_DISTANCE_KM,
+                            "window_minutes": IMPOSSIBLE_TRAVEL_WINDOW_MINUTES,
+                        },
+                    )
+                    _register_login_event(
+                        session,
+                        request,
+                        email_attempted=email_attempted,
+                        user_id=user.id,
+                        success=False,
+                    )
+                    raise HTTPException(
+                        status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+                        detail="Suspicious impossible travel detected. Login temporarily blocked.",
+                    )
 
     _register_login_event(
         session,
@@ -298,6 +447,61 @@ async def login(
 
     
 #Restituisce le informazioni dell’utente autenticato.
+@router.get("/security/events")
+def security_events(
+    limit: int = 100,
+    session: Session = Depends(get_session),
+    _: User = Depends(require_role("admin")),
+):
+    safe_limit = max(1, min(limit, 500))
+    rows = session.exec(
+        select(SecurityEvent).order_by(SecurityEvent.created_at.desc()).limit(safe_limit)
+    ).all()
+    return rows
+
+
+@router.get("/security/summary")
+def security_summary(
+    hours: Optional[int] = None,
+    session: Session = Depends(get_session),
+    _: User = Depends(require_role("admin")),
+):
+    window_hours = hours or SECURITY_DASHBOARD_WINDOW_HOURS
+    window_start = datetime.utcnow() - timedelta(hours=max(1, min(window_hours, 24 * 30)))
+
+    login_rows = session.exec(
+        select(LoginEvent).where(LoginEvent.created_at >= window_start)
+    ).all()
+    sec_rows = session.exec(
+        select(SecurityEvent).where(SecurityEvent.created_at >= window_start)
+    ).all()
+
+    total_logins = len(login_rows)
+    success_count = sum(1 for r in login_rows if r.success)
+    failed_count = total_logins - success_count
+    blocked_count = sum(
+        1
+        for r in sec_rows
+        if (r.rule_code or "").startswith(("RATE_LIMIT", "LOCATION_", "IMPOSSIBLE"))
+    )
+
+    by_country = Counter((r.country or "UNKNOWN") for r in login_rows if r.success)
+    by_rule = Counter((r.rule_code or "UNKNOWN") for r in sec_rows)
+
+    return {
+        "window_hours": window_hours,
+        "totals": {
+            "login_events": total_logins,
+            "success": success_count,
+            "failed": failed_count,
+            "security_events": len(sec_rows),
+            "blocked_events": blocked_count,
+        },
+        "top_success_countries": by_country.most_common(10),
+        "security_events_by_rule": by_rule.most_common(20),
+    }
+
+
 @router.get("/me", response_model=UserRead)
 @convert_output
 def me(user: User = Depends(get_current_user)):
