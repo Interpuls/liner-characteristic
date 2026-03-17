@@ -56,6 +56,10 @@ export default function PulsationChartCard({ runData, unitSystem = "metric" }) {
   const pressureUnitLabel = unitSystem === "imperial" ? "inHg" : "kPa";
   const leftLabel = runData?.leftProduct?.label || "Left";
   const rightLabel = runData?.rightProduct?.label || "Right";
+  const leftTeat = runData?.leftProduct?.sizeLabel || "-";
+  const rightTeat = runData?.rightProduct?.sizeLabel || "-";
+  const leftLegendLabel = `${leftLabel} (${leftTeat})`;
+  const rightLegendLabel = `${rightLabel} (${rightTeat})`;
 
   const chartData = useMemo(() => {
     const leftLine = toLineData(leftCurve?.points, unitSystem);
@@ -69,7 +73,7 @@ export default function PulsationChartCard({ runData, unitSystem = "metric" }) {
     return {
       datasets: [
         {
-          label: leftLabel,
+          label: leftLegendLabel,
           data: leftLine,
           parsing: false,
           borderColor: "rgba(43, 108, 176, 1)", // blue.700
@@ -79,7 +83,7 @@ export default function PulsationChartCard({ runData, unitSystem = "metric" }) {
           tension: 0,
         },
         {
-          label: rightLabel,
+          label: rightLegendLabel,
           data: rightLine,
           parsing: false,
           borderColor: "rgba(79, 209, 197, 1)", // teal.300
@@ -89,7 +93,7 @@ export default function PulsationChartCard({ runData, unitSystem = "metric" }) {
           tension: 0,
         },
         {
-          label: `${leftLabel} threshold`,
+          label: `${leftLegendLabel} threshold`,
           data: leftThr,
           parsing: false,
           borderColor: "rgba(66, 153, 225, 0.9)", // blue.400
@@ -100,7 +104,7 @@ export default function PulsationChartCard({ runData, unitSystem = "metric" }) {
           tension: 0,
         },
         {
-          label: `${rightLabel} threshold`,
+          label: `${rightLegendLabel} threshold`,
           data: rightThr,
           parsing: false,
           borderColor: "rgba(56, 178, 172, 0.9)", // teal.400
@@ -112,7 +116,7 @@ export default function PulsationChartCard({ runData, unitSystem = "metric" }) {
         },
       ],
     };
-  }, [leftCurve, rightCurve, leftThreshold, rightThreshold, leftLabel, rightLabel, unitSystem]);
+  }, [leftCurve, rightCurve, leftThreshold, rightThreshold, leftLegendLabel, rightLegendLabel, unitSystem]);
 
   const chartOptions = useMemo(
     () => ({

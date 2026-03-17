@@ -107,6 +107,10 @@ export default function RealMilkingMassageChartCard({ runData }) {
 
   const leftLabel = runData?.leftProduct?.label || "Left";
   const rightLabel = runData?.rightProduct?.label || "Right";
+  const leftTeat = runData?.leftProduct?.sizeLabel || "-";
+  const rightTeat = runData?.rightProduct?.sizeLabel || "-";
+  const leftAxisLabel = `${leftLabel} (${leftTeat})`;
+  const rightAxisLabel = `${rightLabel} (${rightTeat})`;
 
   const chartData = useMemo(() => {
     const leftBars = Array.isArray(leftBarsRaw) ? leftBarsRaw : [];
@@ -121,7 +125,7 @@ export default function RealMilkingMassageChartCard({ runData }) {
     if (!hasData) return null;
 
     return {
-      labels: [leftLabel, rightLabel],
+      labels: [leftAxisLabel, rightAxisLabel],
       datasets: [
         {
           label: BAR_KEYS.MILKING,
@@ -145,7 +149,7 @@ export default function RealMilkingMassageChartCard({ runData }) {
         },
       ],
     };
-  }, [leftBarsRaw, rightBarsRaw, leftLabel, rightLabel, isMobile]);
+  }, [leftBarsRaw, rightBarsRaw, leftAxisLabel, rightAxisLabel, isMobile]);
 
   const chartOptions = useMemo(
     () => ({

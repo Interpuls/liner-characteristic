@@ -28,9 +28,9 @@ class Product(SQLModel, table=True):
         sa_column=sa.Column(sa.Date(), nullable=True)
     )
 
-    spider_wash_cup: Optional[float] = None
-    wash_cup: Optional[float] = None
-    shell_type: Optional[float] = None
+    spider_wash_cup: Optional[str] = None
+    wash_cup: Optional[str] = None
+    shell_type: Optional[str] = None
 
 # specifiche tecniche
     liner_length: Optional[float] = None

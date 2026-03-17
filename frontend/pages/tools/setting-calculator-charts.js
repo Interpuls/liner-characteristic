@@ -1,21 +1,25 @@
 import { useRouter } from "next/router";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   Alert,
   AlertDescription,
   AlertIcon,
   Box,
+  IconButton,
   SimpleGrid,
+  Text,
   VStack,
 } from "@chakra-ui/react";
 import AppHeader from "../../components/AppHeader";
 import AppFooter from "../../components/AppFooter";
 import FiltersSummaryCard from "../../components/setting-calculator/FiltersSummaryCard";
+import ExportChartsPdfButton from "../../components/setting-calculator/ExportChartsPdfButton";
 import PulsationChartCard from "../../components/setting-calculator/charts/PulsationChartCard";
 import PulsatorPhasesChartCard from "../../components/setting-calculator/charts/PulsatorPhasesChartCard";
 import RealMilkingMassageChartCard from "../../components/setting-calculator/charts/RealMilkingMassageChartCard";
 import PercentageDifferenceChartCard from "../../components/setting-calculator/charts/PercentageDifferenceChartCard";
 import { FiPercent } from "react-icons/fi";
+import { MdPictureAsPdf } from "react-icons/md";
 import { getToken } from "../../lib/auth";
 import { getMe } from "../../lib/api";
 import { safeInternalPath } from "../../lib/navigation";
@@ -26,6 +30,13 @@ export default function SettingCalculatorChartsPage() {
   const backHref = safeInternalPath(typeof from === "string" ? from : "", "/tools/setting-calculator");
   const [runData, setRunData] = useState(null);
   const [unitSystem, setUnitSystem] = useState("metric");
+  const [openExportModal, setOpenExportModal] = useState(null);
+
+  const pulsationRef = useRef(null);
+  const phasesRef = useRef(null);
+  const realMilkingRef = useRef(null);
+  const appliedVacuumRef = useRef(null);
+  const massageIntensityRef = useRef(null);
 
   const mapPayloadInputsToFormInputs = (payloadSideInputs = {}) => ({
     milkingVacuumMaxKpa: payloadSideInputs.milkingVacuumMaxKpa ?? payloadSideInputs.milkingVacuumMaxInHg ?? "",
@@ -83,10 +94,28 @@ export default function SettingCalculatorChartsPage() {
   return (
     <Box minH="100vh" display="flex" flexDirection="column">
       <AppHeader
-        title="Setting Calculator Charts"
+        title="Setting Calculator"
         subtitle="Comparison results"
         backHref={backHref}
         onBackClick={handleBackToInputs}
+        showInfo={false}
+        rightArea={
+          <VStack spacing={0} align="center">
+            <IconButton
+              aria-label="Export PDF"
+              icon={<MdPictureAsPdf size="1.25rem" />}
+              size="sm"
+              variant="ghost"
+              color="white"
+              _hover={{ bg: "whiteAlpha.200" }}
+              onClick={() => openExportModal?.()}
+              isDisabled={!runData || !openExportModal}
+            />
+            <Text fontSize={{ base: "xs", md: "sm" }} lineHeight="1" color="whiteAlpha.800">
+              Export
+            </Text>
+          </VStack>
+        }
       />
 
       <Box
@@ -119,24 +148,47 @@ export default function SettingCalculatorChartsPage() {
                 onBack={handleBackToInputs}
                 unitSystem={unitSystem}
               />
-              <PulsationChartCard runData={runData} unitSystem={unitSystem} />
-              <PulsatorPhasesChartCard runData={runData} />
-              <RealMilkingMassageChartCard runData={runData} />
+              <ExportChartsPdfButton
+                runData={runData}
+                unitSystem={unitSystem}
+                showTrigger={false}
+                onRegisterOpen={setOpenExportModal}
+                chartRefs={{
+                  pulsationRef,
+                  phasesRef,
+                  realMilkingRef,
+                  appliedVacuumRef,
+                  massageIntensityRef,
+                }}
+              />
+              <Box ref={pulsationRef}>
+                <PulsationChartCard runData={runData} unitSystem={unitSystem} />
+              </Box>
+              <Box ref={phasesRef}>
+                <PulsatorPhasesChartCard runData={runData} />
+              </Box>
+              <Box ref={realMilkingRef}>
+                <RealMilkingMassageChartCard runData={runData} />
+              </Box>
               <SimpleGrid columns={{ base: 1, lg: 2 }} spacing={4}>
-                <PercentageDifferenceChartCard
-                  runData={runData}
-                  dataKey="appliedVacuum"
-                  title="Applied Vacuum Difference"
-                  subtitle="Percentage difference between PF and OM applied vacuum."
-                  icon={FiPercent}
-                />
-                <PercentageDifferenceChartCard
-                  runData={runData}
-                  dataKey="massageIntensity"
-                  title="Massage Intensity Difference"
-                  subtitle="Percentage difference between PF and OM massage intensity."
-                  icon={FiPercent}
-                />
+                <Box ref={appliedVacuumRef}>
+                  <PercentageDifferenceChartCard
+                    runData={runData}
+                    dataKey="appliedVacuum"
+                    title="Applied Vacuum Difference"
+                    subtitle="Percentage difference between PF and OM applied vacuum."
+                    icon={FiPercent}
+                  />
+                </Box>
+                <Box ref={massageIntensityRef}>
+                  <PercentageDifferenceChartCard
+                    runData={runData}
+                    dataKey="massageIntensity"
+                    title="Massage Intensity Difference"
+                    subtitle="Percentage difference between PF and OM massage intensity."
+                    icon={FiPercent}
+                  />
+                </Box>
               </SimpleGrid>
             </>
           )}

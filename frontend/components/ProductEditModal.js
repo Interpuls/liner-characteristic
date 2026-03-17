@@ -7,6 +7,23 @@ import {
 } from "@chakra-ui/react";
 import ProductFields from "./ProductFields";
 
+function toDateInputValue(value) {
+  if (!value) return "";
+  const raw = String(value).trim();
+  if (/^\d{4}-\d{2}-\d{2}$/.test(raw)) return raw;
+  const d = new Date(raw);
+  if (Number.isNaN(d.getTime())) return "";
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${y}-${m}-${day}`;
+}
+
+function toTextInputValue(value) {
+  if (value == null) return "";
+  return String(value);
+}
+
 /**
  * props:
  * - isOpen, onClose
@@ -30,22 +47,22 @@ export default function ProductEditModal({ isOpen, onClose, meta, product, onSav
         brand: product.brand || "",
         model: product.model || "",
         compound: product.compound || "STD",
-        shell_type: product.shell_type ?? null,
-        wash_cup: product.wash_cup ?? null,
-        spider_wash_cup: product.spider_wash_cup ?? null,
-        manufactured_at: product.manufactured_at || "",
+        shell_type: toTextInputValue(product.shell_type),
+        wash_cup: toTextInputValue(product.wash_cup),
+        spider_wash_cup: toTextInputValue(product.spider_wash_cup),
+        manufactured_at: toDateInputValue(product.manufactured_at),
         only_admin: !!product.only_admin,
         notes: product.notes || "",
         robot_liner: !!product.robot_liner,
         barrel_shape: product.barrel_shape || "",
         reference_areas: product.reference_areas ?? null,
 
+        liner_length: product.liner_length ?? null,
         mp_depth_mm: product.mp_depth_mm ?? null,
         orifice_diameter: product.orifice_diameter ?? null,
         barrel_diameter: product.barrel_diameter ?? null,
         shell_orifice: product.shell_orifice ?? null,
         shell_length: product.shell_length ?? null,
-        shell_length: product.shell_length ?? null, 
         shell_external_diameter: product.shell_external_diameter ?? null,
         hoodcup_diameter: product.hoodcup_diameter ?? null,
         return_to_lockring: product.return_to_lockring ?? null,
@@ -74,7 +91,10 @@ export default function ProductEditModal({ isOpen, onClose, meta, product, onSav
         ...form,
         manufactured_at: form.manufactured_at || null,
         notes: form.notes?.trim() || null,
-        compound: (form.compound || "STD").toUpperCase(),
+        shell_type: form.shell_type?.trim() || null,
+        wash_cup: form.wash_cup?.trim() || null,
+        spider_wash_cup: form.spider_wash_cup?.trim() || null,
+        compound: (form.compound || "STD").trim(),
       };
       await onSave(product.id, patch);
       onClose();
