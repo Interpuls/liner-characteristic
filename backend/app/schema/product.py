@@ -20,9 +20,9 @@ class ProductBase(MetricNormalizedModel):
     manufactured_at: Optional[datetime] = None
 
 #spechifiche tecniche
-    spider_wash_cup: Optional[float] = None
-    wash_cup: Optional[float] = None
-    shell_type: Optional[float] = None
+    spider_wash_cup: Optional[str] = None
+    wash_cup: Optional[str] = None
+    shell_type: Optional[str] = None
 
     liner_length: Optional[float] = None
     shell_orifice: Optional[float] = None

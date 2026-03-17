@@ -94,6 +94,8 @@ export default function ProductFields({ values, meta, onChange, onNumberChange, 
         <FormControl isRequired mb={2}>
           <FormLabel fontSize="sm" color="gray.500">Compound</FormLabel>
           <Input
+            type="text"
+            inputMode="text"
             value={v.compound || ""}
             onChange={(e)=>onChange("compound", e.target.value)}
             placeholder="STD / ..."
@@ -177,9 +179,10 @@ export default function ProductFields({ values, meta, onChange, onNumberChange, 
             <FormControl>
               <FormLabel fontSize="sm" color="gray.500">Shell type</FormLabel>
               <Input
-                type="number"
+                type="text"
+                inputMode="text"
                 value={v.shell_type ?? ""}
-                onChange={(e)=>onNumberChange("shell_type", e.target.value)}
+                onChange={(e)=>onChange("shell_type", e.target.value)}
                 placeholder="Type shell type"
               />
             </FormControl>
@@ -187,9 +190,10 @@ export default function ProductFields({ values, meta, onChange, onNumberChange, 
             <FormControl>
               <FormLabel fontSize="sm" color="gray.500">Wash cup</FormLabel>
               <Input
-                type="number"
+                type="text"
+                inputMode="text"
                 value={v.wash_cup ?? ""}
-                onChange={(e)=>onNumberChange("wash_cup", e.target.value)}
+                onChange={(e)=>onChange("wash_cup", e.target.value)}
                 placeholder="Type wash cup"
               />
             </FormControl>
@@ -197,9 +201,10 @@ export default function ProductFields({ values, meta, onChange, onNumberChange, 
             <FormControl>
               <FormLabel fontSize="sm" color="gray.500">Spider Wash Cup</FormLabel>
               <Input
-                type="number"
+                type="text"
+                inputMode="text"
                 value={v.spider_wash_cup ?? ""}
-                onChange={(e)=>onNumberChange("spider_wash_cup", e.target.value)}
+                onChange={(e)=>onChange("spider_wash_cup", e.target.value)}
                 placeholder="Type spider wash cup"
               />
             </FormControl>

@@ -125,6 +125,10 @@ export default function PulsatorPhasesChartCard({ runData }) {
 
   const leftLabel = runData?.leftProduct?.label || "Left";
   const rightLabel = runData?.rightProduct?.label || "Right";
+  const leftTeat = runData?.leftProduct?.sizeLabel || "-";
+  const rightTeat = runData?.rightProduct?.sizeLabel || "-";
+  const leftAxisLabel = `${leftLabel} (${leftTeat})`;
+  const rightAxisLabel = `${rightLabel} (${rightTeat})`;
 
   const chartData = useMemo(() => {
     if (!data) return null;
@@ -137,7 +141,7 @@ export default function PulsatorPhasesChartCard({ runData }) {
     });
 
     return {
-      labels: [leftLabel, rightLabel],
+      labels: [leftAxisLabel, rightAxisLabel],
       datasets: PHASE_ORDER.map((phase, phaseIdx) => ({
         label: phase,
         data: byPhase[phase],
@@ -149,7 +153,7 @@ export default function PulsatorPhasesChartCard({ runData }) {
         barThickness: 26,
       })),
     };
-  }, [data, leftLabel, rightLabel, isMobile]);
+  }, [data, leftAxisLabel, rightAxisLabel, isMobile]);
 
   const chartOptions = useMemo(
     () => ({
