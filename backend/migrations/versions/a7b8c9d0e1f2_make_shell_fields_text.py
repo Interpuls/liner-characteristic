@@ -1,7 +1,7 @@
 """make shell/wash fields textual
 
 Revision ID: a7b8c9d0e1f2
-Revises: f9d8e7c6b5a4
+Revises: 7a1c2d3e4f5a
 Create Date: 2026-03-12 00:00:00.000000
 """
 
@@ -13,7 +13,7 @@ import sqlalchemy as sa
 
 # revision identifiers, used by Alembic.
 revision: str = "a7b8c9d0e1f2"
-down_revision: Union[str, Sequence[str], None] = "f9d8e7c6b5a4"
+down_revision: Union[str, Sequence[str], None] = "7a1c2d3e4f5a"
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 
