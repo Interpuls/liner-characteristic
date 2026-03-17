@@ -100,8 +100,9 @@ const milkingValueLabelsPlugin = {
   },
 };
 
-export default function RealMilkingMassageChartCard({ runData }) {
-  const isMobile = useBreakpointValue({ base: true, md: false }) ?? false;
+export default function RealMilkingMassageChartCard({ runData, exportMode = false }) {
+  const viewportIsMobile = useBreakpointValue({ base: true, md: false }) ?? false;
+  const isMobile = exportMode ? false : viewportIsMobile;
   const leftBarsRaw = runData?.response?.left?.charts?.realMilkingMassage?.bars;
   const rightBarsRaw = runData?.response?.right?.charts?.realMilkingMassage?.bars;
 
@@ -183,6 +184,7 @@ export default function RealMilkingMassageChartCard({ runData }) {
           },
         },
         tooltip: {
+          enabled: !exportMode,
           backgroundColor: "#0f172a",
           titleColor: "#f8fafc",
           bodyColor: "#e2e8f0",
@@ -246,7 +248,7 @@ export default function RealMilkingMassageChartCard({ runData }) {
             },
       },
     }),
-    [isMobile]
+    [isMobile, exportMode]
   );
 
   if (!chartData) {
@@ -290,7 +292,7 @@ export default function RealMilkingMassageChartCard({ runData }) {
             <Text fontSize="xs" color="gray.500" mb={4}>
               Real ON/OFF duration in ms during the cycle.
             </Text>
-            <Box h={{ base: "320px", md: "240px" }}>
+            <Box h={isMobile ? "320px" : "240px"}>
               <Bar
                 data={chartData}
                 options={chartOptions}
