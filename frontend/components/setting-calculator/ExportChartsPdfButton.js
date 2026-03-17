@@ -66,6 +66,7 @@ export default function ExportChartsPdfButton({
   unitSystem = "metric",
   showTrigger = true,
   onRegisterOpen,
+  onCaptureModeChange,
 }) {
   const [exportTitle, setExportTitle] = useState("");
   const [exportNotes, setExportNotes] = useState("");
@@ -126,10 +127,21 @@ export default function ExportChartsPdfButton({
     return charts.every(Boolean) ? charts : null;
   };
 
+  const waitForChartsStable = async () => {
+    await new Promise((resolve) => {
+      requestAnimationFrame(() => requestAnimationFrame(resolve));
+    });
+    await new Promise((resolve) => setTimeout(resolve, 80));
+  };
+
   const handleExportPdf = async () => {
     if (!runData) return;
     setIsExporting(true);
     try {
+      if (onCaptureModeChange) {
+        onCaptureModeChange(true);
+        await waitForChartsStable();
+      }
       const charts = collectCharts();
       if (!charts) {
         toast({
@@ -462,6 +474,7 @@ export default function ExportChartsPdfButton({
         description: err?.message || "Unable to generate PDF.",
       });
     } finally {
+      if (onCaptureModeChange) onCaptureModeChange(false);
       setIsExporting(false);
     }
   };

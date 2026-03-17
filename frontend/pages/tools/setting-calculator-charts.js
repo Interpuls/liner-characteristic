@@ -27,10 +27,11 @@ import { safeInternalPath } from "../../lib/navigation";
 export default function SettingCalculatorChartsPage() {
   const router = useRouter();
   const { requestId, from } = router.query;
-  const backHref = safeInternalPath(typeof from === "string" ? from : "", "/tools/setting-calculator");
+  const baseBackHref = safeInternalPath(typeof from === "string" ? from : "", "/tools/setting-calculator");
   const [runData, setRunData] = useState(null);
   const [unitSystem, setUnitSystem] = useState("metric");
   const [openExportModal, setOpenExportModal] = useState(null);
+  const [isPdfCaptureMode, setIsPdfCaptureMode] = useState(false);
 
   const pulsationRef = useRef(null);
   const phasesRef = useRef(null);
@@ -49,6 +50,18 @@ export default function SettingCalculatorChartsPage() {
     phaseCMs: payloadSideInputs.phaseCMs ?? "",
   });
 
+  const buildBackToInputsHref = () => {
+    const leftAppId = Number(runData?.payload?.left?.productApplicationId);
+    const rightAppId = Number(runData?.payload?.right?.productApplicationId);
+    const hasAppIds = Number.isFinite(leftAppId) && Number.isFinite(rightAppId);
+    const withAppIds = hasAppIds ? `/tools/setting-calculator?app_ids=${leftAppId},${rightAppId}` : "/tools/setting-calculator";
+
+    // Guard against malformed or recursive "from" values in production.
+    if (!baseBackHref || !baseBackHref.startsWith("/tools/setting-calculator")) return withAppIds;
+    if (baseBackHref.startsWith("/tools/setting-calculator-charts")) return withAppIds;
+    return baseBackHref;
+  };
+
   const handleBackToInputs = () => {
     try {
       if (typeof window !== "undefined" && runData?.payload) {
@@ -61,7 +74,7 @@ export default function SettingCalculatorChartsPage() {
         );
       }
     } catch {}
-    router.push(backHref);
+    router.push(buildBackToInputsHref());
   };
 
   useEffect(() => {
@@ -91,12 +104,16 @@ export default function SettingCalculatorChartsPage() {
     loadUnitSystem();
   }, []);
 
+  const leftLinerName = runData?.leftProduct?.label || "Left liner";
+  const rightLinerName = runData?.rightProduct?.label || "Right liner";
+  const percentageSubtitle = `Percentage variation of ${rightLinerName} versus ${leftLinerName}`;
+
   return (
     <Box minH="100vh" display="flex" flexDirection="column">
       <AppHeader
         title="Setting Calculator"
         subtitle="Comparison results"
-        backHref={backHref}
+        backHref={buildBackToInputsHref()}
         onBackClick={handleBackToInputs}
         showInfo={false}
         rightArea={
@@ -153,6 +170,7 @@ export default function SettingCalculatorChartsPage() {
                 unitSystem={unitSystem}
                 showTrigger={false}
                 onRegisterOpen={setOpenExportModal}
+                onCaptureModeChange={setIsPdfCaptureMode}
                 chartRefs={{
                   pulsationRef,
                   phasesRef,
@@ -162,13 +180,13 @@ export default function SettingCalculatorChartsPage() {
                 }}
               />
               <Box ref={pulsationRef}>
-                <PulsationChartCard runData={runData} unitSystem={unitSystem} />
+                <PulsationChartCard runData={runData} unitSystem={unitSystem} exportMode={isPdfCaptureMode} />
               </Box>
               <Box ref={phasesRef}>
-                <PulsatorPhasesChartCard runData={runData} />
+                <PulsatorPhasesChartCard runData={runData} exportMode={isPdfCaptureMode} />
               </Box>
               <Box ref={realMilkingRef}>
-                <RealMilkingMassageChartCard runData={runData} />
+                <RealMilkingMassageChartCard runData={runData} exportMode={isPdfCaptureMode} />
               </Box>
               <SimpleGrid columns={{ base: 1, lg: 2 }} spacing={4}>
                 <Box ref={appliedVacuumRef}>
@@ -176,8 +194,9 @@ export default function SettingCalculatorChartsPage() {
                     runData={runData}
                     dataKey="appliedVacuum"
                     title="Applied Vacuum Difference"
-                    subtitle="Percentage difference between PF and OM applied vacuum."
+                    subtitle={percentageSubtitle}
                     icon={FiPercent}
+                    exportMode={isPdfCaptureMode}
                   />
                 </Box>
                 <Box ref={massageIntensityRef}>
@@ -185,8 +204,9 @@ export default function SettingCalculatorChartsPage() {
                     runData={runData}
                     dataKey="massageIntensity"
                     title="Massage Intensity Difference"
-                    subtitle="Percentage difference between PF and OM massage intensity."
+                    subtitle={percentageSubtitle}
                     icon={FiPercent}
+                    exportMode={isPdfCaptureMode}
                   />
                 </Box>
               </SimpleGrid>
