@@ -19,6 +19,43 @@ import {
 import { getSettingInputFields } from "../../lib/settingCalculator";
 import { Chart as ChartJS } from "chart.js";
 
+function getForcedSize(title) {
+  if (title === "Pulsation Chart") return { w: 1100, h: 520 };
+  if (title === "Pulsator Phases") return { w: 1100, h: 340 };
+  if (title === "Real Milking / Real OFF") return { w: 1100, h: 320 };
+  return { w: 1000, h: 280 };
+}
+
+function captureChartDataUrl(chart, canvas, title) {
+  const originalIndexAxis = chart?.options?.indexAxis;
+  const originalTooltipEnabled = chart?.options?.plugins?.tooltip?.enabled;
+  const originalAnimation = chart?.options?.animation;
+  const { w, h } = getForcedSize(title);
+  try {
+    if (chart?.options?.plugins?.tooltip) {
+      chart.options.plugins.tooltip.enabled = false;
+    }
+    if (title === "Pulsator Phases" || title === "Real Milking / Real OFF") {
+      chart.options.indexAxis = "y";
+    }
+    if (title.includes("Difference")) {
+      chart.options.indexAxis = "x";
+    }
+    chart.options.animation = false;
+    chart.resize(w, h);
+    chart.update("none");
+    return canvas.toDataURL("image/png", 1.0);
+  } finally {
+    if (chart?.options?.plugins?.tooltip) {
+      chart.options.plugins.tooltip.enabled = originalTooltipEnabled;
+    }
+    chart.options.indexAxis = originalIndexAxis;
+    chart.options.animation = originalAnimation;
+    chart.resize();
+    chart.update("none");
+  }
+}
+
 function getCanvasDataFromContainer(containerRef, title) {
   const container = containerRef?.current;
   const canvas = container?.querySelector?.("canvas");
@@ -32,6 +69,8 @@ function getCanvasDataFromContainer(containerRef, title) {
       }
       chart.update("none");
     } catch {}
+    const dataUrl = captureChartDataUrl(chart, canvas, title);
+    return { title, dataUrl };
   }
   return { title, dataUrl: canvas.toDataURL("image/png", 1.0) };
 }
@@ -131,7 +170,7 @@ export default function ExportChartsPdfButton({
     await new Promise((resolve) => {
       requestAnimationFrame(() => requestAnimationFrame(resolve));
     });
-    await new Promise((resolve) => setTimeout(resolve, 80));
+    await new Promise((resolve) => setTimeout(resolve, 220));
   };
 
   const handleExportPdf = async () => {

@@ -74,7 +74,18 @@ export default function SettingCalculatorChartsPage() {
         );
       }
     } catch {}
-    router.push(buildBackToInputsHref());
+    const target = buildBackToInputsHref();
+    // Use hard navigation as fallback to avoid occasional client-router stall seen in production.
+    router.push(target).catch(() => {
+      if (typeof window !== "undefined") window.location.assign(target);
+    });
+    if (typeof window !== "undefined") {
+      setTimeout(() => {
+        if (window.location.pathname.includes("/tools/setting-calculator-charts")) {
+          window.location.assign(target);
+        }
+      }, 1200);
+    }
   };
 
   useEffect(() => {
