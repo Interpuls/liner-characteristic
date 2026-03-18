@@ -108,9 +108,8 @@ const phaseValueLabelsPlugin = {
   },
 };
 
-export default function PulsatorPhasesChartCard({ runData, exportMode = false }) {
-  const viewportIsMobile = useBreakpointValue({ base: true, md: false }) ?? false;
-  const isMobile = exportMode ? false : viewportIsMobile;
+export default function PulsatorPhasesChartCard({ runData }) {
+  const isMobile = useBreakpointValue({ base: true, md: false }) ?? false;
   const leftRaw = runData?.response?.left?.charts?.pulsatorPhases?.segments;
   const rightRaw = runData?.response?.right?.charts?.pulsatorPhases?.segments;
 
@@ -188,7 +187,6 @@ export default function PulsatorPhasesChartCard({ runData, exportMode = false })
           },
         },
         tooltip: {
-          enabled: !exportMode,
           backgroundColor: "#0f172a",
           titleColor: "#f8fafc",
           bodyColor: "#e2e8f0",
@@ -255,7 +253,7 @@ export default function PulsatorPhasesChartCard({ runData, exportMode = false })
             },
       },
     }),
-    [data, isMobile, exportMode]
+    [data, isMobile]
   );
 
   if (!data || !chartData) {
@@ -299,7 +297,7 @@ export default function PulsatorPhasesChartCard({ runData, exportMode = false })
             <Text fontSize="xs" color="gray.500" mb={4}>
               A-D phases in ms for each liner.
             </Text>
-            <Box h={isMobile ? "360px" : "260px"}>
+            <Box h={{ base: "360px", md: "260px" }}>
               <Bar data={chartData} options={chartOptions} plugins={[phaseValueLabelsPlugin]} aria-label="Pulsator phases stacked chart" />
             </Box>
           </Box>

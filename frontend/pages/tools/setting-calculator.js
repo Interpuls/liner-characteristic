@@ -33,6 +33,13 @@ function buildRequestId() {
   return `sc-${Date.now()}-${Math.floor(Math.random() * 10000)}`;
 }
 
+function withTimeout(promise, ms = 7000) {
+  return Promise.race([
+    promise,
+    new Promise((_, reject) => setTimeout(() => reject(new Error("Request timeout")), ms)),
+  ]);
+}
+
 export default function SettingCalculatorPage() {
   const router = useRouter();
   const { app_ids, ids, keys, from } = router.query;
@@ -94,7 +101,7 @@ export default function SettingCalculatorPage() {
       }
 
       try {
-        const entries = await Promise.all(
+        const entries = await withTimeout(Promise.all(
           [0, 1].map(async (index) => {
             const [productIdRaw, sizeRaw] = String(selectedKeys[index] || "").split("-");
             const productId = Number(productIdRaw);
@@ -115,12 +122,12 @@ export default function SettingCalculatorPage() {
             let product = null;
             let appId = Number.isFinite(appIdFromQuery) ? appIdFromQuery : null;
             try {
-              product = await getProduct(token, productId);
+              product = await withTimeout(getProduct(token, productId), 6000);
             } catch {}
 
             if (!appId && Number.isFinite(sizeMm)) {
               try {
-                const apps = await listProductApplications(token, productId);
+                const apps = await withTimeout(listProductApplications(token, productId), 6000);
                 const match = (Array.isArray(apps) ? apps : []).find((a) => Number(a.size_mm) === sizeMm);
                 if (match?.id != null) appId = Number(match.id);
               } catch {}
@@ -141,7 +148,7 @@ export default function SettingCalculatorPage() {
               subtitle,
             };
           })
-        );
+        ), 10000);
 
         setSelection({ left: entries[0], right: entries[1] });
       } catch (e) {
