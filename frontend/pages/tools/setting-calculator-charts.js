@@ -1,5 +1,5 @@
 import { useRouter } from "next/router";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import {
   Alert,
   AlertDescription,
@@ -31,13 +31,6 @@ export default function SettingCalculatorChartsPage() {
   const [runData, setRunData] = useState(null);
   const [unitSystem, setUnitSystem] = useState("metric");
   const [openExportModal, setOpenExportModal] = useState(null);
-  const [isPdfCaptureMode, setIsPdfCaptureMode] = useState(false);
-
-  const pulsationRef = useRef(null);
-  const phasesRef = useRef(null);
-  const realMilkingRef = useRef(null);
-  const appliedVacuumRef = useRef(null);
-  const massageIntensityRef = useRef(null);
 
   const mapPayloadInputsToFormInputs = (payloadSideInputs = {}) => ({
     milkingVacuumMaxKpa: payloadSideInputs.milkingVacuumMaxKpa ?? payloadSideInputs.milkingVacuumMaxInHg ?? "",
@@ -62,7 +55,7 @@ export default function SettingCalculatorChartsPage() {
     return baseBackHref;
   };
 
-  const handleBackToInputs = () => {
+  const handleBackToInputs = async () => {
     try {
       if (typeof window !== "undefined" && runData?.payload) {
         sessionStorage.setItem(
@@ -74,18 +67,7 @@ export default function SettingCalculatorChartsPage() {
         );
       }
     } catch {}
-    const target = buildBackToInputsHref();
-    // Use hard navigation as fallback to avoid occasional client-router stall seen in production.
-    router.push(target).catch(() => {
-      if (typeof window !== "undefined") window.location.assign(target);
-    });
-    if (typeof window !== "undefined") {
-      setTimeout(() => {
-        if (window.location.pathname.includes("/tools/setting-calculator-charts")) {
-          window.location.assign(target);
-        }
-      }, 1200);
-    }
+    await router.replace(buildBackToInputsHref());
   };
 
   useEffect(() => {
@@ -181,45 +163,25 @@ export default function SettingCalculatorChartsPage() {
                 unitSystem={unitSystem}
                 showTrigger={false}
                 onRegisterOpen={setOpenExportModal}
-                onCaptureModeChange={setIsPdfCaptureMode}
-                chartRefs={{
-                  pulsationRef,
-                  phasesRef,
-                  realMilkingRef,
-                  appliedVacuumRef,
-                  massageIntensityRef,
-                }}
               />
-              <Box ref={pulsationRef}>
-                <PulsationChartCard runData={runData} unitSystem={unitSystem} exportMode={isPdfCaptureMode} />
-              </Box>
-              <Box ref={phasesRef}>
-                <PulsatorPhasesChartCard runData={runData} exportMode={isPdfCaptureMode} />
-              </Box>
-              <Box ref={realMilkingRef}>
-                <RealMilkingMassageChartCard runData={runData} exportMode={isPdfCaptureMode} />
-              </Box>
+              <PulsationChartCard runData={runData} unitSystem={unitSystem} />
+              <PulsatorPhasesChartCard runData={runData} />
+              <RealMilkingMassageChartCard runData={runData} />
               <SimpleGrid columns={{ base: 1, lg: 2 }} spacing={4}>
-                <Box ref={appliedVacuumRef}>
-                  <PercentageDifferenceChartCard
-                    runData={runData}
-                    dataKey="appliedVacuum"
-                    title="Applied Vacuum Difference"
-                    subtitle={percentageSubtitle}
-                    icon={FiPercent}
-                    exportMode={isPdfCaptureMode}
-                  />
-                </Box>
-                <Box ref={massageIntensityRef}>
-                  <PercentageDifferenceChartCard
-                    runData={runData}
-                    dataKey="massageIntensity"
-                    title="Massage Intensity Difference"
-                    subtitle={percentageSubtitle}
-                    icon={FiPercent}
-                    exportMode={isPdfCaptureMode}
-                  />
-                </Box>
+                <PercentageDifferenceChartCard
+                  runData={runData}
+                  dataKey="appliedVacuum"
+                  title="Applied Vacuum Difference"
+                  subtitle={percentageSubtitle}
+                  icon={FiPercent}
+                />
+                <PercentageDifferenceChartCard
+                  runData={runData}
+                  dataKey="massageIntensity"
+                  title="Massage Intensity Difference"
+                  subtitle={percentageSubtitle}
+                  icon={FiPercent}
+                />
               </SimpleGrid>
             </>
           )}

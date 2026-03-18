@@ -46,9 +46,8 @@ function toLineData(points, unitSystem) {
   }));
 }
 
-export default function PulsationChartCard({ runData, unitSystem = "metric", exportMode = false }) {
-  const viewportIsMobile = useBreakpointValue({ base: true, md: false }) ?? false;
-  const isMobile = exportMode ? false : viewportIsMobile;
+export default function PulsationChartCard({ runData, unitSystem = "metric" }) {
+  const isMobile = useBreakpointValue({ base: true, md: false }) ?? false;
   const leftCurve = runData?.response?.left?.charts?.pulsation?.curve;
   const leftThreshold = runData?.response?.left?.charts?.pulsation?.threshold;
   const rightCurve = runData?.response?.right?.charts?.pulsation?.curve;
@@ -145,7 +144,6 @@ export default function PulsationChartCard({ runData, unitSystem = "metric", exp
           },
         },
         tooltip: {
-          enabled: !exportMode,
           backgroundColor: "#0f172a",
           titleColor: "#f8fafc",
           bodyColor: "#e2e8f0",
@@ -215,7 +213,7 @@ export default function PulsationChartCard({ runData, unitSystem = "metric", exp
         },
       },
     }),
-    [isMobile, pressureUnitLabel, exportMode]
+    [isMobile, pressureUnitLabel]
   );
 
   if (!chartData) {
@@ -260,8 +258,8 @@ export default function PulsationChartCard({ runData, unitSystem = "metric", exp
             <Text fontSize="xs" color="gray.500" mb={4}>
               Pulsation curves and real threshold for both liners.
             </Text>
-            <Box w="100%" overflowX={{ base: exportMode ? "visible" : "auto", md: "visible" }}>
-              <Box minW={{ base: exportMode ? "100%" : "760px", md: "100%" }} h={isMobile ? "360px" : "460px"}>
+            <Box w="100%" overflowX={{ base: "auto", md: "visible" }}>
+              <Box minW={{ base: "760px", md: "100%" }} h={{ base: "360px", md: "460px" }}>
                 <Line data={chartData} options={chartOptions} aria-label="Pulsation chart with thresholds" />
               </Box>
             </Box>

@@ -17,63 +17,7 @@ import {
   useToast,
 } from "@chakra-ui/react";
 import { getSettingInputFields } from "../../lib/settingCalculator";
-import { Chart as ChartJS } from "chart.js";
-
-function getForcedSize(title) {
-  if (title === "Pulsation Chart") return { w: 1100, h: 520 };
-  if (title === "Pulsator Phases") return { w: 1100, h: 340 };
-  if (title === "Real Milking / Real OFF") return { w: 1100, h: 320 };
-  return { w: 1000, h: 280 };
-}
-
-function captureChartDataUrl(chart, canvas, title) {
-  const originalIndexAxis = chart?.options?.indexAxis;
-  const originalTooltipEnabled = chart?.options?.plugins?.tooltip?.enabled;
-  const originalAnimation = chart?.options?.animation;
-  const { w, h } = getForcedSize(title);
-  try {
-    if (chart?.options?.plugins?.tooltip) {
-      chart.options.plugins.tooltip.enabled = false;
-    }
-    if (title === "Pulsator Phases" || title === "Real Milking / Real OFF") {
-      chart.options.indexAxis = "y";
-    }
-    if (title.includes("Difference")) {
-      chart.options.indexAxis = "x";
-    }
-    chart.options.animation = false;
-    chart.resize(w, h);
-    chart.update("none");
-    return canvas.toDataURL("image/png", 1.0);
-  } finally {
-    if (chart?.options?.plugins?.tooltip) {
-      chart.options.plugins.tooltip.enabled = originalTooltipEnabled;
-    }
-    chart.options.indexAxis = originalIndexAxis;
-    chart.options.animation = originalAnimation;
-    chart.resize();
-    chart.update("none");
-  }
-}
-
-function getCanvasDataFromContainer(containerRef, title) {
-  const container = containerRef?.current;
-  const canvas = container?.querySelector?.("canvas");
-  if (!canvas) return null;
-  const chart = ChartJS.getChart(canvas);
-  if (chart) {
-    try {
-      chart.setActiveElements([]);
-      if (chart.tooltip?.setActiveElements) {
-        chart.tooltip.setActiveElements([], { x: 0, y: 0 });
-      }
-      chart.update("none");
-    } catch {}
-    const dataUrl = captureChartDataUrl(chart, canvas, title);
-    return { title, dataUrl };
-  }
-  return { title, dataUrl: canvas.toDataURL("image/png", 1.0) };
-}
+import { createSettingCalculatorExportCharts } from "../../lib/settingCalculatorPdfCharts";
 
 function formatCellValue(v) {
   if (v == null || v === "") return "-";
@@ -101,11 +45,9 @@ function escapeHtml(value) {
 
 export default function ExportChartsPdfButton({
   runData,
-  chartRefs,
   unitSystem = "metric",
   showTrigger = true,
   onRegisterOpen,
-  onCaptureModeChange,
 }) {
   const [exportTitle, setExportTitle] = useState("");
   const [exportNotes, setExportNotes] = useState("");
@@ -155,38 +97,16 @@ export default function ExportChartsPdfButton({
     };
   }, [exportTitle, exportNotes, runData, unitSystem]);
 
-  const collectCharts = () => {
-    const charts = [
-      getCanvasDataFromContainer(chartRefs?.pulsationRef, "Pulsation Chart"),
-      getCanvasDataFromContainer(chartRefs?.phasesRef, "Pulsator Phases"),
-      getCanvasDataFromContainer(chartRefs?.realMilkingRef, "Real Milking / Real OFF"),
-      getCanvasDataFromContainer(chartRefs?.appliedVacuumRef, "Applied Vacuum Difference"),
-      getCanvasDataFromContainer(chartRefs?.massageIntensityRef, "Massage Intensity Difference"),
-    ];
-    return charts.every(Boolean) ? charts : null;
-  };
-
-  const waitForChartsStable = async () => {
-    await new Promise((resolve) => {
-      requestAnimationFrame(() => requestAnimationFrame(resolve));
-    });
-    await new Promise((resolve) => setTimeout(resolve, 220));
-  };
-
   const handleExportPdf = async () => {
     if (!runData) return;
     setIsExporting(true);
     try {
-      if (onCaptureModeChange) {
-        onCaptureModeChange(true);
-        await waitForChartsStable();
-      }
-      const charts = collectCharts();
+      const charts = createSettingCalculatorExportCharts(runData, unitSystem);
       if (!charts) {
         toast({
           status: "warning",
           title: "Charts not ready",
-          description: "Please wait for all charts to render, then retry export.",
+          description: "Chart data is incomplete. Please retry after loading finishes.",
         });
         return;
       }
@@ -513,7 +433,6 @@ export default function ExportChartsPdfButton({
         description: err?.message || "Unable to generate PDF.",
       });
     } finally {
-      if (onCaptureModeChange) onCaptureModeChange(false);
       setIsExporting(false);
     }
   };

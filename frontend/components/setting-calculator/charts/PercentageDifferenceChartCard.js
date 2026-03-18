@@ -78,10 +78,8 @@ export default function PercentageDifferenceChartCard({
   title,
   subtitle,
   icon,
-  exportMode = false,
 }) {
-  const viewportIsMobile = useBreakpointValue({ base: true, md: false }) ?? false;
-  const isMobile = exportMode ? false : viewportIsMobile;
+  const isMobile = useBreakpointValue({ base: true, md: false }) ?? false;
   const diffPct = runData?.response?.diffPct?.[dataKey];
 
   const chartData = useMemo(() => {
@@ -129,7 +127,6 @@ export default function PercentageDifferenceChartCard({
           display: false,
         },
         tooltip: {
-          enabled: !exportMode,
           backgroundColor: "#0f172a",
           titleColor: "#f8fafc",
           bodyColor: "#e2e8f0",
@@ -178,7 +175,7 @@ export default function PercentageDifferenceChartCard({
         },
       },
     };
-  }, [chartData, exportMode]);
+  }, [chartData]);
 
   if (!chartData || !chartOptions) {
     return (
@@ -221,7 +218,7 @@ export default function PercentageDifferenceChartCard({
             <Text fontSize="xs" color="gray.500" mb={4}>
               {subtitle}
             </Text>
-            <Box h={isMobile ? "300px" : "250px"}>
+            <Box h={{ base: "300px", md: "250px" }}>
               <Bar
                 data={chartData}
                 options={chartOptions}
