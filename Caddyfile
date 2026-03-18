@@ -12,29 +12,13 @@ mi-linerlens.milkrite-interpuls.com {
         /speed* \
         /smt-hood* \
         /news* \
-        /setting-calculator* \
+        /api/v1/setting-calculator* \
         /healthz*
 
     reverse_proxy @backend liner-backend:8080
 
-    # Tutto il resto è frontend (Next.js)
-    @frontend {
-        not path \
-            /auth* \
-            /users* \
-            /products* \
-            /kpis* \
-            /rankings* \
-            /tpp* \
-            /massage* \
-            /speed* \
-            /smt-hood* \
-            /news* \
-            /setting-calculator* \
-            /healthz*
-    }
-
-    reverse_proxy @frontend liner-frontend:3000
+    # Tutto il resto (incluse route Next come /_next/data) va al frontend
+    reverse_proxy liner-frontend:3000
 
     log {
         output stdout

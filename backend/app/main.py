@@ -62,6 +62,7 @@ app.include_router(speed_router.router, prefix="/speed", tags=["Speed Runs"])
 app.include_router(smt_hood_router.router, prefix="/smt-hood", tags=["SMT/Hood Runs"])
 app.include_router(news_router.router, prefix="/news", tags=["News"])
 app.include_router(setting_calculator_router, prefix="/setting-calculator", tags=["Setting Calculator"])
+app.include_router(setting_calculator_router, prefix="/api/v1/setting-calculator", tags=["Setting Calculator v1"])
 
 @app.get("/", include_in_schema=False)
 def root():
