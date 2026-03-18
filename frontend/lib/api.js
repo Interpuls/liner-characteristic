@@ -250,4 +250,4 @@ export const upsertSmtHoodPoints = (token, runId, points) =>
 
 // ---------------------------- SETTING CALCULATOR ----------------------------
 export const compareSettingCalculator = (token, body) =>
-  http(`setting-calculator/compare`, { method: "POST", token, body });
+  http(`api/v1/setting-calculator/compare`, { method: "POST", token, body });
