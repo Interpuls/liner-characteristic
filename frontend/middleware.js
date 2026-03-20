@@ -18,12 +18,6 @@ export function middleware(req) {
     req.headers.get("x-nextjs-data") === "1" ||
     pathname.startsWith("/_next/data/");
 
-  // Lascia passare:
-  // - risorse interne di Next
-  // - data requests interne di Next (JSON per client-side navigation)
-  // - la pagina di login
-  // - file noti (favicon/manifest/robots)
-  // - QUALSIASI file statico in /public (match su estensioni)
   if (
     isNextDataRequest ||
     pathname.startsWith("/_next") ||
