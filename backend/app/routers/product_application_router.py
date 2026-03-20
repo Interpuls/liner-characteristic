@@ -21,7 +21,6 @@ class ProductApplicationsBatchIn(BaseModel):
 # --------------------------------------------------------------------------
 
 @router.post("/applications/batch-by-products", response_model=dict[str, list[ProductApplicationOut]])
-@convert_output
 def list_product_applications_batch(
     payload: ProductApplicationsBatchIn,
     session: Session = Depends(get_session),
