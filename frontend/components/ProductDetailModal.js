@@ -196,7 +196,7 @@ export default function ProductDetailModal({ isOpen, onClose, product, onEdit, o
             {/* DISEGNO TECNICO O STILIZZATO DELLA GUAINA */}
             <Box mb={4} display="flex" justifyContent="center">
               <Image
-                src={product?.tech_image_url || "/liner.png"}
+                src={product?.tech_image_url || "/guaina.png"}
                 alt="Technical schema"
                 maxH="220px"
                 objectFit="contain"
@@ -223,9 +223,8 @@ export default function ProductDetailModal({ isOpen, onClose, product, onEdit, o
               <F label="Shell Length" value={product.shell_length} />
               <F label="Shell external diameter" value={product.shell_external_diameter} />
               <F label="Orifice diameter (mm)" value={product.orifice_diameter} />
-              <F label="Overall length (mm)" value={product.overall_length} />
               <F label="Barrel wall thickness (mm)" value={product.barrell_wall_thickness} />
-              <F label="Barrel conicity" value={product.barrell_conicity} />
+              <F label="Barrel conicity (°)" value={product.barrell_conicity} />
               <F label="Hardness" value={product.hardness} />
             </SimpleGrid>
 
