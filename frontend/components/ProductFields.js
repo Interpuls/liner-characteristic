@@ -237,7 +237,7 @@ export default function ProductFields({ values, meta, onChange, onNumberChange, 
       <Text fontSize="m" color="gray.600" mb={2} fontWeight="normal">Technical specifications</Text>
       <Box mb={4} display="flex" justifyContent="center">
         <Image
-          src={techImageUrl || "/liner.png"}
+          src={techImageUrl || "/guaina.png"}
           alt="Technical schema"
           maxH="220px"
           objectFit="contain"
@@ -327,17 +327,12 @@ export default function ProductFields({ values, meta, onChange, onNumberChange, 
         </FormControl>
 
         <FormControl>
-          <FormLabel fontSize="sm" color="gray.500">Overall length (mm)</FormLabel>
-          <Input type="number" value={v.overall_length ?? ""} onChange={(e)=>onNumberChange("overall_length", e.target.value)} />
-        </FormControl>
-
-        <FormControl>
           <FormLabel fontSize="sm" color="gray.500">Barrel wall thickness (mm)</FormLabel>
           <Input type="number" value={v.barrell_wall_thickness ?? ""} onChange={(e)=>onNumberChange("barrell_wall_thickness", e.target.value)} />
         </FormControl>
 
         <FormControl>
-          <FormLabel fontSize="sm" color="gray.500">Barrel conicity</FormLabel>
+          <FormLabel fontSize="sm" color="gray.500">Barrel conicity (°)</FormLabel>
           <Input type="number" value={v.barrell_conicity ?? ""} onChange={(e)=>onNumberChange("barrell_conicity", e.target.value)} />
         </FormControl>
 
