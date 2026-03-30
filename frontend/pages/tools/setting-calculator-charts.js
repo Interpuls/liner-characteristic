@@ -1,5 +1,5 @@
 import { useRouter } from "next/router";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import {
   Alert,
   AlertDescription,
@@ -43,7 +43,7 @@ export default function SettingCalculatorChartsPage() {
     phaseCMs: payloadSideInputs.phaseCMs ?? "",
   });
 
-  const buildBackToInputsHref = () => {
+  const buildBackToInputsHref = useCallback(() => {
     const leftAppId = Number(runData?.payload?.left?.productApplicationId);
     const rightAppId = Number(runData?.payload?.right?.productApplicationId);
     const hasAppIds = Number.isFinite(leftAppId) && Number.isFinite(rightAppId);
@@ -53,9 +53,10 @@ export default function SettingCalculatorChartsPage() {
     if (!baseBackHref || !baseBackHref.startsWith("/tools/setting-calculator")) return withAppIds;
     if (baseBackHref.startsWith("/tools/setting-calculator-charts")) return withAppIds;
     return baseBackHref;
-  };
+  }, [baseBackHref, runData]);
 
   const handleBackToInputs = async () => {
+    const targetHref = buildBackToInputsHref();
     try {
       if (typeof window !== "undefined" && runData?.payload) {
         sessionStorage.setItem(
@@ -67,8 +68,30 @@ export default function SettingCalculatorChartsPage() {
         );
       }
     } catch {}
-    await router.replace(buildBackToInputsHref());
+
+    // Use a hard navigation to avoid intermittent Next data-route stalls
+    // observed on mobile/prod when going back from charts to inputs.
+    if (typeof window !== "undefined") {
+      window.location.assign(targetHref);
+      return;
+    }
+    await router.replace(targetHref);
   };
+
+  useEffect(() => {
+    // Ensure browser back/forward from this page follows the same robust
+    // hard-navigation path used by the app back button.
+    router.beforePopState(() => {
+      if (typeof window !== "undefined") {
+        window.location.assign(buildBackToInputsHref());
+      }
+      return false;
+    });
+
+    return () => {
+      router.beforePopState(() => true);
+    };
+  }, [router, buildBackToInputsHref]);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
