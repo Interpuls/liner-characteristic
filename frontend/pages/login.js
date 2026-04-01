@@ -19,7 +19,8 @@ export default function Login() {
     if (t) {
       getMe(t)
         .then(() => {
-          const next = new URLSearchParams(window.location.search).get("next");
+          const params = new URLSearchParams(window.location.search);
+          const next = params.get("next") || params.get("from");
           window.location.replace(safeInternalPath(next, "/"));
         })
         .catch(() => clearToken());
@@ -32,7 +33,8 @@ export default function Login() {
     try {
       const { access_token } = await loginApi(email, password);
       setToken(access_token);
-      const next = new URLSearchParams(window.location.search).get("next");
+      const params = new URLSearchParams(window.location.search);
+      const next = params.get("next") || params.get("from");
       window.location.replace(safeInternalPath(next, "/"));
     } catch (err) {
       toast({

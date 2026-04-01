@@ -6,10 +6,11 @@ from fastapi import HTTPException, status, Depends, Request
 from jose import jwt, JWTError
 from passlib.context import CryptContext
 from fastapi.security import OAuth2PasswordBearer
-from sqlmodel import Session, select
+from sqlmodel import Session
 
 from app.model.user import User
 from app.logging_config import user_ctx
+from app.services.user_lookup import find_user_by_email, normalize_email
 from .schema.auth import TokenData
 from .db import get_session
 
@@ -61,7 +62,7 @@ def get_current_user(
     except JWTError:
         raise cred_exc
 
-    user = session.exec(select(User).where(User.email == token_data.sub)).first()
+    user = find_user_by_email(session, normalize_email(token_data.sub))
     if not user or not user.is_active:
         raise cred_exc
     # Attach the resolved user to the logging context for downstream logs
