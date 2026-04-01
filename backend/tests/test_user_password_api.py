@@ -3,6 +3,7 @@ from sqlalchemy.pool import StaticPool
 from sqlmodel import SQLModel, Session, create_engine
 
 from app.auth import get_current_user, hash_password, verify_password
+from app.common.enums import UserRole
 from app.db import get_session
 from app.main import app
 from app.model.user import User
@@ -16,7 +17,7 @@ def build_engine():
     )
 
 
-def build_client():
+def build_client(*, role=UserRole.USER):
     engine = build_engine()
     SQLModel.metadata.create_all(engine, tables=[User.__table__])
 
@@ -24,6 +25,7 @@ def build_client():
         user = User(
             email="tester@milkrite-interpuls.com",
             hashed_password=hash_password("old-password"),
+            role=role,
         )
         session.add(user)
         session.commit()
@@ -82,7 +84,7 @@ def test_change_my_password_rejects_wrong_current_password():
 
 
 def test_admin_can_reset_another_user_password():
-    client, session, _user = build_client()
+    client, session, _user = build_client(role=UserRole.ADMIN)
     try:
         target = User(
             email="another@milkrite-interpuls.com",
@@ -106,7 +108,7 @@ def test_admin_can_reset_another_user_password():
 
 
 def test_admin_password_reset_returns_404_for_missing_user():
-    client, _session, _user = build_client()
+    client, _session, _user = build_client(role=UserRole.ADMIN)
     try:
         response = client.put(
             "/users/999999/password-reset",
