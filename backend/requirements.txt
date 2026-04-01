@@ -11,3 +11,4 @@ email-validator==2.1.0.post1
 alembic==1.16.4
 python-dotenv==1.0.1
 pytest>=7.0
+geoip2==4.8.1

@@ -19,6 +19,7 @@ class AccessLog(SQLModel, table=True):
     status_code: int = Field(nullable=False)
     ip: Optional[str] = Field(default=None, index=True, max_length=45)
     country: Optional[str] = Field(default=None, sa_column=sa.Column(sa.String(length=64)))
+    region: Optional[str] = Field(default=None, sa_column=sa.Column(sa.String(length=128)))
     city: Optional[str] = Field(default=None, sa_column=sa.Column(sa.String(length=128)))
     user_agent: Optional[str] = Field(default=None, sa_column=sa.Column(sa.Text()))
     duration_ms: int = Field(nullable=False)
