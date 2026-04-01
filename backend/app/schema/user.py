@@ -14,6 +14,7 @@ class UserBase(MetricNormalizedModel):
     email: EmailStr
     role: Optional[UserRole] = UserRole.USER
     is_active: Optional[bool] = True
+    is_first_login: bool = True
     unit_system: UnitSystem = UnitSystem.METRIC
 
 #user create che eredita da UserBase
@@ -31,6 +32,16 @@ class UserRead(UserBase):
 #aggiorna lo unit_system dello user
 class UserUpdate(MetricNormalizedModel):
     unit_system: Optional[UnitSystem] = None
+
+
+class UserPasswordUpdate(MetricNormalizedModel):
+    current_password: str
+    new_password: str
+
+
+class AdminUserPasswordReset(MetricNormalizedModel):
+    new_password: str
+
 
 #payload di risposta per update user (include nuovo token opzionale)
 class UserUpdateResponse(MetricNormalizedModel):
