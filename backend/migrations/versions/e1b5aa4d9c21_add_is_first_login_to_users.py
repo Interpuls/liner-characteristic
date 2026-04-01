@@ -23,7 +23,7 @@ def upgrade() -> None:
         "users",
         sa.Column("is_first_login", sa.Boolean(), nullable=False, server_default=sa.true()),
     )
-    op.execute("UPDATE users SET is_first_login = 0")
+    op.execute(sa.text("UPDATE users SET is_first_login = :value").bindparams(value=False))
     op.alter_column("users", "is_first_login", server_default=None)
 
 
