@@ -57,6 +57,7 @@ export default function ProductsSearchPage() {
   const [sortingBusy, setSortingBusy] = useState(false);
   const [sortKpi, setSortKpi] = useState(null); // e.g., 'CLOSURE'
   const [sortDir, setSortDir] = useState('desc'); // 'asc' | 'desc'
+  const [pinnedKey, setPinnedKey] = useState(null);
   const KPI_ORDER = [
     'CLOSURE','FITTING','CONGESTION_RISK','HYPERKERATOSIS_RISK','SPEED','RESPRAY','FLUYDODINAMIC','SLIPPAGE','RINGING_RISK'
   ];
@@ -193,10 +194,34 @@ export default function ProductsSearchPage() {
   };
 
   const filterSig = useMemo(() => {
-    const { page: _page, ...rest } = router.query || {};
+    const {
+      page: _page,
+      sort: _sort,
+      sortDir: _sortDir,
+      sort_kpi: _sortKpi,
+      sort_dir: _sortDirAlt,
+      ...rest
+    } = router.query || {};
     const keys = Object.keys(rest).sort();
     return JSON.stringify(keys.map(k => [k, rest[k]]));
   }, [router.query]);
+  const pinnedStorageKey = useMemo(() => `results.pinned_key.${filterSig}`, [filterSig]);
+
+  useEffect(() => {
+    try {
+      if (typeof window === "undefined") return;
+      const saved = window.sessionStorage.getItem(pinnedStorageKey);
+      if (saved) setPinnedKey(saved);
+    } catch {}
+  }, [pinnedStorageKey]);
+
+  useEffect(() => {
+    try {
+      if (typeof window === "undefined") return;
+      if (pinnedKey) window.sessionStorage.setItem(pinnedStorageKey, pinnedKey);
+      else window.sessionStorage.removeItem(pinnedStorageKey);
+    } catch {}
+  }, [pinnedKey, pinnedStorageKey]);
 
   useEffect(() => {
     const run = async () => {
@@ -297,6 +322,20 @@ export default function ProductsSearchPage() {
     return copy;
   }, [items, kpiScores, sortKpi, sortDir]);
   const pagedItems = useMemo(() => sortedItems.slice(start, end), [sortedItems, start, end]);
+  const pinnedItem = useMemo(
+    () => sortedItems.find((it) => it.key === pinnedKey) || null,
+    [sortedItems, pinnedKey]
+  );
+  const unpinnedPagedItems = useMemo(
+    () => pagedItems.filter((it) => it.key !== pinnedKey),
+    [pagedItems, pinnedKey]
+  );
+
+  useEffect(() => {
+    if (pinnedKey && !sortedItems.some((it) => it.key === pinnedKey)) {
+      setPinnedKey(null);
+    }
+  }, [pinnedKey, sortedItems]);
 
   const goToPage = (p) => {
     const next = Math.min(Math.max(1, p), totalPages);
@@ -628,7 +667,31 @@ export default function ProductsSearchPage() {
             ) : (
               <>
                 <SimpleGrid columns={{ base: 1, md: 1 }} gap={4}>
-                  {pagedItems.map((a) => (
+                  {pinnedItem ? (
+                    <Box
+                      position="sticky"
+                      top={{ base: 2, md: 4 }}
+                      zIndex={2}
+                      bg="white"
+                      borderRadius="md"
+                      boxShadow="sm"
+                    >
+                      <ProductApplicationCard
+                        key={pinnedItem.key}
+                        productId={pinnedItem.product_id}
+                        brand={pinnedItem.brand}
+                        model={pinnedItem.model}
+                        compound={pinnedItem.compound}
+                        isAdmin={me?.role === 'admin'}
+                        sizeMm={pinnedItem.size_mm}
+                        applicationId={appIdByKey[pinnedItem.key]}
+                        kpis={kpiScores[pinnedItem.key] || {}}
+                        isPinned
+                        onTogglePin={() => setPinnedKey(null)}
+                      />
+                    </Box>
+                  ) : null}
+                  {unpinnedPagedItems.map((a) => (
                     <ProductApplicationCard
                       key={a.key}
                       productId={a.product_id}
@@ -639,6 +702,8 @@ export default function ProductsSearchPage() {
                       sizeMm={a.size_mm}
                       applicationId={appIdByKey[a.key]}
                       kpis={kpiScores[a.key] || {}}
+                      isPinned={pinnedKey === a.key}
+                      onTogglePin={() => setPinnedKey((prev) => (prev === a.key ? null : a.key))}
                     />
                   ))}
                 </SimpleGrid>
