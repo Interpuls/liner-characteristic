@@ -18,7 +18,11 @@ export default function Login() {
     const t = getToken();
     if (t) {
       getMe(t)
-        .then(() => {
+        .then((me) => {
+          if (me?.is_first_login) {
+            window.location.replace("/change-password");
+            return;
+          }
           const params = new URLSearchParams(window.location.search);
           const next = params.get("next") || params.get("from");
           window.location.replace(safeInternalPath(next, "/"));
@@ -33,6 +37,11 @@ export default function Login() {
     try {
       const { access_token } = await loginApi(email, password);
       setToken(access_token);
+      const me = await getMe(access_token);
+      if (me?.is_first_login) {
+        window.location.replace("/change-password");
+        return;
+      }
       const params = new URLSearchParams(window.location.search);
       const next = params.get("next") || params.get("from");
       window.location.replace(safeInternalPath(next, "/"));

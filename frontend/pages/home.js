@@ -15,7 +15,7 @@ import { getToken, clearToken, setToken } from "../lib/auth";
 import { getMe, updateUserUnitSystem } from "../lib/api";
 import NewsSection from "../components/home/NewsSection";
 import RankingsSection from "../components/home/RankingsSection";
-import { FiSearch, FiSettings, FiBarChart2, FiLogOut, FiPackage } from "react-icons/fi";
+import { FiSearch, FiSettings, FiBarChart2, FiLogOut, FiPackage, FiKey } from "react-icons/fi";
 import { LuFlaskConical } from "react-icons/lu";
 import { RxHamburgerMenu } from "react-icons/rx";
 import AppHeader from "../components/AppHeader";
@@ -53,6 +53,8 @@ export default function Home() {
   const cancelRef = useRef();
   const unitCancelRef = useRef();
   const topSpacing = useBreakpointValue({ base: 4, md: 6 });
+  const heroLogoWidth = useBreakpointValue({ base: 220, md: 320 }) || 320;
+  const heroLogoHeight = useBreakpointValue({ base: 40, md: 58 }) || 58;
   // mobile drawer (burger menu)
   const menuCtrl = useDisclosure();
 
@@ -66,6 +68,10 @@ export default function Home() {
     if (!t) { window.location.replace("/login"); return; }
     getMe(t)
       .then((user) => {
+        if (user?.is_first_login) {
+          window.location.replace("/change-password");
+          return;
+        }
         setMe(user);
         setUnitSystem(user?.unit_system || "metric");
       })
@@ -188,8 +194,7 @@ export default function Home() {
       />
 
       <VStack position="relative" zIndex={1} spacing={5}>
-        <Image src="/favicon.ico" alt="Logo" width={72} height={72} />
-        <Heading size={{ base: "xl", md: "2xl" }} color="white" textAlign="center" letterSpacing="wide">Liner Characteristic</Heading>
+        <Image src="/logolinerlens_bianco.png" alt="MI LinerLens" width={heroLogoWidth} height={heroLogoHeight} />
         <Text color="whiteAlpha.800" textAlign="center" maxW="2xl" mb={0}>Explore liners, compare KPIs and find the best fit.</Text>
         <HStack mt={{ base: 6, md: 8 }}>
           <Button
@@ -237,8 +242,11 @@ export default function Home() {
     <>
       <Hide below="md">
         <AppHeader
-          title="Liner Database"
-          logoSrc="/favicon.ico"
+          title=""
+          logoSrc="/logolinerlens_bianco.png"
+          logoWidth={122}
+          logoHeight={22}
+          hideTitle
           onLogoutClick={onOpen}
           rightArea={<RightArea />}
           infoIcon={FiSettings}
@@ -265,7 +273,7 @@ export default function Home() {
           </Box>
         </Box>
 
-      <AppFooter appName="Liner Characteristic App" />
+      <AppFooter appName="MI LinerLens" />
 
       {/* Mobile Drawer menu */}
       <Drawer isOpen={menuCtrl.isOpen} placement="left" onClose={menuCtrl.onClose} size="xs">
@@ -313,41 +321,29 @@ export default function Home() {
                   Settings
                 </Text>
                 <Stack spacing={3}>
-                  <HStack
-                    justify="space-between"
-                    align="center"
-                    p={3}
-                    borderWidth="1px"
-                    borderColor="whiteAlpha.200"
-                    borderRadius="md"
+                  <Button
+                    as={NextLink}
+                    href="/change-password"
+                    variant="ghost"
+                    color="gray.200"
+                    justifyContent="flex-start"
+                    leftIcon={<FiKey />}
+                    onClick={menuCtrl.onClose}
                   >
-                    <Box>
-                      <Text fontSize="sm" color="gray.100">Unit system</Text>
-                      <Text fontSize="xs" color="gray.400">
-                        {unitSystem === "imperial" ? "Imperial" : "Metric"}
-                      </Text>
-                    </Box>
-                    <HStack spacing={2}>
-                      <Button
-                        size="sm"
-                        variant={unitSystem === "metric" ? "solid" : "outline"}
-                        colorScheme="blue"
-                        isDisabled={savingUnit}
-                        onClick={() => requestUnitSystemChange("metric")}
-                      >
-                        Metric
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant={unitSystem === "imperial" ? "solid" : "outline"}
-                        colorScheme="blue"
-                        isDisabled={savingUnit}
-                        onClick={() => requestUnitSystemChange("imperial")}
-                      >
-                        Imperial
-                      </Button>
-                    </HStack>
-                  </HStack>
+                    Change Password
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    color="gray.200"
+                    justifyContent="flex-start"
+                    leftIcon={<FiSettings />}
+                    onClick={() => {
+                      menuCtrl.onClose();
+                      onSettingsOpen();
+                    }}
+                  >
+                    Change Unit System
+                  </Button>
                 </Stack>
               </Box>
 
@@ -385,6 +381,18 @@ export default function Home() {
                   Username
                 </Text>
                 <Text fontWeight="semibold" color="white">{me?.email || "Non disponibile"}</Text>
+                <Button
+                  as={NextLink}
+                  href="/change-password"
+                  mt={3}
+                  size="sm"
+                  variant="outline"
+                  colorScheme="blue"
+                  leftIcon={<FiKey />}
+                  onClick={onSettingsClose}
+                >
+                  Change Password
+                </Button>
               </Box>
 
               <Box>

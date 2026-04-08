@@ -18,6 +18,8 @@ export const loginApi = async (email, password) => {
 export const getMe = (token) => http("auth/me", { token });
 export const updateUserUnitSystem = (token, userId, unit_system) =>
   http(`users/${userId}`, { method: "PUT", token, body: { unit_system } });
+export const changeMyPassword = (token, current_password, new_password) =>
+  http("users/me/password", { method: "PUT", token, body: { current_password, new_password } });
 
 // ---------------------------- NEWS ----------------------------
 export const listNews = (token) => http("news", { token });
