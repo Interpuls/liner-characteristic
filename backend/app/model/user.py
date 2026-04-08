@@ -31,6 +31,7 @@ class User(SQLModel, table=True):
         ),
     )
     is_active: bool = Field(default=True)
+    is_first_login: bool = Field(default=True, nullable=False)
     created_at: datetime = Field(default_factory=utcnow, nullable=False)
     unit_system: UnitSystem = Field(
         default=UnitSystem.metric,

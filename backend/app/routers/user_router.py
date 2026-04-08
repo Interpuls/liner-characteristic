@@ -4,9 +4,15 @@ from typing import List
 from app.services.conversion_wrapper import convert_output
 
 from app.db import get_session
-from app.auth import get_current_user, require_role, create_access_token
+from app.auth import get_current_user, require_role, create_access_token, verify_password, hash_password
 from app.model.user import User, UserRole
-from app.schema.user import UserRead, UserUpdate, UserUpdateResponse
+from app.schema.user import (
+    UserRead,
+    UserUpdate,
+    UserUpdateResponse,
+    UserPasswordUpdate,
+    AdminUserPasswordReset,
+)
 
 router = APIRouter()
 
@@ -18,6 +24,49 @@ router = APIRouter()
 @convert_output
 def me(current_user: User = Depends(get_current_user)):
     return current_user
+
+
+@router.put("/me/password", status_code=204)
+def change_my_password(
+    payload: UserPasswordUpdate,
+    session: Session = Depends(get_session),
+    current_user: User = Depends(get_current_user),
+):
+    if not payload.current_password or not payload.new_password:
+        raise HTTPException(status_code=400, detail="Both current_password and new_password are required")
+
+    if payload.current_password == payload.new_password:
+        raise HTTPException(status_code=400, detail="New password must be different from current password")
+
+    if not verify_password(payload.current_password, current_user.hashed_password):
+        raise HTTPException(status_code=401, detail="Current password is invalid")
+
+    current_user.hashed_password = hash_password(payload.new_password)
+    current_user.is_first_login = False
+    session.add(current_user)
+    session.commit()
+    return None
+
+
+@router.put("/{user_id}/password-reset", status_code=204)
+def reset_user_password(
+    user_id: int,
+    payload: AdminUserPasswordReset,
+    session: Session = Depends(get_session),
+    _: User = Depends(require_role(UserRole.ADMIN)),
+):
+    user = session.get(User, user_id)
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    if not payload.new_password:
+        raise HTTPException(status_code=400, detail="new_password is required")
+
+    user.hashed_password = hash_password(payload.new_password)
+    user.is_first_login = True
+    session.add(user)
+    session.commit()
+    return None
 
 #Restituisce la lista di tutti gli utenti (solo per admin)
 @router.get("/", response_model=List[UserRead])

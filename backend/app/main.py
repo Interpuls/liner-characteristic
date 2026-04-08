@@ -21,6 +21,7 @@ from app.logging_config import (
     user_ctx,
 )
 from app.model.access_log import AccessLog
+from app.services.request_geo import best_effort_geo_from_headers, request_ip
 
 # Routers
 from app.routers import (
@@ -78,8 +79,7 @@ async def log_requests(request: Request, call_next):
     request_id = request.headers.get("x-request-id") or str(uuid.uuid4())
     # Track context for logging (reset on exit)
     rid_token = request_id_ctx.set(request_id)
-    xfwd = request.headers.get("x-forwarded-for")
-    client_ip = xfwd.split(",")[0].strip() if xfwd else (request.client.host if request.client else "-")
+    client_ip = request_ip(request)
     client_token = client_ctx.set(client_ip)
     path_token = path_ctx.set(request.url.path)
     user_token = user_ctx.set("-")
@@ -156,6 +156,7 @@ async def log_requests(request: Request, call_next):
         user_id = getattr(user_obj, "id", None)
         user_email = getattr(user_obj, "email", None)
         user_agent = request.headers.get("user-agent", "")
+        country, region, city, _lat, _lon, geo_source = best_effort_geo_from_headers(request)
 
         # Keep logging context aware of authenticated user
         if user_email:
@@ -168,12 +169,16 @@ async def log_requests(request: Request, call_next):
             response.headers["X-Request-ID"] = request_id
 
         access_logger.info(
-            "api_access method=%s path=%s status=%s user_id=%s ip=%s dur_ms=%.2f ua=%s",
+            "api_access method=%s path=%s status=%s user_id=%s ip=%s country=%s region=%s city=%s geo_source=%s dur_ms=%.2f ua=%s",
             request.method,
             request.url.path,
             status_code,
             user_id,
             client_ip,
+            country,
+            region,
+            city,
+            geo_source,
             duration_ms,
             user_agent,
         )
@@ -187,6 +192,9 @@ async def log_requests(request: Request, call_next):
                     path=request.url.path,
                     status_code=status_code,
                     ip=client_ip,
+                    country=country,
+                    region=region,
+                    city=city,
                     user_agent=user_agent,
                     duration_ms=int(duration_ms),
                     created_at=datetime.utcnow(),

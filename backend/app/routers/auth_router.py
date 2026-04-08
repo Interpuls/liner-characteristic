@@ -8,9 +8,11 @@ import os
 from datetime import datetime, timedelta
 from uuid import uuid4
 
-from fastapi import APIRouter, Depends, HTTPException, status, Request
+from fastapi import APIRouter, Depends, HTTPException, status, Request, Form
 from sqlmodel import Session, select
 from app.services.conversion_wrapper import convert_output
+from app.services.request_geo import best_effort_geo_from_headers, request_ip
+from app.services.user_lookup import find_user_by_email, normalize_email
 
 from app.db import get_session
 from app.auth import hash_password, verify_password, create_access_token, get_current_user, require_role
@@ -45,15 +47,16 @@ SECURITY_DASHBOARD_WINDOW_HOURS = int(os.getenv("SECURITY_DASHBOARD_WINDOW_HOURS
 def register(payload: UserCreate, session: Session = Depends(get_session)):
     #Crea un nuovo utente (registrazione).
     #Consente solo indirizzi email aziendali.
-    if not payload.email.endswith(f"@{ALLOWED_EMAIL_DOMAIN}"):
+    normalized_email = normalize_email(payload.email)
+    if not normalized_email.endswith(f"@{ALLOWED_EMAIL_DOMAIN}"):
         raise HTTPException(status_code=400, detail="Email domain not allowed")
 
-    exists = session.exec(select(User).where(User.email == payload.email)).first()
+    exists = find_user_by_email(session, normalized_email)
     if exists:
         raise HTTPException(status_code=400, detail="User already exists")
 
     user = User(
-        email=payload.email,
+        email=normalized_email,
         hashed_password=hash_password(payload.password),
         role=payload.role or UserRole.USER,
         unit_system=payload.unit_system or UnitSystem.metric,
@@ -125,32 +128,6 @@ async def _extract_credentials(request: Request) -> tuple[str, str]:
         )
     return username, password
 
-
-def _request_ip(request: Request) -> str:
-    xfwd = request.headers.get("x-forwarded-for")
-    if xfwd:
-        return xfwd.split(",")[0].strip()
-    return request.client.host if request.client else "-"
-
-
-def _best_effort_geo_from_headers(request: Request) -> tuple[Optional[str], Optional[str], Optional[str], Optional[float], Optional[float]]:
-    # Works with common edge proxies/CDNs (Vercel/Cloudflare/etc.) when available.
-    country = request.headers.get("x-vercel-ip-country") or request.headers.get("cf-ipcountry")
-    region = request.headers.get("x-vercel-ip-country-region")
-    city = request.headers.get("x-vercel-ip-city")
-    lat_raw = request.headers.get("x-vercel-ip-latitude")
-    lon_raw = request.headers.get("x-vercel-ip-longitude")
-    try:
-        lat = float(lat_raw) if lat_raw else None
-    except ValueError:
-        lat = None
-    try:
-        lon = float(lon_raw) if lon_raw else None
-    except ValueError:
-        lon = None
-    return country, region, city, lat, lon
-
-
 def _location_key(country: Optional[str], region: Optional[str], city: Optional[str]) -> Optional[str]:
     if not country or not region:
         return None
@@ -199,12 +176,12 @@ def _register_login_event(
     success: bool,
 ) -> None:
     try:
-        ip = _request_ip(request)
+        ip = request_ip(request)
         user_agent = request.headers.get("user-agent", "")
         request_id = request.headers.get("x-request-id") or str(uuid4())
-        country, region, city, lat, lon = _best_effort_geo_from_headers(request)
+        country, region, city, lat, lon, geo_source = best_effort_geo_from_headers(request)
         logger.info(
-            "LOGIN_EVENT about_to_persist email=%s success=%s user_id=%s ip=%s request_id=%s country=%s region=%s city=%s",
+            "LOGIN_EVENT about_to_persist email=%s success=%s user_id=%s ip=%s request_id=%s country=%s region=%s city=%s geo_source=%s",
             email_attempted,
             success,
             user_id,
@@ -213,6 +190,7 @@ def _register_login_event(
             country,
             region,
             city,
+            geo_source,
         )
         session.add(
             LoginEvent(
@@ -254,7 +232,7 @@ def _register_security_event(
     details_json: Optional[dict],
 ) -> None:
     try:
-        ip = _request_ip(request)
+        ip = request_ip(request)
         request_id = request.headers.get("x-request-id") or str(uuid4())
         session.add(
             SecurityEvent(
@@ -278,15 +256,20 @@ def _register_security_event(
 @router.post("/login", response_model=Token)
 async def login(
     request: Request,
-    creds: tuple[str, str] = Depends(_extract_credentials),
+    username: Optional[str] = Form(default=None),
+    password: Optional[str] = Form(default=None),
     session: Session = Depends(get_session),
 ):
-    username, password = creds
-    email_attempted = username.strip().lower()
-    ip = _request_ip(request)
+    if username and password:
+        resolved_username, resolved_password = username, password
+    else:
+        resolved_username, resolved_password = await _extract_credentials(request)
+
+    email_attempted = normalize_email(resolved_username)
+    ip = request_ip(request)
     now = datetime.utcnow()
-    user = session.exec(select(User).where(User.email == email_attempted)).first()
-    is_valid_credentials = bool(user and verify_password(password, user.hashed_password))
+    user = find_user_by_email(session, email_attempted)
+    is_valid_credentials = bool(user and verify_password(resolved_password, user.hashed_password))
 
     if not is_valid_credentials:
         failed_recent_email = _count_recent_failed_attempts_for_email(session, email_attempted, now)
@@ -339,7 +322,7 @@ async def login(
             detail="Invalid credentials",
         )
 
-    country, region, city, _lat, _lon = _best_effort_geo_from_headers(request)
+    country, region, city, _lat, _lon, _geo_source = best_effort_geo_from_headers(request)
     current_location_key = _location_key(country, region, city)
     if ENABLE_LOCATION_GUARD and user and current_location_key:
         window_start = now - timedelta(minutes=SUCCESS_LOCATION_WINDOW_MINUTES)
