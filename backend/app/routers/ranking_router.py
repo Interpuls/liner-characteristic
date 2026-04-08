@@ -14,7 +14,8 @@ def overview_rankings(
         "CLOSURE,FITTING,CONGESTION_RISK,HYPERKERATOSIS_RISK,SPEED,RESPRAY,FLUYDODINAMIC,SLIPPAGE,RINGING_RISK"
     ),
     teat_sizes: str = Query("XS,S,M,L"),
-    limit: int = Query(3, ge=1, le=5),
+    reference_areas: str = Query("Global"),
+    limit: int = Query(5, ge=1, le=5),
     session: Session = Depends(get_session),
     user=Depends(get_current_user),
 ):
@@ -23,5 +24,6 @@ def overview_rankings(
         user=user,
         kpis=kpis,
         teat_sizes=teat_sizes,
+        reference_areas=reference_areas,
         limit=limit,
     )

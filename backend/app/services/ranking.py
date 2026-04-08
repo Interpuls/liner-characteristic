@@ -13,6 +13,19 @@ TEAT_SIZE_MAP = {
     "L": 70,
 }
 
+HIGHER_IS_BETTER_KPIS = {"SPEED", "CONGESTION_RISK", "CLOSURE"}
+REFERENCE_AREAS = {
+    "global": "Global",
+    "north america": "North America",
+    "south america": "South America",
+    "europe": "Europe",
+    "africa": "Africa",
+    "china": "China",
+    "middle east": "Middle East",
+    "far east": "Far East",
+    "oceania": "Oceania",
+}
+
 
 def _size_label(mm: int) -> str:
     rev = {v: k for k, v in TEAT_SIZE_MAP.items()}
@@ -24,16 +37,21 @@ def get_overview_rankings(
     user,
     kpis: str,
     teat_sizes: str,
+    reference_areas: str,
     limit: int,
 ) -> dict:
     kpi_codes = [c.strip().upper() for c in kpis.split(",") if c.strip()]
     size_keys = [s.strip().upper() for s in teat_sizes.split(",") if s.strip()]
     size_mms = [TEAT_SIZE_MAP[s] for s in size_keys if s in TEAT_SIZE_MAP]
+    area_tokens = [s.strip().lower() for s in reference_areas.split(",") if s.strip()]
+    area_values = [REFERENCE_AREAS[s] for s in area_tokens if s in REFERENCE_AREAS]
 
     if not kpi_codes:
         raise HTTPException(status_code=422, detail="kpis cannot be empty")
     if not size_mms:
         raise HTTPException(status_code=422, detail="teat_sizes cannot be empty")
+    if not area_values:
+        raise HTTPException(status_code=422, detail="reference_areas cannot be empty")
 
     kv = KpiValue.__table__
     pa = ProductApplication.__table__
@@ -70,7 +88,11 @@ def get_overview_rankings(
             .over(
                 partition_by=(pa.c.size_mm, latest.c.kpi_code),
                 order_by=(
-                    latest.c.score.desc(),
+                    sa.func.coalesce(latest.c.score, 0).desc(),
+                    sa.case(
+                        (latest.c.kpi_code.in_(HIGHER_IS_BETTER_KPIS), sa.func.coalesce(latest.c.value_num, -1e12)),
+                        else_=-sa.func.coalesce(latest.c.value_num, 1e12),
+                    ).desc(),
                     sa.case(
                         (
                             sa.func.upper(sa.func.coalesce(prod.c.brand, "")) == "MI",
@@ -79,7 +101,6 @@ def get_overview_rankings(
                         else_=1,
                     ).asc(),
                     latest.c.computed_at.desc(),
-                    latest.c.value_num.desc(),
                     prod.c.model.asc(),
                 ),
             )
@@ -98,6 +119,12 @@ def get_overview_rankings(
     role_value = getattr(getattr(user, "role", None), "value", getattr(user, "role", None))
     if role_value != "admin":
         ranking = ranking.where(prod.c.only_admin.is_(False))
+    if "Global" not in area_values:
+        area_matchers = [
+            sa.func.lower(sa.cast(prod.c.reference_areas, sa.String)).like(f'%"{area.lower()}"%')
+            for area in area_values
+        ]
+        ranking = ranking.where(sa.or_(*area_matchers))
 
     ranked = ranking.subquery("ranked")
     query = (
@@ -145,6 +172,7 @@ def get_overview_rankings(
             "limit": limit,
             "kpis": kpi_codes,
             "teat_sizes": size_keys,
+            "reference_areas": area_values,
         },
         "items": items,
     }

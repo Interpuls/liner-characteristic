@@ -115,13 +115,14 @@ export const getOverviewRankings = (
   {
     kpis = "CLOSURE,FITTING,CONGESTION_RISK,HYPERKERATOSIS_RISK,SPEED,RESPRAY,FLUYDODINAMIC,SLIPPAGE,RINGING_RISK",
     teat_sizes = "XS,S,M,L",
-    limit = 3,
+    reference_areas = "Global",
+    limit = 5,
   } = {}
 ) =>
   http(
     `rankings/overview?kpis=${encodeURIComponent(kpis)}&teat_sizes=${encodeURIComponent(
       teat_sizes
-    )}&limit=${encodeURIComponent(limit)}`,
+    )}&reference_areas=${encodeURIComponent(reference_areas)}&limit=${encodeURIComponent(limit)}`,
     { token }
   );
 
