@@ -483,7 +483,7 @@ export default function ProductsSearchPage() {
   const selCount = selSelected.size;
   const exact = selConfig.min === selConfig.max;
   const isValidSel = exact ? (selCount === selConfig.min) : (selCount >= selConfig.min && selCount <= selConfig.max);
-  const selTitle = exact ? `Select exactly ${selConfig.min} products` : `Select ${selConfig.min}-${selConfig.max} products`;
+  const selTitle = selConfig.title || (exact ? `Select exactly ${selConfig.min} products` : `Select ${selConfig.min}-${selConfig.max} products`);
   const openAction = (cfg) => {
     setSelConfig(cfg);
     setSelSelected(new Set());
@@ -633,7 +633,7 @@ export default function ProductsSearchPage() {
             pt={{ base: 4, md: 2 }}
             pb={{ base: 4, md: 2 }}
             minH={{ base: 14, md: 'auto' }}
-            onClick={() => openAction({ title: "Setting Calculator", min: 2, max: 2, route: "/tools/setting-calculator" })}
+            onClick={() => openAction({ title: "Select 1 or 2 products", min: 1, max: 2, route: "/tools/setting-calculator" })}
           >
             <Stack direction={{ base: 'column', md: 'row' }} align="center" spacing={{ base: 1, md: 2 }}>
               <Box as={TbArrowsRightLeft} boxSize={{ base: 6, md: 5 }} color="blue.500" />

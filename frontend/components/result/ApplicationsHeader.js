@@ -1,9 +1,14 @@
-import { HStack, Heading, Tag, TagLabel, Menu, MenuButton, MenuList, MenuItem, MenuDivider, IconButton, Tooltip } from "@chakra-ui/react";
+import { HStack, Heading, Tag, TagLabel, Menu, MenuButton, MenuList, MenuItem, MenuDivider, Button, Tooltip, Text } from "@chakra-ui/react";
 import { ArrowUpDownIcon } from "@chakra-ui/icons";
 
 const KPI_ORDER = [
   'CLOSURE','FITTING','CONGESTION_RISK','HYPERKERATOSIS_RISK','SPEED','RESPRAY','FLUYDODINAMIC','SLIPPAGE','RINGING_RISK'
 ];
+
+function formatKpiLabel(code) {
+  if (!code) return "";
+  return String(code).replaceAll("_", " ");
+}
 
 export default function ApplicationsHeader({ total = 0, sortKpi, sortDir = 'desc', sortingBusy = false, onSelectSortKpi, onToggleDir }) {
   return (
@@ -12,7 +17,26 @@ export default function ApplicationsHeader({ total = 0, sortKpi, sortDir = 'desc
       <HStack gap={2}>
         <Menu>
           <Tooltip label={sortKpi ? `Sorting by ${sortKpi} (${sortDir})` : "Sort by KPI"} hasArrow>
-            <MenuButton as={IconButton} size="sm" icon={<ArrowUpDownIcon />} aria-label="Sort" variant="outline" isLoading={sortingBusy} />
+            <MenuButton
+              as={Button}
+              size="sm"
+              leftIcon={<ArrowUpDownIcon />}
+              aria-label="Sort"
+              variant="outline"
+              isLoading={sortingBusy}
+              px={2}
+              borderColor={sortKpi ? "blue.500" : "gray.200"}
+              color={sortKpi ? "blue.600" : "inherit"}
+              _hover={{
+                borderColor: sortKpi ? "blue.500" : "gray.300",
+              }}
+            >
+              {sortKpi ? (
+                <Text fontSize="xs" maxW={{ base: "120px", md: "170px" }} noOfLines={1}>
+                  {formatKpiLabel(sortKpi)}
+                </Text>
+              ) : null}
+            </MenuButton>
           </Tooltip>
           <MenuList>
             <MenuItem onClick={() => onSelectSortKpi && onSelectSortKpi(null)}>Clear sort</MenuItem>
