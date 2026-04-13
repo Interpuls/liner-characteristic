@@ -254,3 +254,15 @@ export const upsertSmtHoodPoints = (token, runId, points) =>
 // ---------------------------- SETTING CALCULATOR ----------------------------
 export const compareSettingCalculator = (token, body) =>
   http(`api/v1/setting-calculator/compare`, { method: "POST", token, body });
+
+export const listSettingComparisonPrefs = (token) =>
+  http("api/v1/setting-calculator/preferences", { token });
+
+export const saveSettingComparisonPref = (token, name, payload) =>
+  http("api/v1/setting-calculator/preferences", { method: "POST", token, body: { name, payload } });
+
+export const deleteSettingComparisonPrefById = (token, prefId) =>
+  http(`api/v1/setting-calculator/preferences/${prefId}`, { method: "DELETE", token });
+
+export const deleteSettingComparisonPrefByName = (token, name) =>
+  http(`api/v1/setting-calculator/preferences?name=${encodeURIComponent(name)}`, { method: "DELETE", token });

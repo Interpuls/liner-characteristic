@@ -10,6 +10,7 @@ import {
   CardBody,
   Heading,
   HStack,
+  IconButton,
   Input,
   Modal,
   ModalBody,
@@ -20,19 +21,26 @@ import {
   ModalOverlay,
   Spinner,
   Text,
+  useToast,
   VStack,
 } from "@chakra-ui/react";
+import { DeleteIcon } from "@chakra-ui/icons";
 import AppHeader from "../../components/AppHeader";
 import AppFooter from "../../components/AppFooter";
 import InputsComparisonTable from "../../components/setting-calculator/InputsComparisonTable";
+import FancySelect from "../../components/ui/FancySelect";
 import { getToken } from "../../lib/auth";
 import {
   compareSettingCalculator,
+  deleteSettingComparisonPrefById,
+  deleteSettingComparisonPrefByName,
   getMe,
   getProduct,
+  listSettingComparisonPrefs,
   listProductApplications,
   listProductApplicationsBatchByProducts,
   listProducts,
+  saveSettingComparisonPref,
 } from "../../lib/api";
 import {
   SETTING_INPUT_FIELDS,
@@ -74,6 +82,7 @@ async function fetchAllProductsForPicker(token) {
 
 export default function SettingCalculatorPage() {
   const router = useRouter();
+  const toast = useToast();
   const { app_ids, ids, keys, from } = router.query;
   const selectedIdsRaw = useMemo(() => {
     const v = typeof app_ids === "string" && app_ids ? app_ids : (typeof ids === "string" ? ids : "");
@@ -113,6 +122,12 @@ export default function SettingCalculatorPage() {
   const [pickerSearch, setPickerSearch] = useState("");
   const [pickerOptions, setPickerOptions] = useState([]);
   const [pickerSelectedKey, setPickerSelectedKey] = useState("");
+  const [savedPrefs, setSavedPrefs] = useState([]);
+  const [selectedPrefId, setSelectedPrefId] = useState("");
+  const [savePrefOpen, setSavePrefOpen] = useState(false);
+  const [savePrefName, setSavePrefName] = useState("");
+  const [savingPref, setSavingPref] = useState(false);
+  const [deletingPref, setDeletingPref] = useState(false);
 
   const inputFields = useMemo(() => getSettingInputFields(unitSystem), [unitSystem]);
 
@@ -143,6 +158,10 @@ export default function SettingCalculatorPage() {
       } catch {
         // global 401 handler in http.js will redirect if needed
       }
+      try {
+        const prefs = await listSettingComparisonPrefs(token);
+        setSavedPrefs(Array.isArray(prefs) ? prefs : []);
+      } catch {}
 
       if (selectedIds.length !== 2 && selectedKeys.length !== 2) {
         setGlobalError("Setting Calculator requires 1 or 2 products selected.");
@@ -216,6 +235,97 @@ export default function SettingCalculatorPage() {
 
     run();
   }, [router.isReady, selectedIds, selectedKeys]);
+
+  useEffect(() => {
+    if (!selectedPrefId) return;
+    const pref = savedPrefs.find((p) => String(p.id) === String(selectedPrefId));
+    if (!pref?.payload) return;
+    const payload = pref.payload;
+
+    if (payload?.leftProduct) {
+      setSelection((prev) => ({ ...prev, left: payload.leftProduct }));
+    }
+    if (payload?.rightProduct) {
+      setSelection((prev) => ({ ...prev, right: payload.rightProduct }));
+    }
+    if (payload?.leftInputs) {
+      setLeftInputs((prev) => ({ ...prev, ...payload.leftInputs }));
+    }
+    if (payload?.rightInputs) {
+      setRightInputs((prev) => ({ ...prev, ...payload.rightInputs }));
+    }
+    setGlobalError("");
+    setBackendSummary("");
+    setBackendErrors(emptySideErrors());
+    setFeErrors(emptySideErrors());
+    setTouched(emptySideErrors());
+    setHasSubmitted(false);
+  }, [selectedPrefId, savedPrefs]);
+
+  const saveCurrentComparison = async () => {
+    const token = getToken();
+    if (!token) {
+      window.location.replace("/login");
+      return;
+    }
+    const name = (savePrefName || "").trim();
+    if (!name) {
+      toast({ status: "warning", title: "Insert a name" });
+      return;
+    }
+    const payload = {
+      leftProduct: selection.left,
+      rightProduct: selection.right,
+      leftInputs,
+      rightInputs,
+      unitSystem,
+    };
+    setSavingPref(true);
+    try {
+      const saved = await saveSettingComparisonPref(token, name, payload);
+      const fresh = await listSettingComparisonPrefs(token);
+      setSavedPrefs(Array.isArray(fresh) ? fresh : []);
+      if (saved?.id != null) setSelectedPrefId(String(saved.id));
+      setSavePrefOpen(false);
+      setSavePrefName("");
+      toast({ status: "success", title: "Comparison saved" });
+    } catch (e) {
+      toast({ status: "error", title: e?.message || "Unable to save comparison" });
+    } finally {
+      setSavingPref(false);
+    }
+  };
+
+  const deleteSelectedComparison = async () => {
+    if (!selectedPrefId) return;
+    const token = getToken();
+    if (!token) {
+      window.location.replace("/login");
+      return;
+    }
+    const pref = savedPrefs.find((p) => String(p.id) === String(selectedPrefId));
+    if (!pref) return;
+    setDeletingPref(true);
+    try {
+      try {
+        await deleteSettingComparisonPrefById(token, pref.id);
+      } catch (err) {
+        if (pref.name && err?.status === 404) {
+          await deleteSettingComparisonPrefByName(token, pref.name);
+        } else {
+          throw err;
+        }
+      }
+      const fresh = await listSettingComparisonPrefs(token);
+      setSavedPrefs(Array.isArray(fresh) ? fresh : []);
+      setSelectedPrefId("");
+      toast({ status: "success", title: "Comparison deleted" });
+    } catch (e) {
+      toast({ status: "error", title: e?.message || "Unable to delete comparison" });
+    } finally {
+      setDeletingPref(false);
+    }
+  };
 
   const filteredPickerOptions = useMemo(() => {
     const q = (pickerSearch || "").trim().toLowerCase();
@@ -447,6 +557,34 @@ export default function SettingCalculatorPage() {
             Insert the parameters for the two selected products, then confirm to generate the comparative charts.
           </Text>
 
+          <HStack spacing={2} align="center">
+            <FancySelect
+              options={(savedPrefs || []).map((p) => ({ label: p.name, value: String(p.id) }))}
+              value={selectedPrefId}
+              onChange={setSelectedPrefId}
+              placeholder="Saved comparison"
+              size="sm"
+              w={{ base: "100%", md: "320px" }}
+            />
+            <Button size="sm" colorScheme="blue" variant="outline" onClick={() => {
+              const current = savedPrefs.find((p) => String(p.id) === String(selectedPrefId));
+              setSavePrefName(current?.name || "");
+              setSavePrefOpen(true);
+            }}>
+              Save
+            </Button>
+            <IconButton
+              aria-label="Delete selected comparison"
+              icon={<DeleteIcon />}
+              size="sm"
+              variant="ghost"
+              colorScheme="red"
+              onClick={deleteSelectedComparison}
+              isLoading={deletingPref}
+              isDisabled={!selectedPrefId}
+            />
+          </HStack>
+
           {globalError ? (
             <Alert status="error" borderRadius="md">
               <AlertIcon />
@@ -556,6 +694,31 @@ export default function SettingCalculatorPage() {
               <Button variant="ghost" onClick={() => setPickerOpen(false)}>Cancel</Button>
               <Button colorScheme="blue" onClick={confirmPickerSelection} isDisabled={!pickerSelectedKey}>
                 Confirm
+              </Button>
+            </HStack>
+          </ModalFooter>
+        </ModalContent>
+      </Modal>
+
+      <Modal isOpen={savePrefOpen} onClose={() => setSavePrefOpen(false)} isCentered>
+        <ModalOverlay />
+        <ModalContent>
+          <ModalHeader>Save comparison</ModalHeader>
+          <ModalCloseButton />
+          <ModalBody>
+            <Input
+              placeholder="Comparison name"
+              value={savePrefName}
+              onChange={(e) => setSavePrefName(e.target.value)}
+            />
+          </ModalBody>
+          <ModalFooter>
+            <HStack w="full" justify="space-between">
+              <Button variant="ghost" onClick={() => setSavePrefOpen(false)} isDisabled={savingPref}>
+                Cancel
+              </Button>
+              <Button colorScheme="blue" onClick={saveCurrentComparison} isLoading={savingPref}>
+                Save
               </Button>
             </HStack>
           </ModalFooter>
