@@ -68,6 +68,8 @@ export default function InputsComparisonTable({
   onChangeRight,
   onBlurLeft,
   onBlurRight,
+  onPickLeft,
+  onPickRight,
 }) {
   const leftTitle = leftProduct?.label || "Left Product";
   const rightTitle = rightProduct?.label || "Right Product";
@@ -98,11 +100,37 @@ export default function InputsComparisonTable({
       <Box>
         <HStack align="start" justify="space-between" mb={4} spacing={3}>
           <Box flex="1" borderWidth="1px" borderColor="gray.200" borderRadius="md" bg="white" p={2}>
-            <Heading size="sm">{leftTitle}</Heading>
+            <HStack justify="space-between" align="center">
+              <Heading size="sm">{leftTitle}</Heading>
+              {onPickLeft ? (
+                <Text
+                  as="button"
+                  type="button"
+                  fontSize="xs"
+                  color="blue.600"
+                  onClick={onPickLeft}
+                >
+                  Change
+                </Text>
+              ) : null}
+            </HStack>
             {leftMeta ? <Text fontSize="xs" color="gray.600">{leftMeta}</Text> : null}
           </Box>
           <Box flex="1" borderWidth="1px" borderColor="blue.200" borderRadius="md" bg="blue.50" p={2}>
-            <Heading size="sm" textAlign="right">{rightTitle}</Heading>
+            <HStack justify="space-between" align="center">
+              {onPickRight ? (
+                <Text
+                  as="button"
+                  type="button"
+                  fontSize="xs"
+                  color="blue.600"
+                  onClick={onPickRight}
+                >
+                  Change
+                </Text>
+              ) : <Box />}
+              <Heading size="sm" textAlign="right">{rightTitle}</Heading>
+            </HStack>
             {rightMeta ? <Text fontSize="xs" color="blue.700" textAlign="right">{rightMeta}</Text> : null}
           </Box>
         </HStack>
@@ -178,11 +206,37 @@ export default function InputsComparisonTable({
       <Grid templateColumns="1.1fr 1fr 1fr" gapX={6} gapY={6} alignItems="start">
         <Box />
         <Box borderWidth="1px" borderColor="gray.200" borderRadius="md" bg="white" p={2} mr={{ base: 0, md: 2 }}>
-          <Heading size="sm">{leftTitle}</Heading>
+          <HStack justify="space-between" align="center">
+            <Heading size="sm">{leftTitle}</Heading>
+            {onPickLeft ? (
+              <Text
+                as="button"
+                type="button"
+                fontSize="xs"
+                color="blue.600"
+                onClick={onPickLeft}
+              >
+                Change
+              </Text>
+            ) : null}
+          </HStack>
           {leftMeta ? <Text fontSize="xs" color="gray.600">{leftMeta}</Text> : null}
         </Box>
         <Box borderWidth="1px" borderColor="blue.200" borderRadius="md" bg="blue.50" p={2} ml={{ base: 0, md: 2 }}>
-          <Heading size="sm">{rightTitle}</Heading>
+          <HStack justify="space-between" align="center">
+            <Heading size="sm">{rightTitle}</Heading>
+            {onPickRight ? (
+              <Text
+                as="button"
+                type="button"
+                fontSize="xs"
+                color="blue.600"
+                onClick={onPickRight}
+              >
+                Change
+              </Text>
+            ) : null}
+          </HStack>
           {rightMeta ? <Text fontSize="xs" color="blue.700">{rightMeta}</Text> : null}
         </Box>
 

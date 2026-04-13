@@ -46,13 +46,32 @@ export default function SettingCalculatorChartsPage() {
   const buildBackToInputsHref = useCallback(() => {
     const leftAppId = Number(runData?.payload?.left?.productApplicationId);
     const rightAppId = Number(runData?.payload?.right?.productApplicationId);
+    const leftKey = String(runData?.leftProduct?.key || "").trim();
+    const rightKey = String(runData?.rightProduct?.key || "").trim();
     const hasAppIds = Number.isFinite(leftAppId) && Number.isFinite(rightAppId);
-    const withAppIds = hasAppIds ? `/tools/setting-calculator?app_ids=${leftAppId},${rightAppId}` : "/tools/setting-calculator";
+    const hasKeys = !!leftKey && !!rightKey;
+
+    const params = new URLSearchParams();
+    if (hasAppIds) params.set("app_ids", `${leftAppId},${rightAppId}`);
+    if (hasKeys) params.set("keys", `${leftKey},${rightKey}`);
+    const withCurrentSelection = `/tools/setting-calculator${params.toString() ? `?${params.toString()}` : ""}`;
 
     // Guard against malformed or recursive "from" values in production.
-    if (!baseBackHref || !baseBackHref.startsWith("/tools/setting-calculator")) return withAppIds;
-    if (baseBackHref.startsWith("/tools/setting-calculator-charts")) return withAppIds;
-    return baseBackHref;
+    if (!baseBackHref || !baseBackHref.startsWith("/tools/setting-calculator")) return withCurrentSelection;
+    if (baseBackHref.startsWith("/tools/setting-calculator-charts")) return withCurrentSelection;
+
+    try {
+      const [path, query = ""] = String(baseBackHref).split("?");
+      const merged = new URLSearchParams(query);
+      merged.delete("ids");
+      merged.delete("app_ids");
+      merged.delete("keys");
+      if (hasAppIds) merged.set("app_ids", `${leftAppId},${rightAppId}`);
+      if (hasKeys) merged.set("keys", `${leftKey},${rightKey}`);
+      return `${path}${merged.toString() ? `?${merged.toString()}` : ""}`;
+    } catch {
+      return withCurrentSelection;
+    }
   }, [baseBackHref, runData]);
 
   const handleBackToInputs = async () => {
