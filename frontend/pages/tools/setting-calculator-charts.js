@@ -74,8 +74,7 @@ export default function SettingCalculatorChartsPage() {
     }
   }, [baseBackHref, runData]);
 
-  const handleBackToInputs = async () => {
-    const targetHref = buildBackToInputsHref();
+  const persistDraftInputs = useCallback(() => {
     try {
       if (typeof window !== "undefined" && runData?.payload) {
         sessionStorage.setItem(
@@ -86,7 +85,14 @@ export default function SettingCalculatorChartsPage() {
           })
         );
       }
-    } catch {}
+    } catch {
+      // Ignore storage errors.
+    }
+  }, [runData]);
+
+  const handleBackToInputs = async () => {
+    const targetHref = buildBackToInputsHref();
+    persistDraftInputs();
 
     // Use a hard navigation to avoid intermittent Next data-route stalls
     // observed on mobile/prod when going back from charts to inputs.
@@ -102,6 +108,7 @@ export default function SettingCalculatorChartsPage() {
     // hard-navigation path used by the app back button.
     router.beforePopState(() => {
       if (typeof window !== "undefined") {
+        persistDraftInputs();
         window.location.assign(buildBackToInputsHref());
       }
       return false;

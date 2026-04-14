@@ -4,6 +4,7 @@ import { useRouter } from "next/router";
 import { Box, Heading, HStack, Spinner, Text, VStack, Badge, Select, Center, Checkbox, Stack } from "@chakra-ui/react";
 import { FiAward, FiBarChart2 } from "react-icons/fi";
 import { getOverviewRankings } from "../../lib/api";
+import { formatKpiLabel } from "../../lib/kpi";
 
 const REFERENCE_AREAS = [
   "Global",
@@ -100,11 +101,10 @@ function RankingsCarousel({ teatSize, kpis = [], fromPath }) {
               <HStack spacing={2}>
                 <Box as={FiAward} color="blue.200" />
                 <Text fontWeight="bold" color="white" fontSize="sm">
-                  {kpi.kpi_code}
+                  {formatKpiLabel(kpi.kpi_code)}
                 </Text>
               </HStack>
             </HStack>
-
             <VStack align="stretch" spacing={2} px={3} py={3}>
               {(kpi.top || []).map((item) => (
                 <RankingRow

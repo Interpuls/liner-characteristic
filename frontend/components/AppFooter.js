@@ -1,5 +1,6 @@
 // components/AppFooter.js
-import { Box, Text } from "@chakra-ui/react";
+import { Box, Text, HStack, Link } from "@chakra-ui/react";
+import NextLink from "next/link";
 
 export default function AppFooter({
   appName = "Liner Characteristic App",
@@ -20,6 +21,14 @@ export default function AppFooter({
         <Text fontSize="sm" color="gray.600">
           © {year} {appName} · {version} · All rights reserved.
         </Text>
+        <HStack justify="center" spacing={4} mt={2}>
+          <Link as={NextLink} href="/privacy" color="blue.500">
+            Privacy Policy
+          </Link>
+          <Link as={NextLink} href="/terms" color="blue.500">
+            Terms & Conditions
+          </Link>
+        </HStack>
       </Box>
     </Box>
   );
