@@ -1,14 +1,6 @@
 import { HStack, Heading, Tag, TagLabel, Menu, MenuButton, MenuList, MenuItem, MenuDivider, Button, Tooltip, Text } from "@chakra-ui/react";
 import { ArrowUpDownIcon } from "@chakra-ui/icons";
-
-const KPI_ORDER = [
-  'CLOSURE','FITTING','CONGESTION_RISK','HYPERKERATOSIS_RISK','SPEED','RESPRAY','FLUYDODINAMIC','SLIPPAGE','RINGING_RISK'
-];
-
-function formatKpiLabel(code) {
-  if (!code) return "";
-  return String(code).replaceAll("_", " ");
-}
+import { KPI_ORDER, formatKpiLabel } from "../../lib/kpi";
 
 export default function ApplicationsHeader({ total = 0, sortKpi, sortDir = 'desc', sortingBusy = false, onSelectSortKpi, onToggleDir }) {
   return (
@@ -16,7 +8,7 @@ export default function ApplicationsHeader({ total = 0, sortKpi, sortDir = 'desc
       <Heading size="lg" color="#12305f">Liners</Heading>
       <HStack gap={2}>
         <Menu>
-          <Tooltip label={sortKpi ? `Sorting by ${sortKpi} (${sortDir})` : "Sort by KPI"} hasArrow>
+          <Tooltip label={sortKpi ? `Sorting by ${formatKpiLabel(sortKpi)} (${sortDir})` : "Sort by KPI"} hasArrow>
             <MenuButton
               as={Button}
               size="sm"
@@ -43,7 +35,7 @@ export default function ApplicationsHeader({ total = 0, sortKpi, sortDir = 'desc
             <MenuItem onClick={() => onToggleDir && onToggleDir()}>Direction: {sortDir === 'asc' ? 'Ascending' : 'Descending'}</MenuItem>
             <MenuDivider />
             {KPI_ORDER.map(code => (
-              <MenuItem key={code} onClick={() => onSelectSortKpi && onSelectSortKpi(code)}>{code}</MenuItem>
+              <MenuItem key={code} onClick={() => onSelectSortKpi && onSelectSortKpi(code)}>{formatKpiLabel(code)}</MenuItem>
             ))}
           </MenuList>
         </Menu>
