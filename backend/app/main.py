@@ -75,6 +75,7 @@ apply_cors(app)
 
 @app.middleware("http")
 async def log_requests(request: Request, call_next):
+    print(f"Request received: {request.method} {request.url.path}", flush=True)
     # Generate or propagate a request id
     request_id = request.headers.get("x-request-id") or str(uuid.uuid4())
     # Track context for logging (reset on exit)

@@ -1,11 +1,19 @@
+import logging
+
 from fastapi import APIRouter, Depends, HTTPException
-from sqlmodel import Session, select
+from sqlmodel import Session, select, delete
 from typing import List
 from app.services.conversion_wrapper import convert_output
 
 from app.db import get_session
 from app.auth import get_current_user, require_role, create_access_token, verify_password, hash_password
 from app.model.user import User, UserRole
+from app.model.login_event import LoginEvent
+from app.model.security_event import SecurityEvent
+from app.model.audit_log import AuditLog
+from app.model.access_log import AccessLog
+from app.model.setting_comparison_preference import SettingComparisonPreference
+from app.model.search import SearchPreference
 from app.schema.user import (
     UserRead,
     UserUpdate,
@@ -15,6 +23,7 @@ from app.schema.user import (
 )
 
 router = APIRouter()
+logger = logging.getLogger("liner-backend")
 
 
 # -------------------- USERS ROUTES --------------------
@@ -141,6 +150,36 @@ def delete_user(
     user = session.get(User, user_id)
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
-    session.delete(user)
-    session.commit()
+
+    try:
+        # Remove all user-owned records first to avoid foreign-key constraint failures
+        logger.info(f"Deleting related records for user_id={user_id}")
+        
+        deleted = session.exec(delete(LoginEvent).where(LoginEvent.user_id == user_id)).rowcount
+        logger.debug(f"Deleted {deleted} LoginEvent records")
+        
+        deleted = session.exec(delete(SecurityEvent).where(SecurityEvent.user_id == user_id)).rowcount
+        logger.debug(f"Deleted {deleted} SecurityEvent records")
+        
+        deleted = session.exec(delete(AuditLog).where(AuditLog.user_id == user_id)).rowcount
+        logger.debug(f"Deleted {deleted} AuditLog records")
+        
+        deleted = session.exec(delete(AccessLog).where(AccessLog.user_id == user_id)).rowcount
+        logger.debug(f"Deleted {deleted} AccessLog records")
+        
+        deleted = session.exec(delete(SettingComparisonPreference).where(SettingComparisonPreference.user_id == user_id)).rowcount
+        logger.debug(f"Deleted {deleted} SettingComparisonPreference records")
+        
+        deleted = session.exec(delete(SearchPreference).where(SearchPreference.user_id == user_id)).rowcount
+        logger.debug(f"Deleted {deleted} SearchPreference records")
+
+        logger.info(f"Deleting user with id={user_id}")
+        session.delete(user)
+        session.commit()
+        logger.info(f"Successfully deleted user with id={user_id}")
+    except Exception as exc:
+        session.rollback()
+        print(f"Exception in delete_user for user_id={user_id}: {str(exc)}", flush=True)
+        logger.exception(f"delete_user failed for user_id={user_id}: {str(exc)}")
+        raise HTTPException(status_code=500, detail=f"Failed to delete user: {str(exc)}") from exc
     return None
