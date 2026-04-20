@@ -21,6 +21,14 @@ export const updateUserUnitSystem = (token, userId, unit_system) =>
 export const changeMyPassword = (token, current_password, new_password) =>
   http("users/me/password", { method: "PUT", token, body: { current_password, new_password } });
 
+export const listUsers = (token) => http("users", { token });
+export const createUser = (token, body) =>
+  http("auth/register", { method: "POST", token, body });
+export const deleteUser = (token, userId) =>
+  http(`users/${userId}`, { method: "DELETE", token });
+export const resetUserPassword = (token, userId, newPassword) =>
+  http(`users/${userId}/password-reset`, { method: "PUT", token, body: { new_password: newPassword } });
+
 // ---------------------------- NEWS ----------------------------
 export const listNews = (token) => http("news", { token });
 

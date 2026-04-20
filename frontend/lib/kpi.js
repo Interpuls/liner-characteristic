@@ -17,11 +17,11 @@ export const KPI_LABELS = {
   FITTING: "Better Fitting",
   CONGESTION_RISK: "Low Congestion",
   HYPERKERATOSIS_RISK: "Low Hyperkeratosis",
-  SPEED: "High speed",
-  RESPRAY: "Low respray",
-  FLUYDODINAMIC: "Better fluidodinamic",
-  SLIPPAGE: "Low slippage",
-  RINGING_RISK: "Low ringing risk",
+  SPEED: "High Speed",
+  RESPRAY: "Low Respray",
+  FLUYDODINAMIC: "Better Fluidodinamic",
+  SLIPPAGE: "Low Slippage",
+  RINGING_RISK: "Low Ringing Risk",
 };
 
 export function formatKpiLabel(code) {

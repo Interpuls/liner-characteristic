@@ -15,7 +15,7 @@ import { getToken, clearToken, setToken } from "../lib/auth";
 import { getMe, updateUserUnitSystem } from "../lib/api";
 import NewsSection from "../components/home/NewsSection";
 import RankingsSection from "../components/home/RankingsSection";
-import { FiSearch, FiSettings, FiBarChart2, FiLogOut, FiPackage, FiKey } from "react-icons/fi";
+import { FiSearch, FiSettings, FiBarChart2, FiLogOut, FiPackage, FiKey, FiUsers } from "react-icons/fi";
 import { LuFlaskConical } from "react-icons/lu";
 import { RxHamburgerMenu } from "react-icons/rx";
 import AppHeader from "../components/AppHeader";
@@ -131,6 +131,7 @@ export default function Home() {
         <Button as={NextLink} href="/admin/product" size="sm" variant="ghost" color="whiteAlpha.900" _hover={{ bg: "whiteAlpha.200" }}>Manage Product</Button>
         <Button as={NextLink} href="/admin/tests" size="sm" variant="ghost" color="whiteAlpha.900" _hover={{ bg: "whiteAlpha.200" }}>Test Campaign</Button>
         <Button as={NextLink} href="/admin/kpis" size="sm" variant="ghost" color="whiteAlpha.900" _hover={{ bg: "whiteAlpha.200" }}>KPI Scales</Button>
+        <Button as={NextLink} href="/admin/users" size="sm" variant="ghost" color="whiteAlpha.900" _hover={{ bg: "whiteAlpha.200" }}>Manage Users</Button>
       </Hide>
     </HStack>
   );
@@ -309,6 +310,9 @@ export default function Home() {
                       </Button>
                       <Button as={NextLink} href="/admin/kpis" variant="ghost" color="gray.200" justifyContent="flex-start" leftIcon={<FiBarChart2 />} onClick={menuCtrl.onClose}>
                         KPI Scales
+                      </Button>
+                      <Button as={NextLink} href="/admin/users" variant="ghost" color="gray.200" justifyContent="flex-start" leftIcon={<FiUsers />} onClick={menuCtrl.onClose}>
+                        Manage Users
                       </Button>
                     </>
                   )}

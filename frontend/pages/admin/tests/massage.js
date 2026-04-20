@@ -98,19 +98,70 @@ function MassageCard({ token, application }) {
     });
   }, [inputs]);
 
+  const canSave = useMemo(() => {
+    return PRESSURES.some(k => {
+      const v = inputs[k];
+      return v && v.min_val !== "" && v.max_val !== "";
+    });
+  }, [inputs]);
+
+  const collectPoints = () => {
+    return PRESSURES.reduce((acc, k) => {
+      const v = inputs[k];
+      if (v && v.min_val !== "" && v.max_val !== "") {
+        acc.push({
+          pressure_kpa: k,
+          min_val: Number(v.min_val),
+          max_val: Number(v.max_val),
+        });
+      }
+      return acc;
+    }, []);
+  };
+
   const onChange = (kpa, field, val) => {
     setInputs(prev => ({ ...prev, [kpa]: { ...prev[kpa], [field]: val } }));
   };
 
-  const onSaveAndCompute = async () => {
-    if (!token || !canCompute) return;
+  const onSaveOnly = async () => {
+    if (!token || !canSave) {
+      toast({ title: "Compila almeno un livello completo", status: "warning" });
+      return;
+    }
     setSaving(true);
     try {
-      const points = PRESSURES.map(k => ({
-        pressure_kpa: k,
-        min_val: Number(inputs[k].min_val),
-        max_val: Number(inputs[k].max_val),
-      }));
+      const points = collectPoints();
+      let currentRunId = runId;
+
+      if (currentRunId) {
+        await updateMassagePoints(token, currentRunId, points);
+      } else {
+        const run = await createMassageRun(token, {
+          product_application_id: application.id,
+          points,
+          notes: "from UI",
+        });
+        currentRunId = run.id;
+        setRunId(run.id);
+      }
+
+      toast({ title: "Saved", status: "success" });
+    } catch (e) {
+      const msg = e?.message || "Errore salvataggio";
+      toast({ title: `Errore: ${msg}`, status: "error" });
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const onSaveAndCompute = async () => {
+    if (!token || !canCompute) {
+      toast({ title: "Serve completare i tre livelli per il compute", status: "warning" });
+      return;
+    }
+    setSaving(true);
+    try {
+      const points = collectPoints();
 
       let currentRunId = runId;
 
@@ -187,7 +238,16 @@ function MassageCard({ token, application }) {
             </Box>
           ))}
 
-          <HStack justify="flex-end">
+          <HStack justify="flex-end" spacing={2}>
+            <Button
+              variant="outline"
+              colorScheme={MASSAGE_COLOR}
+              onClick={onSaveOnly}
+              isDisabled={!canSave || saving}
+              isLoading={saving}
+            >
+              Save
+            </Button>
             <Button
               leftIcon={<FaCalculator />}
               colorScheme={MASSAGE_COLOR}
