@@ -41,6 +41,13 @@ export default function MassageTab({ selected = [], selectedKeys = [] }) {
   const isWide = useBreakpointValue({ base: false, lg: true });
   const unitLabel = unitSystem === "imperial" ? "inHg" : "kPa";
   const displayValue = (kpa) => (unitSystem === "imperial" ? kpaToInhg(kpa) : kpa);
+  const formatReferencePressure = (kpa) => {
+    const value = displayValue(kpa);
+    if (!Number.isFinite(value)) return `${kpa} kPa`;
+    return unitSystem === "imperial" ? `${value.toFixed(2)} ${unitLabel}` : `${Number(kpa)} ${unitLabel}`;
+  };
+  const overmilkReferenceLabel = formatReferencePressure(45);
+  const pfReferenceLabel = formatReferencePressure(35);
   const maxCount = Math.max(bars.length, omBars.length, pfBars.length);
   const compactLayout = !!isWide && maxCount > 0 && maxCount <= 3;
   const chartDirection = compactLayout ? "row" : "column";
@@ -215,7 +222,7 @@ export default function MassageTab({ selected = [], selectedKeys = [] }) {
         </Box>
 
         <Box flex="1" minW={0}>
-          <Text fontWeight="semibold">{`Massage Intensity - Overmilk (${unitLabel})`}</Text>
+          <Text fontWeight="semibold">{`Massage Intensity - Overmilk (${overmilkReferenceLabel})`}</Text>
           <Text fontSize="sm" color="gray.500" mb={1}>Derived from min/max points at 45/40/35 kPa.</Text>
           {loading ? (
             <HStack spacing={3} color="gray.600">
@@ -248,7 +255,7 @@ export default function MassageTab({ selected = [], selectedKeys = [] }) {
         </Box>
 
         <Box flex="1" minW={0}>
-          <Text fontWeight="semibold">{`Massage Intensity - PF (${unitLabel})`}</Text>
+          <Text fontWeight="semibold">{`Massage Intensity - PF (${pfReferenceLabel})`}</Text>
           <Text fontSize="sm" color="gray.500" mb={1}>Derived from min/max points at 45/40/35 kPa.</Text>
           {loading ? (
             <HStack spacing={3} color="gray.600">

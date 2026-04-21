@@ -63,6 +63,17 @@ function withTimeout(promise, ms = 7000) {
   ]);
 }
 
+function createEmptyProductSelection() {
+  return {
+    appId: null,
+    key: "",
+    label: "Choose Product",
+    brand: "",
+    sizeLabel: "-",
+    subtitle: "",
+  };
+}
+
 async function fetchAllProductsForPicker(token) {
   const PAGE_LIMIT = 500;
   const MAX_PAGES = 20; // safeguard
@@ -164,7 +175,10 @@ export default function SettingCalculatorPage() {
       } catch {}
 
       if (selectedIds.length !== 2 && selectedKeys.length !== 2) {
-        setGlobalError("Setting Calculator requires 1 or 2 products selected.");
+        setSelection({
+          left: createEmptyProductSelection(),
+          right: createEmptyProductSelection(),
+        });
         setLoadingSelection(false);
         return;
       }
@@ -225,8 +239,8 @@ export default function SettingCalculatorPage() {
       } catch (e) {
         setGlobalError(e?.message || "Error during the loading of selected products.");
         setSelection({
-          left: { appId: null, key: "", label: "Product 1", brand: "Brand", sizeLabel: "-", subtitle: "Application not resolved" },
-          right: { appId: null, key: "", label: "Product 2", brand: "Brand", sizeLabel: "-", subtitle: "Application not resolved" },
+          left: createEmptyProductSelection(),
+          right: createEmptyProductSelection(),
         });
       } finally {
         setLoadingSelection(false);
@@ -566,13 +580,6 @@ export default function SettingCalculatorPage() {
               size="sm"
               w={{ base: "100%", md: "320px" }}
             />
-            <Button size="sm" colorScheme="blue" variant="outline" onClick={() => {
-              const current = savedPrefs.find((p) => String(p.id) === String(selectedPrefId));
-              setSavePrefName(current?.name || "");
-              setSavePrefOpen(true);
-            }}>
-              Save
-            </Button>
             <IconButton
               aria-label="Delete selected comparison"
               icon={<DeleteIcon />}
@@ -633,7 +640,17 @@ export default function SettingCalculatorPage() {
             </CardBody>
           </Card>
 
-          <HStack justify="flex-end" mb={{ base: 4, md: 0 }}>
+          <HStack justify="center" spacing={3} mb={{ base: 8, md: 10 }}>
+            <Button
+              variant="outline"
+              onClick={() => {
+                const current = savedPrefs.find((p) => String(p.id) === String(selectedPrefId));
+                setSavePrefName(current?.name || "");
+                setSavePrefOpen(true);
+              }}
+            >
+              Save
+            </Button>
             <Button
               colorScheme="blue"
               onClick={handleConfirm}

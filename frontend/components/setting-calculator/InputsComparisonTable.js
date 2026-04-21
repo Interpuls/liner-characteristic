@@ -71,8 +71,8 @@ export default function InputsComparisonTable({
   onPickLeft,
   onPickRight,
 }) {
-  const leftTitle = leftProduct?.label || "Left Product";
-  const rightTitle = rightProduct?.label || "Right Product";
+  const leftTitle = leftProduct?.label || "Choose Product";
+  const rightTitle = rightProduct?.label || "Choose Product";
 
   const mergedLeftErrors = Object.fromEntries(
     fields.map((f) => [

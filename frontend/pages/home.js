@@ -18,6 +18,7 @@ import RankingsSection from "../components/home/RankingsSection";
 import { FiSearch, FiSettings, FiBarChart2, FiLogOut, FiPackage, FiKey, FiUsers } from "react-icons/fi";
 import { LuFlaskConical } from "react-icons/lu";
 import { RxHamburgerMenu } from "react-icons/rx";
+import { TbArrowsRightLeft } from "react-icons/tb";
 import AppHeader from "../components/AppHeader";
 import AppFooter from "../components/AppFooter";
 import PageLoader from "../components/ui/PageLoader";
@@ -299,6 +300,17 @@ export default function Home() {
                     onClick={menuCtrl.onClose}
                   >
                     Browse Products
+                  </Button>
+                  <Button
+                    as={NextLink}
+                    href="/tools/setting-calculator?from=%2Fhome"
+                    variant="ghost"
+                    color="gray.200"
+                    justifyContent="flex-start"
+                    leftIcon={<TbArrowsRightLeft />}
+                    onClick={menuCtrl.onClose}
+                  >
+                    Setting Calculator
                   </Button>
                   {isAdmin && (
                     <>
