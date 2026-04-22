@@ -1,4 +1,13 @@
 http://localhost {
+    # Security headers (local-safe)
+    # In locale (HTTP), HSTS non ha effetto pratico; max-age=0 evita persistenze indesiderate.
+    header {
+        Strict-Transport-Security "max-age=0"
+        X-Content-Type-Options "nosniff"
+        X-Frame-Options "DENY"
+        Referrer-Policy "strict-origin-when-cross-origin"
+        Permissions-Policy "geolocation=(self), microphone=(), camera=()"
+    }
 
     # Tutte le chiamate API vere del backend FastAPI
     @backend path \
