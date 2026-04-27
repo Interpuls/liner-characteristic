@@ -173,7 +173,7 @@ If you are a resident of the European Union (EU) and European Economic Area (EEA
 
 We aim to take reasonable steps to allow you to correct, amend, delete, or limit the use of your Personal Data.
 
-If you wish to be informed what Personal Data we hold about you and if you want it to be removed from our systems, please email us at **alessandro.ghirardini@milkrite-interpuls.com**.
+If you wish to be informed what Personal Data we hold about you and if you want it to be removed from our systems, please email us at **dpo@milkrite-interpuls.com**.
 
 In certain circumstances, you have the following data protection rights:
 
@@ -205,7 +205,7 @@ According to CalOPPA we agree to the following:
 
 0.3. users will be notified of any privacy policy changes on our Privacy Policy Page;
 
-0.4. users are able to change their personal information by emailing us at **alessandro.ghirardini@milkrite-interpuls.com**.
+0.4. users are able to change their personal information by emailing us at **dpo@milkrite-interpuls.com**.
 
 Our Policy on “Do Not Track” Signals:
 
@@ -241,7 +241,7 @@ If you submit a request to stop selling your personal information, we will stop 
 
 Please note, if you ask us to delete or stop selling your data, it may impact your experience with us, and you may not be able to participate in certain programs or membership services which require the usage of your personal information to function. But in no circumstances, we will discriminate against you for exercising your rights.
 
-To exercise your California data protection rights described above, please send your request(s) by email: **alessandro.ghirardini@milkrite-interpuls.com**.
+To exercise your California data protection rights described above, please send your request(s) by email: **dpo@milkrite-interpuls.com**.
 
 Your data protection rights, described above, are covered by the CCPA, short for the California Consumer Privacy Act. To find out more, visit the official California Legislative Information website. The CCPA took effect on 01/01/2020.
 

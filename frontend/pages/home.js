@@ -137,8 +137,22 @@ export default function Home() {
     </HStack>
   );
 
+  const PagesNav = () => (
+    <Hide below="md">
+      <HStack spacing={3} align="center">
+        <Button as={NextLink} href="/product" size="sm" variant="ghost" color="whiteAlpha.900" leftIcon={<FiSearch />} _hover={{ bg: "whiteAlpha.200" }}>
+          Browse Products
+        </Button>
+        <Button as={NextLink} href="/tools/setting-calculator?from=%2Fhome" size="sm" variant="ghost" color="whiteAlpha.900" leftIcon={<TbArrowsRightLeft />} _hover={{ bg: "whiteAlpha.200" }}>
+          Setting Calculator
+        </Button>
+      </HStack>
+    </Hide>
+  );
+
   const RightArea = () => (
     <HStack spacing={2}>
+      <PagesNav />
       {isAdmin && <AdminNav />}
     </HStack>
   );
