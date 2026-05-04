@@ -9,8 +9,10 @@ import {
   useDisclosure, Show, Hide, Icon, Center, useBreakpointValue,
   Drawer, DrawerOverlay, DrawerContent, DrawerHeader, DrawerBody, DrawerCloseButton, DrawerFooter,
   Stack, IconButton, Modal, ModalOverlay, ModalContent,
-  ModalHeader, ModalCloseButton, ModalBody, ModalFooter
+  ModalHeader, ModalCloseButton, ModalBody, ModalFooter,
+  Menu, MenuButton, MenuList, MenuItem
 } from "@chakra-ui/react";
+import { ChevronDownIcon } from "@chakra-ui/icons";
 import { getToken, clearToken, setToken } from "../lib/auth";
 import { getMe, updateUserUnitSystem } from "../lib/api";
 import NewsSection from "../components/home/NewsSection";
@@ -127,14 +129,35 @@ export default function Home() {
   const isAdmin = me?.role === "admin";
 
   const AdminNav = () => (
-    <HStack spacing={3} align="center">
-      <Hide below="md">
-        <Button as={NextLink} href="/admin/product" size="sm" variant="ghost" color="whiteAlpha.900" _hover={{ bg: "whiteAlpha.200" }}>Manage Product</Button>
-        <Button as={NextLink} href="/admin/tests" size="sm" variant="ghost" color="whiteAlpha.900" _hover={{ bg: "whiteAlpha.200" }}>Test Campaign</Button>
-        <Button as={NextLink} href="/admin/kpis" size="sm" variant="ghost" color="whiteAlpha.900" _hover={{ bg: "whiteAlpha.200" }}>KPI Scales</Button>
-        <Button as={NextLink} href="/admin/users" size="sm" variant="ghost" color="whiteAlpha.900" _hover={{ bg: "whiteAlpha.200" }}>Manage Users</Button>
-      </Hide>
-    </HStack>
+    <Hide below="md">
+      <Menu isLazy placement="bottom-end">
+        <MenuButton
+          as={Button}
+          size="sm"
+          variant="ghost"
+          color="whiteAlpha.900"
+          rightIcon={<ChevronDownIcon />}
+          _hover={{ bg: "whiteAlpha.200" }}
+          _active={{ bg: "whiteAlpha.300" }}
+        >
+          Admin
+        </MenuButton>
+        <MenuList bg="rgba(4, 6, 20, 1)" borderColor="whiteAlpha.200" color="gray.100" zIndex={1600}>
+          <MenuItem as={NextLink} href="/admin/product" icon={<FiPackage />} bg="transparent" _hover={{ bg: "whiteAlpha.200" }}>
+            Manage Product
+          </MenuItem>
+          <MenuItem as={NextLink} href="/admin/tests" icon={<LuFlaskConical />} bg="transparent" _hover={{ bg: "whiteAlpha.200" }}>
+            Test Campaign
+          </MenuItem>
+          <MenuItem as={NextLink} href="/admin/kpis" icon={<FiBarChart2 />} bg="transparent" _hover={{ bg: "whiteAlpha.200" }}>
+            KPI Scales
+          </MenuItem>
+          <MenuItem as={NextLink} href="/admin/users" icon={<FiUsers />} bg="transparent" _hover={{ bg: "whiteAlpha.200" }}>
+            Manage Users
+          </MenuItem>
+        </MenuList>
+      </Menu>
+    </Hide>
   );
 
   const PagesNav = () => (
