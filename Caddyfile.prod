@@ -1,4 +1,12 @@
 mi-linerlens.milkrite-interpuls.com {
+    # Security headers (production)
+    header {
+        Strict-Transport-Security "max-age=31536000; includeSubDomains; preload"
+        X-Content-Type-Options "nosniff"
+        X-Frame-Options "DENY"
+        Referrer-Policy "strict-origin-when-cross-origin"
+        Permissions-Policy "geolocation=(self), microphone=(), camera=()"
+    }
 
     # Tutte le chiamate API vere del backend FastAPI
     @backend path \

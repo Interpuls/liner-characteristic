@@ -20,6 +20,7 @@ backend/app.db
 backend/app.db-wal
 backend/app.db-shm
 backend/*.db
+backend/.coverage
 
 # Env & secrets
 *.env
