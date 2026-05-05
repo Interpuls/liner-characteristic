@@ -1,0 +1,30 @@
+{
+  "schemaVersion": "1.0",
+  "requestId": "loadtest-sample",
+  "left": {
+    "productApplicationId": 1,
+    "inputs": {
+      "milkingVacuumMaxKpa": 42.0,
+      "pfVacuumKpa": 38.0,
+      "omVacuumKpa": 30.0,
+      "omDurationSec": 60.0,
+      "frequencyBpm": 60.0,
+      "ratioPct": 60.0,
+      "phaseAMs": 150.0,
+      "phaseCMs": 150.0
+    }
+  },
+  "right": {
+    "productApplicationId": 1,
+    "inputs": {
+      "milkingVacuumMaxKpa": 42.0,
+      "pfVacuumKpa": 38.0,
+      "omVacuumKpa": 30.0,
+      "omDurationSec": 60.0,
+      "frequencyBpm": 60.0,
+      "ratioPct": 60.0,
+      "phaseAMs": 150.0,
+      "phaseCMs": 150.0
+    }
+  }
+}

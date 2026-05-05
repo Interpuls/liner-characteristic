@@ -1,5 +1,6 @@
 import logging
 import os
+import json
 from contextvars import ContextVar
 from logging.config import dictConfig
 
@@ -21,9 +22,34 @@ class RequestContextFilter(logging.Filter):
         return True
 
 
+class JsonFormatter(logging.Formatter):
+    def format(self, record: logging.LogRecord) -> str:
+        payload = {
+            "timestamp": self.formatTime(record, self.datefmt),
+            "level": record.levelname,
+            "logger": record.name,
+            "message": record.getMessage(),
+            "request_id": getattr(record, "request_id", "-"),
+            "client": getattr(record, "client", "-"),
+            "path": getattr(record, "path", "-"),
+            "user": getattr(record, "user", "-"),
+        }
+
+        for key in ("alert_code", "severity", "event_type", "status_code", "method", "ip", "retry_after"):
+            value = getattr(record, key, None)
+            if value is not None:
+                payload[key] = value
+
+        if record.exc_info:
+            payload["exception"] = self.formatException(record.exc_info)
+
+        return json.dumps(payload, ensure_ascii=True)
+
+
 def setup_logging() -> logging.Logger:
     """Configure application-wide logging early in startup."""
     log_level = os.getenv("LOG_LEVEL", "INFO").upper()
+    log_format = os.getenv("LOG_FORMAT", "text").strip().lower()
     fmt = (
         "%(asctime)s %(levelname)s %(name)s "
         "request_id=%(request_id)s client=%(client)s path=%(path)s user=%(user)s "
@@ -41,12 +67,15 @@ def setup_logging() -> logging.Logger:
             "formatters": {
                 "default": {
                     "format": fmt,
-                }
+                },
+                "json": {
+                    "()": JsonFormatter,
+                },
             },
             "handlers": {
                 "default": {
                     "class": "logging.StreamHandler",
-                    "formatter": "default",
+                    "formatter": "json" if log_format == "json" else "default",
                     "filters": ["request_context"],
                 },
             },

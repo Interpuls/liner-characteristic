@@ -17,9 +17,17 @@ engine = create_engine(
 logger = logging.getLogger("liner-backend.db")
 
 
+def _should_run_migrations_on_startup() -> bool:
+    configured = os.getenv("RUN_MIGRATIONS_ON_STARTUP")
+    if configured is not None:
+        return configured.strip() not in ("", "0", "false", "False")
+    # In local SQLite dev, auto-running Alembic on every reload is fragile and can break requests.
+    return not DATABASE_URL.startswith("sqlite")
+
+
 def init_db():
     # Optionally run Alembic migrations on startup to keep schema in sync
-    if os.getenv("RUN_MIGRATIONS_ON_STARTUP", "1").strip() not in ("", "0", "false", "False"):
+    if _should_run_migrations_on_startup():
         try:
             from alembic.config import Config
             from alembic import command
@@ -31,6 +39,8 @@ def init_db():
             logger.info("Alembic migrations applied at startup")
         except Exception as e:
             logger.warning("Skipping migrations at startup: %s", e)
+    else:
+        logger.info("Skipping migrations at startup by configuration")
     # If disabled, rely on external alembic upgrade
 
 def get_session():

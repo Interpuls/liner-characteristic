@@ -167,6 +167,26 @@ def _haversine_km(lat1: float, lon1: float, lat2: float, lon2: float) -> float:
     return radius_km * c
 
 
+def _emit_fail2ban_auth_event(
+    request: Request,
+    *,
+    reason: str,
+    email_attempted: str,
+    user_id: Optional[int],
+    failed_attempts: Optional[int] = None,
+    threshold: Optional[int] = None,
+) -> None:
+    logger.warning(
+        "FAIL2BAN_AUTH event=login_failure reason=%s ip=%s email=%s user_id=%s attempts=%s threshold=%s",
+        reason,
+        request_ip(request),
+        email_attempted,
+        user_id if user_id is not None else "-",
+        failed_attempts if failed_attempts is not None else "-",
+        threshold if threshold is not None else "-",
+    )
+
+
 def _register_login_event(
     session: Session,
     request: Request,
@@ -274,6 +294,13 @@ async def login(
     if not is_valid_credentials:
         failed_recent_email = _count_recent_failed_attempts_for_email(session, email_attempted, now)
         failed_recent_ip = _count_recent_failed_attempts_for_ip(session, ip, now)
+        _emit_fail2ban_auth_event(
+            request,
+            reason="invalid_credentials",
+            email_attempted=email_attempted,
+            user_id=getattr(user, "id", None),
+            failed_attempts=max(failed_recent_email, failed_recent_ip) + 1,
+        )
         _register_login_event(
             session,
             request,
@@ -282,6 +309,14 @@ async def login(
             success=False,
         )
         if failed_recent_email + 1 >= MAX_FAILED_LOGIN_ATTEMPTS_PER_EMAIL:
+            _emit_fail2ban_auth_event(
+                request,
+                reason="rate_limit_email",
+                email_attempted=email_attempted,
+                user_id=getattr(user, "id", None),
+                failed_attempts=failed_recent_email + 1,
+                threshold=MAX_FAILED_LOGIN_ATTEMPTS_PER_EMAIL,
+            )
             _register_security_event(
                 session,
                 request,
@@ -300,6 +335,14 @@ async def login(
                 detail=f"Too many failed attempts for this user. Retry in {LOGIN_BLOCK_MINUTES} minutes.",
             )
         if failed_recent_ip + 1 >= MAX_FAILED_LOGIN_ATTEMPTS_PER_IP:
+            _emit_fail2ban_auth_event(
+                request,
+                reason="rate_limit_ip",
+                email_attempted=email_attempted,
+                user_id=getattr(user, "id", None),
+                failed_attempts=failed_recent_ip + 1,
+                threshold=MAX_FAILED_LOGIN_ATTEMPTS_PER_IP,
+            )
             _register_security_event(
                 session,
                 request,
@@ -340,6 +383,14 @@ async def login(
         }
         distinct_locations.add(current_location_key)
         if len(distinct_locations) > MAX_DISTINCT_SUCCESS_LOCATIONS:
+            _emit_fail2ban_auth_event(
+                request,
+                reason="location_anomaly",
+                email_attempted=email_attempted,
+                user_id=user.id,
+                failed_attempts=len(distinct_locations),
+                threshold=MAX_DISTINCT_SUCCESS_LOCATIONS,
+            )
             _register_security_event(
                 session,
                 request,
@@ -388,6 +439,12 @@ async def login(
                     float(_lon),
                 )
                 if distance_km >= IMPOSSIBLE_TRAVEL_DISTANCE_KM:
+                    _emit_fail2ban_auth_event(
+                        request,
+                        reason="impossible_travel",
+                        email_attempted=email_attempted,
+                        user_id=user.id,
+                    )
                     _register_security_event(
                         session,
                         request,

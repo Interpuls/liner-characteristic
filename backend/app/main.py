@@ -1,6 +1,7 @@
 import time
 import uuid
 import logging
+import os
 from contextlib import asynccontextmanager
 from datetime import datetime
 from fastapi import FastAPI, Request
@@ -20,8 +21,11 @@ from app.logging_config import (
     path_ctx,
     user_ctx,
 )
+from app.middleware_limits import RequestSizeLimitMiddleware, RequestTimeoutMiddleware
+from app.middleware_rate_limit import SensitiveRateLimitMiddleware
 from app.model.access_log import AccessLog
 from app.services.request_geo import best_effort_geo_from_headers, request_ip
+from app.alerts import emit_alert
 
 # Routers
 from app.routers import (
@@ -41,6 +45,9 @@ async def lifespan(app: FastAPI):
 logger = setup_logging()
 access_logger = logging.getLogger("liner-backend.access")
 AUDIT_BODY_MAX_BYTES = 50 * 1024
+MAX_REQUEST_BODY_BYTES = int(os.getenv("MAX_REQUEST_BODY_BYTES", str(2 * 1024 * 1024)))
+REQUEST_TIMEOUT_SECONDS = float(os.getenv("REQUEST_TIMEOUT_SECONDS", "60"))
+ENABLE_SENSITIVE_RATE_LIMITING = os.getenv("ENABLE_SENSITIVE_RATE_LIMITING", "1").strip().lower() not in ("", "0", "false", "no")
 
 app = FastAPI(
     title="Liner Characteristic API",
@@ -69,6 +76,10 @@ def root():
     return JSONResponse({"ok": True, "docs": "/docs", "health": "/healthz"})
 
 # Middleware
+if ENABLE_SENSITIVE_RATE_LIMITING:
+    app.add_middleware(SensitiveRateLimitMiddleware)
+app.add_middleware(RequestTimeoutMiddleware, timeout_seconds=REQUEST_TIMEOUT_SECONDS)
+app.add_middleware(RequestSizeLimitMiddleware, max_body_bytes=MAX_REQUEST_BODY_BYTES)
 app.add_middleware(GZipMiddleware, minimum_size=500)
 apply_cors(app)
 
@@ -242,6 +253,17 @@ async def log_requests(request: Request, call_next):
 
 
         # Structured error logging after persistence attempt
+        if status_code >= 500:
+            emit_alert(
+                logger,
+                alert_code="http_5xx",
+                severity="high",
+                message="HTTP request completed with 5xx",
+                status_code=status_code,
+                method=request.method,
+                path=request.url.path,
+                ip=client_ip,
+            )
         if response is None:
             logger.exception(
                 "HTTP %s %s failed after %.2f ms",
