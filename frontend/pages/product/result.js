@@ -57,6 +57,7 @@ export default function ProductsSearchPage() {
   const [sortingBusy, setSortingBusy] = useState(false);
   const [sortKpi, setSortKpi] = useState(null); // e.g., 'CLOSURE'
   const [sortDir, setSortDir] = useState('desc'); // 'asc' | 'desc'
+  const [pinnedKey, setPinnedKey] = useState(null);
   const KPI_ORDER = [
     'CLOSURE','FITTING','CONGESTION_RISK','HYPERKERATOSIS_RISK','SPEED','RESPRAY','FLUYDODINAMIC','SLIPPAGE','RINGING_RISK'
   ];
@@ -102,6 +103,43 @@ export default function ProductsSearchPage() {
   // Leggo i filtri dalla query
   const { brand, brands, model, models, teat_size, teat_sizes, barrel_shape, parlor, areas, ...rest } = router.query;
 
+  const toListParam = (v) =>
+    Array.isArray(v)
+      ? v.map(String)
+      : (typeof v === "string" ? v.split(",").map((s) => s.trim()).filter(Boolean) : []);
+
+  const brandsListFromQuery = useMemo(
+    () => (toListParam(brands).length ? toListParam(brands) : toListParam(brand)),
+    [brands, brand]
+  );
+
+  const modelsListFromQuery = useMemo(
+    () => (toListParam(models).length ? toListParam(models) : toListParam(model)),
+    [models, model]
+  );
+
+  const buildBrandModelFilters = (sourceItems = []) => {
+    const brandsSelected = [...brandsListFromQuery];
+    const modelsSelected = [...new Set(modelsListFromQuery)];
+    const modelsByBrand = {};
+
+    if (brandsSelected.length === 1 && modelsSelected.length > 0) {
+      modelsByBrand[brandsSelected[0]] = modelsSelected;
+    } else if (modelsSelected.length > 0) {
+      // Preserve "model-only" filters by inferring brand->models from visible results.
+      const wanted = new Set(modelsSelected.map(String));
+      (Array.isArray(sourceItems) ? sourceItems : []).forEach((it) => {
+        const b = it?.brand ? String(it.brand) : "";
+        const m = it?.model ? String(it.model) : "";
+        if (!b || !m || !wanted.has(m)) return;
+        if (!Array.isArray(modelsByBrand[b])) modelsByBrand[b] = [];
+        if (!modelsByBrand[b].includes(m)) modelsByBrand[b].push(m);
+      });
+    }
+
+    return { brands: brandsSelected, models: modelsByBrand };
+  };
+
   const kpis = useMemo(() => {
     // tutti i parametri che iniziano con kpi e hanno un valore
     return Object.entries(rest)
@@ -126,10 +164,7 @@ export default function ProductsSearchPage() {
       if (!saveName.trim()) { toast({ status: "warning", title: "Inserisci un nome" }); return; }
       // Build filters object compatible with ProductFilters
       const areasSel = typeof areas === "string" && areas ? String(areas).split(",") : [];
-      const safeModel = model && !["imperial", "metric"].includes(String(model)) ? String(model) : "";
-      const brandModelFilters = brand
-        ? { brands: [String(brand)], models: (safeModel ? { [String(brand)]: [safeModel] } : {}) }
-        : { brands: [], models: {} };
+      const brandModelFilters = buildBrandModelFilters(items);
       const teatSel = (() => {
         const acc = [];
         if (Array.isArray(teat_sizes)) acc.push(...teat_sizes.map(String));
@@ -159,10 +194,34 @@ export default function ProductsSearchPage() {
   };
 
   const filterSig = useMemo(() => {
-    const { page: _page, ...rest } = router.query || {};
+    const {
+      page: _page,
+      sort: _sort,
+      sortDir: _sortDir,
+      sort_kpi: _sortKpi,
+      sort_dir: _sortDirAlt,
+      ...rest
+    } = router.query || {};
     const keys = Object.keys(rest).sort();
     return JSON.stringify(keys.map(k => [k, rest[k]]));
   }, [router.query]);
+  const pinnedStorageKey = useMemo(() => `results.pinned_key.${filterSig}`, [filterSig]);
+
+  useEffect(() => {
+    try {
+      if (typeof window === "undefined") return;
+      const saved = window.sessionStorage.getItem(pinnedStorageKey);
+      if (saved) setPinnedKey(saved);
+    } catch {}
+  }, [pinnedStorageKey]);
+
+  useEffect(() => {
+    try {
+      if (typeof window === "undefined") return;
+      if (pinnedKey) window.sessionStorage.setItem(pinnedStorageKey, pinnedKey);
+      else window.sessionStorage.removeItem(pinnedStorageKey);
+    } catch {}
+  }, [pinnedKey, pinnedStorageKey]);
 
   useEffect(() => {
     const run = async () => {
@@ -263,6 +322,20 @@ export default function ProductsSearchPage() {
     return copy;
   }, [items, kpiScores, sortKpi, sortDir]);
   const pagedItems = useMemo(() => sortedItems.slice(start, end), [sortedItems, start, end]);
+  const pinnedItem = useMemo(
+    () => sortedItems.find((it) => it.key === pinnedKey) || null,
+    [sortedItems, pinnedKey]
+  );
+  const unpinnedPagedItems = useMemo(
+    () => pagedItems.filter((it) => it.key !== pinnedKey),
+    [pagedItems, pinnedKey]
+  );
+
+  useEffect(() => {
+    if (pinnedKey && !sortedItems.some((it) => it.key === pinnedKey)) {
+      setPinnedKey(null);
+    }
+  }, [pinnedKey, sortedItems]);
 
   const goToPage = (p) => {
     const next = Math.min(Math.max(1, p), totalPages);
@@ -410,7 +483,7 @@ export default function ProductsSearchPage() {
   const selCount = selSelected.size;
   const exact = selConfig.min === selConfig.max;
   const isValidSel = exact ? (selCount === selConfig.min) : (selCount >= selConfig.min && selCount <= selConfig.max);
-  const selTitle = exact ? `Select exactly ${selConfig.min} products` : `Select ${selConfig.min}-${selConfig.max} products`;
+  const selTitle = selConfig.title || (exact ? `Select exactly ${selConfig.min} products` : `Select ${selConfig.min}-${selConfig.max} products`);
   const openAction = (cfg) => {
     setSelConfig(cfg);
     setSelSelected(new Set());
@@ -477,10 +550,9 @@ export default function ProductsSearchPage() {
   );
 
   // Build display lists for summary (brand/model/teat sizes may arrive as CSV under different keys)
-  const toList = (v) => Array.isArray(v) ? v.map(String) : (typeof v === 'string' ? v.split(',').map(s=>s.trim()).filter(Boolean) : []);
-  const brandsList = (toList(brands).length ? toList(brands) : toList(brand));
-  const modelsList = (toList(models).length ? toList(models) : toList(model));
-  const teatsList = (toList(teat_sizes).length ? toList(teat_sizes) : toList(teat_size));
+  const brandsList = brandsListFromQuery;
+  const modelsList = modelsListFromQuery;
+  const teatsList = (toListParam(teat_sizes).length ? toListParam(teat_sizes) : toListParam(teat_size));
 
   return (
     <Box minH="100vh" display="flex" flexDirection="column">
@@ -499,17 +571,14 @@ export default function ProductsSearchPage() {
             return barrel_shape ? [String(barrel_shape)] : [];
           })();
 
-          const onEditFilters = () => {
-            const preset = {
-              areas: areasSel,
-              brandModel: {
-                brands: brandsList,
-                models: (brandsList.length === 1 && modelsList.length > 0) ? { [brandsList[0]]: modelsList } : {},
-              },
-              teatSizes: teatsList,
-              shapes: shapesList,
-              parlor: parlor ? [String(parlor)] : [],
-            };
+            const onEditFilters = () => {
+              const preset = {
+                areas: areasSel,
+                brandModel: buildBrandModelFilters(items),
+                teatSizes: teatsList,
+                shapes: shapesList,
+                parlor: parlor ? [String(parlor)] : [],
+              };
             const encoded = encodeURIComponent(JSON.stringify(preset));
             router.push(`/product?preset=${encoded}`);
           };
@@ -539,7 +608,7 @@ export default function ProductsSearchPage() {
             onClick={() => openAction({ title: "Radar Map", min: 1, max: 5, route: "/tools/radar-map" })}
           >
             <Stack direction={{ base: 'column', md: 'row' }} align="center" spacing={{ base: 1, md: 2 }}>
-              <Box as={TbChartRadar} boxSize={{ base: 6, md: 5 }} color="#12305f" />
+              <Box as={TbChartRadar} boxSize={{ base: 6, md: 5 }} color="blue.500" />
               <Text fontSize={{ base: 'xs', md: 'sm' }} color="gray.600">Radar Map</Text>
             </Stack>
           </Button>
@@ -553,7 +622,7 @@ export default function ProductsSearchPage() {
               onClick={() => openAction({ title: "Tests Detail", min: 1, max: 8, route: "/tools/tests-detail" })}
             >
               <Stack direction={{ base: 'column', md: 'row' }} align="center" spacing={{ base: 1, md: 2 }}>
-                <Box as={RiFlaskLine} boxSize={{ base: 6, md: 5 }} color="#12305f" />
+                <Box as={RiFlaskLine} boxSize={{ base: 6, md: 5 }} color="blue.500" />
                 <Text fontSize={{ base: 'xs', md: 'sm' }} color="gray.600">Tests Detail</Text>
               </Stack>
             </Button>
@@ -564,10 +633,10 @@ export default function ProductsSearchPage() {
             pt={{ base: 4, md: 2 }}
             pb={{ base: 4, md: 2 }}
             minH={{ base: 14, md: 'auto' }}
-            onClick={() => openAction({ title: "Setting Calculator", min: 2, max: 2, route: "/tools/setting-calculator" })}
+            onClick={() => openAction({ title: "Select 1 or 2 products", min: 1, max: 2, route: "/tools/setting-calculator" })}
           >
             <Stack direction={{ base: 'column', md: 'row' }} align="center" spacing={{ base: 1, md: 2 }}>
-              <Box as={TbArrowsRightLeft} boxSize={{ base: 6, md: 5 }} color="#12305f" />
+              <Box as={TbArrowsRightLeft} boxSize={{ base: 6, md: 5 }} color="blue.500" />
               <Text fontSize={{ base: 'xs', md: 'sm' }} color="gray.600">Setting Calculator</Text>
             </Stack>
           </Button>
@@ -598,7 +667,31 @@ export default function ProductsSearchPage() {
             ) : (
               <>
                 <SimpleGrid columns={{ base: 1, md: 1 }} gap={4}>
-                  {pagedItems.map((a) => (
+                  {pinnedItem ? (
+                    <Box
+                      position="sticky"
+                      top={{ base: 2, md: 4 }}
+                      zIndex={2}
+                      bg="white"
+                      borderRadius="md"
+                      boxShadow="sm"
+                    >
+                      <ProductApplicationCard
+                        key={pinnedItem.key}
+                        productId={pinnedItem.product_id}
+                        brand={pinnedItem.brand}
+                        model={pinnedItem.model}
+                        compound={pinnedItem.compound}
+                        isAdmin={me?.role === 'admin'}
+                        sizeMm={pinnedItem.size_mm}
+                        applicationId={appIdByKey[pinnedItem.key]}
+                        kpis={kpiScores[pinnedItem.key] || {}}
+                        isPinned
+                        onTogglePin={() => setPinnedKey(null)}
+                      />
+                    </Box>
+                  ) : null}
+                  {unpinnedPagedItems.map((a) => (
                     <ProductApplicationCard
                       key={a.key}
                       productId={a.product_id}
@@ -609,6 +702,8 @@ export default function ProductsSearchPage() {
                       sizeMm={a.size_mm}
                       applicationId={appIdByKey[a.key]}
                       kpis={kpiScores[a.key] || {}}
+                      isPinned={pinnedKey === a.key}
+                      onTogglePin={() => setPinnedKey((prev) => (prev === a.key ? null : a.key))}
                     />
                   ))}
                 </SimpleGrid>

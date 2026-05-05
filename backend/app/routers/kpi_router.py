@@ -2,6 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlmodel import Session, select
 import sqlalchemy as sa
 from app.services.conversion_wrapper import convert_output
+from app.services.conversion_manager import apply_conversions
 
 from app.db import get_session
 from app.auth import require_role, get_current_user
@@ -54,7 +55,6 @@ def list_kpis_for_application(
 
 
 @router.post("/values/batch", response_model=dict[str, list[dict]])
-@convert_output
 def list_kpis_for_applications_batch(
     payload: KpiValuesBatchIn,
     session: Session = Depends(get_session),
@@ -78,20 +78,22 @@ def list_kpis_for_applications_batch(
     ).all()
 
     out: dict[str, list[dict]] = {str(i): [] for i in deduped_ids}
+    unit_system = getattr(user, "unit_system", None)
     for r in rows:
-        out[str(r.product_application_id)].append(
-            {
-                "product_application_id": r.product_application_id,
-                "kpi_code": r.kpi_code,
-                "value_num": r.value_num,
-                "score": r.score,
-                "run_type": r.run_type,
-                "run_id": r.run_id,
-                "unit": r.unit,
-                "context": r.context_json,
-                "computed_at": r.computed_at,
-            }
-        )
+        item = {
+            "product_application_id": r.product_application_id,
+            "kpi_code": r.kpi_code,
+            "value_num": r.value_num,
+            "score": r.score,
+            "run_type": r.run_type,
+            "run_id": r.run_id,
+            "unit": r.unit,
+            "context": r.context_json,
+            "computed_at": r.computed_at,
+        }
+        if unit_system:
+            item = apply_conversions(item, unit_system)
+        out[str(r.product_application_id)].append(item)
     return out
 
 #Crea o aggiorna una definizione KPI (upsert). Solo admin.

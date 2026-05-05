@@ -1,26 +1,25 @@
 import { useRouter } from "next/router";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import {
   Alert,
   AlertDescription,
   AlertIcon,
   Box,
-  Button,
-  Card,
-  CardBody,
-  Heading,
-  HStack,
+  IconButton,
   SimpleGrid,
   Text,
   VStack,
 } from "@chakra-ui/react";
 import AppHeader from "../../components/AppHeader";
 import AppFooter from "../../components/AppFooter";
+import FiltersSummaryCard from "../../components/setting-calculator/FiltersSummaryCard";
+import ExportChartsPdfButton from "../../components/setting-calculator/ExportChartsPdfButton";
 import PulsationChartCard from "../../components/setting-calculator/charts/PulsationChartCard";
 import PulsatorPhasesChartCard from "../../components/setting-calculator/charts/PulsatorPhasesChartCard";
 import RealMilkingMassageChartCard from "../../components/setting-calculator/charts/RealMilkingMassageChartCard";
 import PercentageDifferenceChartCard from "../../components/setting-calculator/charts/PercentageDifferenceChartCard";
 import { FiPercent } from "react-icons/fi";
+import { MdPictureAsPdf } from "react-icons/md";
 import { getToken } from "../../lib/auth";
 import { getMe } from "../../lib/api";
 import { safeInternalPath } from "../../lib/navigation";
@@ -28,9 +27,97 @@ import { safeInternalPath } from "../../lib/navigation";
 export default function SettingCalculatorChartsPage() {
   const router = useRouter();
   const { requestId, from } = router.query;
-  const backHref = safeInternalPath(typeof from === "string" ? from : "", "/tools/setting-calculator");
+  const baseBackHref = safeInternalPath(typeof from === "string" ? from : "", "/tools/setting-calculator");
   const [runData, setRunData] = useState(null);
   const [unitSystem, setUnitSystem] = useState("metric");
+  const [openExportModal, setOpenExportModal] = useState(null);
+
+  const mapPayloadInputsToFormInputs = (payloadSideInputs = {}) => ({
+    milkingVacuumMaxKpa: payloadSideInputs.milkingVacuumMaxKpa ?? payloadSideInputs.milkingVacuumMaxInHg ?? "",
+    pfVacuumKpa: payloadSideInputs.pfVacuumKpa ?? payloadSideInputs.pfVacuumInHg ?? "",
+    omVacuumKpa: payloadSideInputs.omVacuumKpa ?? payloadSideInputs.omVacuumInHg ?? "",
+    omDurationSec: payloadSideInputs.omDurationSec ?? "",
+    frequencyBpm: payloadSideInputs.frequencyBpm ?? "",
+    ratioPct: payloadSideInputs.ratioPct ?? "",
+    phaseAMs: payloadSideInputs.phaseAMs ?? "",
+    phaseCMs: payloadSideInputs.phaseCMs ?? "",
+  });
+
+  const buildBackToInputsHref = useCallback(() => {
+    const leftAppId = Number(runData?.payload?.left?.productApplicationId);
+    const rightAppId = Number(runData?.payload?.right?.productApplicationId);
+    const leftKey = String(runData?.leftProduct?.key || "").trim();
+    const rightKey = String(runData?.rightProduct?.key || "").trim();
+    const hasAppIds = Number.isFinite(leftAppId) && Number.isFinite(rightAppId);
+    const hasKeys = !!leftKey && !!rightKey;
+
+    const params = new URLSearchParams();
+    if (hasAppIds) params.set("app_ids", `${leftAppId},${rightAppId}`);
+    if (hasKeys) params.set("keys", `${leftKey},${rightKey}`);
+    const withCurrentSelection = `/tools/setting-calculator${params.toString() ? `?${params.toString()}` : ""}`;
+
+    // Guard against malformed or recursive "from" values in production.
+    if (!baseBackHref || !baseBackHref.startsWith("/tools/setting-calculator")) return withCurrentSelection;
+    if (baseBackHref.startsWith("/tools/setting-calculator-charts")) return withCurrentSelection;
+
+    try {
+      const [path, query = ""] = String(baseBackHref).split("?");
+      const merged = new URLSearchParams(query);
+      merged.delete("ids");
+      merged.delete("app_ids");
+      merged.delete("keys");
+      if (hasAppIds) merged.set("app_ids", `${leftAppId},${rightAppId}`);
+      if (hasKeys) merged.set("keys", `${leftKey},${rightKey}`);
+      return `${path}${merged.toString() ? `?${merged.toString()}` : ""}`;
+    } catch {
+      return withCurrentSelection;
+    }
+  }, [baseBackHref, runData]);
+
+  const persistDraftInputs = useCallback(() => {
+    try {
+      if (typeof window !== "undefined" && runData?.payload) {
+        sessionStorage.setItem(
+          "settingCalculator:draftInputs",
+          JSON.stringify({
+            leftInputs: mapPayloadInputsToFormInputs(runData.payload?.left?.inputs),
+            rightInputs: mapPayloadInputsToFormInputs(runData.payload?.right?.inputs),
+          })
+        );
+      }
+    } catch {
+      // Ignore storage errors.
+    }
+  }, [runData]);
+
+  const handleBackToInputs = async () => {
+    const targetHref = buildBackToInputsHref();
+    persistDraftInputs();
+
+    // Use a hard navigation to avoid intermittent Next data-route stalls
+    // observed on mobile/prod when going back from charts to inputs.
+    if (typeof window !== "undefined") {
+      window.location.assign(targetHref);
+      return;
+    }
+    await router.replace(targetHref);
+  };
+
+  useEffect(() => {
+    // Ensure browser back/forward from this page follows the same robust
+    // hard-navigation path used by the app back button.
+    router.beforePopState(() => {
+      if (typeof window !== "undefined") {
+        persistDraftInputs();
+        window.location.assign(buildBackToInputsHref());
+      }
+      return false;
+    });
+
+    return () => {
+      router.beforePopState(() => true);
+    };
+  }, [router, buildBackToInputsHref]);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -59,12 +146,35 @@ export default function SettingCalculatorChartsPage() {
     loadUnitSystem();
   }, []);
 
+  const leftLinerName = runData?.leftProduct?.label || "Left liner";
+  const rightLinerName = runData?.rightProduct?.label || "Right liner";
+  const percentageSubtitle = `Percentage variation of ${rightLinerName} versus ${leftLinerName}`;
+
   return (
     <Box minH="100vh" display="flex" flexDirection="column">
       <AppHeader
-        title="Setting Calculator Charts"
+        title="Setting Calculator"
         subtitle="Comparison results"
-        backHref={backHref}
+        backHref={buildBackToInputsHref()}
+        onBackClick={handleBackToInputs}
+        showInfo={false}
+        rightArea={
+          <VStack spacing={0} align="center">
+            <IconButton
+              aria-label="Export PDF"
+              icon={<MdPictureAsPdf size="1.25rem" />}
+              size="sm"
+              variant="ghost"
+              color="white"
+              _hover={{ bg: "whiteAlpha.200" }}
+              onClick={() => openExportModal?.()}
+              isDisabled={!runData || !openExportModal}
+            />
+            <Text fontSize={{ base: "xs", md: "sm" }} lineHeight="1" color="whiteAlpha.800">
+              Export
+            </Text>
+          </VStack>
+        }
       />
 
       <Box
@@ -75,6 +185,7 @@ export default function SettingCalculatorChartsPage() {
         mx="auto"
         px={{ base: 4, md: 8 }}
         pt={{ base: 4, md: 6 }}
+        pb={{ base: 6, md: 10 }}
       >
         <VStack align="stretch" spacing={4}>
           {!runData ? (
@@ -86,22 +197,22 @@ export default function SettingCalculatorChartsPage() {
             </Alert>
           ) : (
             <>
-              <Card>
-                <CardBody>
-                  <VStack align="stretch" spacing={2}>
-                    <Heading size="sm">Comparison executed</Heading>
-                    <Text fontSize="sm" color="gray.700">
-                      {runData.leftProduct?.label} vs {runData.rightProduct?.label}
-                    </Text>
-                    <Text fontSize="sm" color="gray.600">
-                      Request ID: {runData.payload?.requestId}
-                    </Text>
-                    <Text fontSize="sm" color="gray.600">
-                      Engine: {runData.response?.engineVersion}
-                    </Text>
-                  </VStack>
-                </CardBody>
-              </Card>
+              <FiltersSummaryCard
+                leftInputs={runData.response?.left?.inputsUsed}
+                rightInputs={runData.response?.right?.inputsUsed}
+                leftTitle={runData.leftProduct?.label || "Left"}
+                rightTitle={runData.rightProduct?.label || "Right"}
+                leftTeatSize={runData.leftProduct?.sizeLabel || ""}
+                rightTeatSize={runData.rightProduct?.sizeLabel || ""}
+                onBack={handleBackToInputs}
+                unitSystem={unitSystem}
+              />
+              <ExportChartsPdfButton
+                runData={runData}
+                unitSystem={unitSystem}
+                showTrigger={false}
+                onRegisterOpen={setOpenExportModal}
+              />
               <PulsationChartCard runData={runData} unitSystem={unitSystem} />
               <PulsatorPhasesChartCard runData={runData} />
               <RealMilkingMassageChartCard runData={runData} />
@@ -110,25 +221,19 @@ export default function SettingCalculatorChartsPage() {
                   runData={runData}
                   dataKey="appliedVacuum"
                   title="Applied Vacuum Difference"
-                  subtitle="Percentage difference between PF and OM applied vacuum."
+                  subtitle={percentageSubtitle}
                   icon={FiPercent}
                 />
                 <PercentageDifferenceChartCard
                   runData={runData}
                   dataKey="massageIntensity"
                   title="Massage Intensity Difference"
-                  subtitle="Percentage difference between PF and OM massage intensity."
+                  subtitle={percentageSubtitle}
                   icon={FiPercent}
                 />
               </SimpleGrid>
             </>
           )}
-
-          <HStack justify="flex-end">
-            <Button variant="outline" onClick={() => router.push(backHref)}>
-              Back to Inputs
-            </Button>
-          </HStack>
         </VStack>
       </Box>
 

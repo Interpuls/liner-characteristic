@@ -98,7 +98,7 @@ export default function AdminProducts() {
 
   // build params per API
   const params = useMemo(() => {
-    const p = {};
+    const p = { limit: 500 };
     if (productType) p.product_type = productType;
     if (brand) p.brand = brand;
     if (model) p.model = model;

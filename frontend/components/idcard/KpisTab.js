@@ -2,13 +2,10 @@ import { useEffect, useMemo, useState } from "react";
 import { Box, SimpleGrid, Text, useToast, Spinner, Center, VStack, HStack } from "@chakra-ui/react";
 import { getToken } from "../../lib/auth";
 import { listProductApplications, getKpiValuesBatch } from "../../lib/api";
-import { latestKpiByCode } from "../../lib/kpi";
+import { latestKpiByCode, KPI_ORDER, formatKpiLabel } from "../../lib/kpi";
 import ApplicationKpiCard from "./ApplicationKpiCard";
 import { formatTeatSize } from "../../lib/teatSizes";
 
-const KPI_ORDER = [
-  'CLOSURE','FITTING','CONGESTION_RISK','HYPERKERATOSIS_RISK','SPEED','RESPRAY','FLUYDODINAMIC','SLIPPAGE','RINGING_RISK'
-];
 const COLORS = ["#e41a1c", "#377eb8", "#4daf4a", "#984ea3"]; // 4 apps
 const clamp01 = (x) => Math.max(0, Math.min(1, x));
 const polarToCart = (cx, cy, r, angleRad) => ({ x: cx + r * Math.cos(angleRad), y: cy + r * Math.sin(angleRad) });
@@ -181,7 +178,7 @@ function RadarChart({ width = 560, height = 420, series = [] }) {
         return (
           <g key={code}>
             <line x1={cx} y1={cy} x2={p.x} y2={p.y} stroke="#cbd5e1" strokeWidth="1" />
-            <text x={lp.x} y={lp.y} textAnchor={anchor} fontSize="10" fill="#475569">{code}</text>
+            <text x={lp.x} y={lp.y} textAnchor={anchor} fontSize="10" fill="#475569">{formatKpiLabel(code)}</text>
           </g>
         );
       })}

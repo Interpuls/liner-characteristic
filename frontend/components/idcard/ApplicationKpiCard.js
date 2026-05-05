@@ -1,6 +1,7 @@
 import { useMemo } from "react";
 import { Box, HStack, SimpleGrid, GridItem, Stat, StatNumber, Text, Tooltip, VStack, Divider } from "@chakra-ui/react";
 // import { AppSizePill } from "../ui/AppSizePill";
+import { formatKpiLabel } from "../../lib/kpi";
 import { formatTeatSize } from "../../lib/teatSizes";
 
 // Small helper for score color
@@ -42,7 +43,7 @@ function KpiChip({ code, value }) {
       <Text fontSize={{ base: "9px", md: "12px" }} color="gray.600" lineHeight="shorter" noOfLines={1}>
         {KPI_ABBR[code] || code}
       </Text>
-      <Tooltip label={score != null ? `${code}: score ${score}/4 — value: ${rawVal ?? "n/a"}` : `${code}: n/a`} hasArrow>
+      <Tooltip label={score != null ? `${formatKpiLabel(code)}: score ${score}/4 — value: ${rawVal ?? "n/a"}` : `${formatKpiLabel(code)}: n/a`} hasArrow>
         <Stat p={{ base: 0.5, md: 2 }} borderWidth="1px" borderRadius="md" bg={scoreColor(score)} w={{ base: "28px", md: "40px" }} textAlign="center">
           <StatNumber fontSize={{ base: "sm", md: "lg" }} color="white" lineHeight="short">
             {score != null ? score : "–"}

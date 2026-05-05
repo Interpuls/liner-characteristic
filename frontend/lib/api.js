@@ -18,6 +18,16 @@ export const loginApi = async (email, password) => {
 export const getMe = (token) => http("auth/me", { token });
 export const updateUserUnitSystem = (token, userId, unit_system) =>
   http(`users/${userId}`, { method: "PUT", token, body: { unit_system } });
+export const changeMyPassword = (token, current_password, new_password) =>
+  http("users/me/password", { method: "PUT", token, body: { current_password, new_password } });
+
+export const listUsers = (token) => http("users", { token });
+export const createUser = (token, body) =>
+  http("auth/register", { method: "POST", token, body });
+export const deleteUser = (token, userId) =>
+  http(`users/${userId}`, { method: "DELETE", token });
+export const resetUserPassword = (token, userId, newPassword) =>
+  http(`users/${userId}/password-reset`, { method: "PUT", token, body: { new_password: newPassword } });
 
 // ---------------------------- NEWS ----------------------------
 export const listNews = (token) => http("news", { token });
@@ -115,13 +125,14 @@ export const getOverviewRankings = (
   {
     kpis = "CLOSURE,FITTING,CONGESTION_RISK,HYPERKERATOSIS_RISK,SPEED,RESPRAY,FLUYDODINAMIC,SLIPPAGE,RINGING_RISK",
     teat_sizes = "XS,S,M,L",
-    limit = 3,
+    reference_areas = "Global",
+    limit = 5,
   } = {}
 ) =>
   http(
     `rankings/overview?kpis=${encodeURIComponent(kpis)}&teat_sizes=${encodeURIComponent(
       teat_sizes
-    )}&limit=${encodeURIComponent(limit)}`,
+    )}&reference_areas=${encodeURIComponent(reference_areas)}&limit=${encodeURIComponent(limit)}`,
     { token }
   );
 
@@ -250,4 +261,16 @@ export const upsertSmtHoodPoints = (token, runId, points) =>
 
 // ---------------------------- SETTING CALCULATOR ----------------------------
 export const compareSettingCalculator = (token, body) =>
-  http(`setting-calculator/compare`, { method: "POST", token, body });
+  http(`api/v1/setting-calculator/compare`, { method: "POST", token, body });
+
+export const listSettingComparisonPrefs = (token) =>
+  http("api/v1/setting-calculator/preferences", { token });
+
+export const saveSettingComparisonPref = (token, name, payload) =>
+  http("api/v1/setting-calculator/preferences", { method: "POST", token, body: { name, payload } });
+
+export const deleteSettingComparisonPrefById = (token, prefId) =>
+  http(`api/v1/setting-calculator/preferences/${prefId}`, { method: "DELETE", token });
+
+export const deleteSettingComparisonPrefByName = (token, name) =>
+  http(`api/v1/setting-calculator/preferences?name=${encodeURIComponent(name)}`, { method: "DELETE", token });

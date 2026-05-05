@@ -1,9 +1,22 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import NextLink from "next/link";
 import { useRouter } from "next/router";
-import { Box, Heading, HStack, Spinner, Text, VStack, Badge, Select, Center } from "@chakra-ui/react";
+import { Box, Heading, HStack, Spinner, Text, VStack, Badge, Select, Center, Checkbox, Stack } from "@chakra-ui/react";
 import { FiAward, FiBarChart2 } from "react-icons/fi";
 import { getOverviewRankings } from "../../lib/api";
+import { formatKpiLabel } from "../../lib/kpi";
+
+const REFERENCE_AREAS = [
+  "Global",
+  "North America",
+  "South America",
+  "Europe",
+  "Africa",
+  "China",
+  "Middle East",
+  "Far East",
+  "Oceania",
+];
 
 function RankBadge({ rank }) {
   const common = { borderRadius: "full", px: 2, minW: "34px", textAlign: "center", flexShrink: 0 };
@@ -88,13 +101,12 @@ function RankingsCarousel({ teatSize, kpis = [], fromPath }) {
               <HStack spacing={2}>
                 <Box as={FiAward} color="blue.200" />
                 <Text fontWeight="bold" color="white" fontSize="sm">
-                  {kpi.kpi_code}
+                  {formatKpiLabel(kpi.kpi_code)}
                 </Text>
               </HStack>
             </HStack>
-
             <VStack align="stretch" spacing={2} px={3} py={3}>
-              {(kpi.top || []).slice(0, 3).map((item) => (
+              {(kpi.top || []).map((item) => (
                 <RankingRow
                   key={`${kpi.kpi_code}-${item.rank}-${item.brand}-${item.model}`}
                   item={item}
@@ -119,15 +131,21 @@ export default function RankingsSection({ token }) {
   const router = useRouter();
   const [rankings, setRankings] = useState([]);
   const [selectedTeatSize, setSelectedTeatSize] = useState("");
+  const [selectedAreas, setSelectedAreas] = useState(["Global"]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const isGlobalArea = selectedAreas.includes("Global");
+  const areaQuery = useMemo(
+    () => (isGlobalArea || selectedAreas.length === 0 ? "Global" : selectedAreas.join(",")),
+    [isGlobalArea, selectedAreas]
+  );
 
   useEffect(() => {
     if (!token) return;
     let cancelled = false;
     setLoading(true);
     setError("");
-    getOverviewRankings(token, { limit: 3 })
+    getOverviewRankings(token, { limit: 5, reference_areas: areaQuery })
       .then((res) => {
         if (cancelled) return;
         setRankings(Array.isArray(res?.items) ? res.items : []);
@@ -145,7 +163,7 @@ export default function RankingsSection({ token }) {
     return () => {
       cancelled = true;
     };
-  }, [token]);
+  }, [token, areaQuery]);
 
   const teatSizes = rankings.map((item) => item?.teat_size).filter(Boolean);
   const activeTeatSize = selectedTeatSize && teatSizes.includes(selectedTeatSize)
@@ -163,6 +181,20 @@ export default function RankingsSection({ token }) {
     }
   }, [selectedTeatSize, teatSizes]);
 
+  const toggleArea = (area) => {
+    setSelectedAreas((prev) => {
+      if (area === "Global") {
+        return prev.includes("Global") ? [] : ["Global"];
+      }
+      const withoutGlobal = prev.filter((v) => v !== "Global");
+      if (withoutGlobal.includes(area)) {
+        const next = withoutGlobal.filter((v) => v !== area);
+        return next.length ? next : ["Global"];
+      }
+      return [...withoutGlobal, area];
+    });
+  };
+
   return (
     <Box
       mb={8}
@@ -178,34 +210,55 @@ export default function RankingsSection({ token }) {
       </HStack>
 
       {!loading && !error && teatSizes.length > 0 && (
-        <HStack spacing={3} mb={3} align="center">
-          <Text fontSize="sm" color="gray.300" fontWeight="semibold">
-            Teat Size
-          </Text>
-          <Select
-            size="sm"
-            value={activeTeatSize}
-            onChange={(e) => setSelectedTeatSize(e.target.value)}
-            maxW={{ base: "140px", md: "180px" }}
-            bg="rgba(10, 20, 44, 0.85)"
-            borderColor="whiteAlpha.300"
-            color="white"
-            _hover={{ borderColor: "blue.300" }}
-            _focus={{ borderColor: "blue.300", boxShadow: "0 0 0 1px rgba(99, 179, 237, 0.8)" }}
-            sx={{
-              option: {
-                color: "#12305f",
-                background: "#ffffff",
-              },
-            }}
-          >
-            {teatSizes.map((size) => (
-              <option key={size} value={size}>
-                {size}
-              </option>
-            ))}
-          </Select>
-        </HStack>
+        <Stack spacing={3} mb={3}>
+          <HStack spacing={3} align="center">
+            <Text fontSize="sm" color="gray.300" fontWeight="semibold">
+              Teat Size
+            </Text>
+            <Select
+              size="sm"
+              value={activeTeatSize}
+              onChange={(e) => setSelectedTeatSize(e.target.value)}
+              maxW={{ base: "140px", md: "180px" }}
+              bg="rgba(10, 20, 44, 0.85)"
+              borderColor="whiteAlpha.300"
+              color="white"
+              _hover={{ borderColor: "blue.300" }}
+              _focus={{ borderColor: "blue.300", boxShadow: "0 0 0 1px rgba(99, 179, 237, 0.8)" }}
+              sx={{
+                option: {
+                  color: "#12305f",
+                  background: "#ffffff",
+                },
+              }}
+            >
+              {teatSizes.map((size) => (
+                <option key={size} value={size}>
+                  {size}
+                </option>
+              ))}
+            </Select>
+          </HStack>
+
+          <Box>
+            <Text fontSize="sm" color="gray.300" fontWeight="semibold" mb={2}>
+              Reference area
+            </Text>
+            <HStack wrap="wrap" spacing={4} rowGap={2}>
+              {REFERENCE_AREAS.map((area) => (
+                <Checkbox
+                  key={area}
+                  isChecked={selectedAreas.includes(area)}
+                  onChange={() => toggleArea(area)}
+                  colorScheme="blue"
+                  color="gray.200"
+                >
+                  {area}
+                </Checkbox>
+              ))}
+            </HStack>
+          </Box>
+        </Stack>
       )}
 
       {loading && (

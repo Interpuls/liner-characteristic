@@ -1,8 +1,9 @@
 import { useMemo } from "react";
 import { useRouter } from "next/router";
-import { Box, HStack, Stack, Text, Tooltip, SimpleGrid, Stat, StatNumber, VStack, Divider, Heading, Tag, TagLabel } from "@chakra-ui/react";
+import { Box, HStack, Stack, Text, Tooltip, SimpleGrid, Stat, StatNumber, VStack, Divider, Heading, Tag, TagLabel, IconButton } from "@chakra-ui/react";
 import { AppSizePill } from "./ui/AppSizePill";
 import { formatTeatSize } from "../lib/teatSizes";
+import { BsPinAngle, BsPinAngleFill } from "react-icons/bs";
 
 // Small helper for score color
 const scoreColor = (s) =>
@@ -58,7 +59,18 @@ function KpiChip({ code, value }) {
   );
 }
 
-export default function ProductApplicationCard({ productId, brand, model, sizeMm, compound, isAdmin, applicationId, kpis }) {
+export default function ProductApplicationCard({
+  productId,
+  brand,
+  model,
+  sizeMm,
+  compound,
+  isAdmin,
+  applicationId,
+  kpis,
+  isPinned = false,
+  onTogglePin,
+}) {
   const router = useRouter();
 
   const sizeLabel = useMemo(() => formatTeatSize(sizeMm), [sizeMm]);
@@ -73,15 +85,33 @@ export default function ProductApplicationCard({ productId, brand, model, sizeMm
   return (
     <Box
       borderWidth="1px"
+      borderColor={isPinned ? "blue.500" : "gray.200"}
       rounded="md"
       p={4}
+      position="relative"
       role="button"
       tabIndex={0}
       cursor="pointer"
-      _hover={{ shadow: "sm", borderColor: "blue.300" }}
+      _hover={{ shadow: "sm", borderColor: isPinned ? "blue.500" : "blue.300" }}
+      boxShadow={isPinned ? "0 0 0 1px var(--chakra-colors-blue-500)" : undefined}
       onClick={goToDetails}
       onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); goToDetails(); } }}
     >
+      <IconButton
+        aria-label={isPinned ? "Unpin card" : "Pin card"}
+        icon={isPinned ? <BsPinAngleFill /> : <BsPinAngle />}
+        size="sm"
+        variant="ghost"
+        color={isPinned ? "blue.500" : "gray.500"}
+        _hover={{ bg: "blue.50", color: "blue.600" }}
+        position="absolute"
+        top={2}
+        right={2}
+        onClick={(e) => {
+          e.stopPropagation();
+          onTogglePin?.();
+        }}
+      />
       <Stack spacing={2}>
         {/* Header: left details, right KPIs (desktop) */}
         <Stack direction={{ base: 'column', md: 'row' }} justify="space-between" align={{ base: 'flex-start', md: 'center' }}>

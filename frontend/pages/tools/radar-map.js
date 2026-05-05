@@ -5,7 +5,7 @@ import AppHeader from "../../components/AppHeader";
 import AppFooter from "../../components/AppFooter";
 import { getToken } from "../../lib/auth";
 import { getKpiValuesByPA, listProductApplications, getProduct, getMe } from "../../lib/api";
-import { latestKpiByCode } from "../../lib/kpi";
+import { latestKpiByCode, formatKpiLabel } from "../../lib/kpi";
 import { formatTeatSize } from "../../lib/teatSizes";
 
 const KPI_ORDER = [
@@ -264,7 +264,7 @@ function RadarChart({ width = 560, height = 420, series = [] }) {
         return (
           <g key={code}>
             <line x1={cx} y1={cy} x2={p.x} y2={p.y} stroke="#cbd5e1" strokeWidth="1" />
-            <text x={lp.x} y={lp.y} textAnchor={anchor} fontSize={labelFontSize} fill="#475569">{code}</text>
+            <text x={lp.x} y={lp.y} textAnchor={anchor} fontSize={labelFontSize} fill="#475569">{formatKpiLabel(code)}</text>
           </g>
         );
       })}

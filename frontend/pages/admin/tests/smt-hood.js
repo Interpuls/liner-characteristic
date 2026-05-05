@@ -112,25 +112,41 @@ function SmtHoodCard({ token, application }) {
     });
   }, [inputs]);
 
+  const canSave = useMemo(() => {
+    return FLOWS.some(f => {
+      const v = inputs[f];
+      return v && v.smt_min !== "" && v.smt_max !== "" && v.hood_min !== "" && v.hood_max !== "";
+    });
+  }, [inputs]);
+
+  const collectPoints = () => {
+    return FLOWS.reduce((acc, f) => {
+      const v = inputs[f];
+      if (v && v.smt_min !== "" && v.smt_max !== "" && v.hood_min !== "" && v.hood_max !== "") {
+        acc.push({
+          flow_lpm: f,
+          smt_min: Number(v.smt_min),
+          smt_max: Number(v.smt_max),
+          hood_min: Number(v.hood_min),
+          hood_max: Number(v.hood_max),
+        });
+      }
+      return acc;
+    }, []);
+  };
+
   const onChange = (flow, field, val) => {
     setInputs(prev => ({ ...prev, [flow]: { ...prev[flow], [field]: val } }));
   };
 
-  const onSaveAndCompute = async () => {
-    if (!token || !canCompute) {
-      toast({ title: "Compila tutti i campi", status: "warning" });
+  const onSaveOnly = async () => {
+    if (!token || !canSave) {
+      toast({ title: "Compila almeno un flusso completo", status: "warning" });
       return;
     }
     setSaving(true);
     try {
-      const points = FLOWS.map(f => ({
-        flow_lpm: f,
-        smt_min: Number(inputs[f].smt_min),
-        smt_max: Number(inputs[f].smt_max),
-        hood_min: Number(inputs[f].hood_min),
-        hood_max: Number(inputs[f].hood_max),
-      }));
-
+      const points = collectPoints();
       let currentRunId = runId;
 
       if (currentRunId) {
@@ -145,11 +161,40 @@ function SmtHoodCard({ token, application }) {
         setRunId(run.id);
       }
 
-      // compute
+      toast({ title: "Saved", status: "success" });
+    } catch (e) {
+      const msg = e?.message || "Errore salvataggio";
+      toast({ title: `Errore: ${msg}`, status: "error" });
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const onSaveAndCompute = async () => {
+    if (!token || !canCompute) {
+      toast({ title: "Serve completare i tre flussi per il compute", status: "warning" });
+      return;
+    }
+    setSaving(true);
+    try {
+      const points = collectPoints();
+      let currentRunId = runId;
+
+      if (currentRunId) {
+        await upsertSmtHoodPoints(token, currentRunId, points);
+      } else {
+        const run = await createSmtHoodRun(token, {
+          product_application_id: application.id,
+          points,
+          notes: "from UI",
+        });
+        currentRunId = run.id;
+        setRunId(run.id);
+      }
+
       const res = await computeSmtHoodRun(token, currentRunId);
       setPerFlow(res?.flows || null);
 
-      // refresh KPI finali (media)
       const values = await getKpiValuesByPA(token, application.id);
       const map = latestKpiByCode(values);
       setKpis(map);
@@ -264,7 +309,16 @@ function SmtHoodCard({ token, application }) {
             </Box>
           ))}
 
-          <HStack justify="flex-end">
+          <HStack justify="flex-end" spacing={2}>
+            <Button
+              variant="outline"
+              colorScheme={COLOR}
+              onClick={onSaveOnly}
+              isDisabled={!canSave || saving}
+              isLoading={saving}
+            >
+              Save
+            </Button>
             <Button
               leftIcon={<FaCalculator />}
               colorScheme={COLOR}
