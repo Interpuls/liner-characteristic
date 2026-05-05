@@ -1,4 +1,12 @@
 mi-linerlens.milkrite-interpuls.com {
+    # Security headers (production)
+    header {
+        Strict-Transport-Security "max-age=31536000; includeSubDomains; preload"
+        X-Content-Type-Options "nosniff"
+        X-Frame-Options "DENY"
+        Referrer-Policy "strict-origin-when-cross-origin"
+        Permissions-Policy "geolocation=(self), microphone=(), camera=()"
+    }
 
     # Tutte le chiamate API vere del backend FastAPI
     @backend path \
@@ -28,24 +36,8 @@ mi-linerlens.milkrite-interpuls.com {
         }
     }
 
-    # Tutto il resto è frontend (Next.js)
-    @frontend {
-        not path \
-            /auth* \
-            /users* \
-            /products* \
-            /kpis* \
-            /rankings* \
-            /tpp* \
-            /massage* \
-            /speed* \
-            /smt-hood* \
-            /news* \
-            /setting-calculator* \
-            /healthz*
-    }
-
-    reverse_proxy @frontend liner-frontend:3000 {
+    # Tutto il resto (incluse route Next come /_next/data) va al frontend
+    reverse_proxy liner-frontend:3000 {
         transport http {
             dial_timeout 5s
             response_header_timeout 60s
