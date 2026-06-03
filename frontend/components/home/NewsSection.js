@@ -262,24 +262,24 @@ export default function NewsSection({ isAdmin }) {
               borderRadius="lg"
               bg="rgba(12, 22, 48, 0.65)"
             >
-              <HStack justify="space-between" align="start">
-                <Box>
+              <VStack align="stretch" spacing={2}>
+                <HStack justify="space-between" align="start" spacing={4}>
                   <Heading size="sm" color="white" mb={1}>{item.title}</Heading>
-                  <Text fontSize="sm" color="whiteAlpha.800" whiteSpace="pre-line">
-                    {item.body}
-                  </Text>
-                </Box>
-                <VStack align="end" spacing={2} minW="120px">
-                  {isAdmin ? (
-                    <Badge colorScheme={item.is_published ? "green" : "yellow"}>
-                      {item.is_published ? "Published" : "Draft"}
-                    </Badge>
-                  ) : null}
-                  <Text fontSize="xs" color="gray.400">
-                    {formatNewsDate(item.published_at || item.created_at)}
-                  </Text>
-                </VStack>
-              </HStack>
+                  <VStack align="end" spacing={2} minW="120px" flexShrink={0}>
+                    {isAdmin ? (
+                      <Badge colorScheme={item.is_published ? "green" : "yellow"}>
+                        {item.is_published ? "Published" : "Draft"}
+                      </Badge>
+                    ) : null}
+                    <Text fontSize="xs" color="gray.400">
+                      {formatNewsDate(item.published_at || item.created_at)}
+                    </Text>
+                  </VStack>
+                </HStack>
+                <Text fontSize="sm" color="whiteAlpha.800" whiteSpace="pre-line">
+                  {item.body}
+                </Text>
+              </VStack>
               {isAdmin ? (
                 <HStack justify="flex-end" mt={3} spacing={2}>
                   <Button size="sm" variant="ghost" onClick={() => openPreview(item)}>
