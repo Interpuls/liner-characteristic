@@ -13,8 +13,28 @@ import {
   Stack,
   Text,
   VStack,
+  Icon,
 } from "@chakra-ui/react";
 import { EditIcon, ChevronRightIcon, ViewIcon, LockIcon, CalendarIcon } from "@chakra-ui/icons";
+
+const BARREL_SHAPE_ICON = {
+  round: (props) => (
+    <Icon viewBox="0 0 24 24" {...props}>
+      <circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" strokeWidth="2" />
+    </Icon>
+  ),
+  triangular: (props) => (
+    <Icon viewBox="0 0 24 24" {...props}>
+      <polygon points="12 4 20 18 4 18" fill="none" stroke="currentColor" strokeWidth="2" />
+    </Icon>
+  ),
+  squared: (props) => (
+    <Icon viewBox="0 0 24 24" {...props}>
+      <rect x="5" y="5" width="14" height="14" rx="2" fill="none" stroke="currentColor" strokeWidth="2" />
+    </Icon>
+  ),
+};
+const BARREL_SHAPE_LABEL = { round: "Round", triangular: "Triangular", squared: "Squared" };
 
 /**
  * ProductCard
@@ -30,9 +50,12 @@ export default function ProductCard({ p, onEdit, onDetail }) {
   const borderColor = isPublic ? "green.400" : "gray.200";
   const accentColor = isPublic ? "green.400" : "gray.300";
 
-  // brand / compound
+  // brand / compound / barrel shape
   const brand = p?.brand || null;
   const compound = p?.compound || null;
+  const shapeKey = (p?.barrel_shape || "").toLowerCase();
+  const ShapeIcon = BARREL_SHAPE_ICON[shapeKey] || null;
+  const shapeLabel = BARREL_SHAPE_LABEL[shapeKey] || null;
 
   // manufactured_at -> prova a formattare ISO, fallback stringa originale
   let manufacturedStr = null;
@@ -107,15 +130,16 @@ export default function ProductCard({ p, onEdit, onDetail }) {
             {title}
           </Heading>
 
-          {/* Metadati principali: brand, compound, data */}
+          {/* Metadati principali: brand, compound, shape */}
           <Stack
             direction={{ base: "column", sm: "row" }}
-            spacing={2}
+            spacing={{ base: 2, sm: 6 }}
             flexWrap="wrap"
+            w="full"
           >
             {brand && (
               <Box>
-                <Text fontSize="xs" color="gray.500" mb={0}>Brand:</Text>
+                <Text fontSize="xs" color="gray.500" mb={1}>Brand:</Text>
                 <Tag size="sm" variant="subtle" colorScheme="blue">
                   <TagLabel>{brand}</TagLabel>
                 </Tag>
@@ -123,8 +147,18 @@ export default function ProductCard({ p, onEdit, onDetail }) {
             )}
             {compound && (
               <Box>
-                <Text fontSize="xs" color="gray.500" mb={0}>Compound:</Text>
-                <Text fontSize="xs"  fontWeight="medium" color="gray.600" mb={0}>{compound}</Text>
+                <Text fontSize="xs" color="gray.500" mb={1}>Compound:</Text>
+                <Text fontSize="xs" fontWeight="medium" color="gray.600" mb={0}>{compound}</Text>
+              </Box>
+            )}
+            {ShapeIcon && (
+              <Box>
+                <Text fontSize="xs" color="gray.500" mb={1}>Shape:</Text>
+                <Tooltip label={shapeLabel} hasArrow placement="top" openDelay={300}>
+                  <Box as="span" display="inline-flex" alignItems="center">
+                    <ShapeIcon boxSize={4} color="gray.700" />
+                  </Box>
+                </Tooltip>
               </Box>
             )}
           </Stack>

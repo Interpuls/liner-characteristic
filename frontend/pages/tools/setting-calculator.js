@@ -231,6 +231,7 @@ export default function SettingCalculatorPage() {
               brand: product?.brand || "Brand",
               sizeLabel: sizeLabel || "-",
               subtitle,
+              barrelShape: product?.barrel_shape || null,
             };
           })
         ), 10000);
@@ -395,6 +396,7 @@ export default function SettingCalculatorPage() {
             subtitle: [p?.brand || null, sizeLabel ? `${sizeLabel}${sizeMm ? ` (${sizeMm} mm)` : ""}` : null]
               .filter(Boolean)
               .join(" • "),
+            barrelShape: p?.barrel_shape || null,
           });
         });
       });
@@ -427,6 +429,7 @@ export default function SettingCalculatorPage() {
         brand: picked.brand,
         sizeLabel: picked.sizeLabel || "-",
         subtitle: picked.subtitle,
+        barrelShape: picked.barrelShape || null,
       },
     }));
     setPickerOpen(false);

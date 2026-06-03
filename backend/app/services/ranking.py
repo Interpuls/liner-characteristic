@@ -81,6 +81,7 @@ def get_overview_rankings(
             latest.c.kpi_code.label("kpi_code"),
             prod.c.brand.label("brand"),
             prod.c.model.label("model"),
+            prod.c.barrel_shape.label("barrel_shape"),
             latest.c.score.label("score"),
             latest.c.value_num.label("value_num"),
             latest.c.computed_at.label("computed_at"),
@@ -120,9 +121,12 @@ def get_overview_rankings(
     if role_value != "admin":
         ranking = ranking.where(prod.c.only_admin.is_(False))
     if "Global" not in area_values:
+        # I prodotti taggati "Global" sono universali: vanno inclusi anche
+        # quando si filtra per una regione specifica.
+        targets = area_values + ["Global"]
         area_matchers = [
             sa.func.lower(sa.cast(prod.c.reference_areas, sa.String)).like(f'%"{area.lower()}"%')
-            for area in area_values
+            for area in targets
         ]
         ranking = ranking.where(sa.or_(*area_matchers))
 
@@ -146,6 +150,7 @@ def get_overview_rankings(
                 "rank": int(r.rank_pos),
                 "brand": r.brand or "",
                 "model": r.model or "",
+                "barrel_shape": r.barrel_shape or "",
             }
         )
 
