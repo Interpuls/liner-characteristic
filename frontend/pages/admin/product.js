@@ -9,11 +9,11 @@ import {
   Spinner, Icon, Center, useDisclosure, Modal, ModalOverlay, ModalContent, ModalHeader, ModalBody,
   ModalFooter, ModalCloseButton, Tooltip, Menu, MenuButton, MenuList, MenuItem, Grid, InputRightElement
 } from "@chakra-ui/react";
-import { AddIcon, SearchIcon, ChevronLeftIcon, ArrowUpDownIcon, CheckIcon, IconButton, CloseIcon  } from "@chakra-ui/icons";
+import { AddIcon, SearchIcon, ChevronLeftIcon, ArrowUpDownIcon, CheckIcon, IconButton, CloseIcon, ViewIcon, LockIcon  } from "@chakra-ui/icons";
 import { LuShoppingCart } from "react-icons/lu";
 import { getToken } from "../../lib/auth";
 import { getMe, getProductsMeta, listProductPrefs, createProduct  } from "../../lib/api";
-import { listProducts, deleteProduct, updateProduct  } from "../../lib/api"; 
+import { listProducts, deleteProduct, updateProduct, listProductApplicationsBatchByProducts  } from "../../lib/api";
 
 
 import ProductModal from "../../components/ProductModal";
@@ -74,6 +74,8 @@ export default function AdminProducts() {
   const [products, setProducts] = useState(null);
   const [loading, setLoading] = useState(false);
   const [sortBy, setSortBy] = useState("newest"); // newest | brand_asc | brand_desc | model_asc | model_desc
+  // conteggi applications per product id (per le chip riepilogo sopra le card)
+  const [appCounts, setAppCounts] = useState({});
   // stato di saving
 
   // filtro per prodotti (search + filtri base)
@@ -139,9 +141,48 @@ export default function AdminProducts() {
   // refetch con debounce su search/filtri
   useEffect(() => {
     if (!me) return;
-    const id = setTimeout(fetchProducts, 350); 
+    const id = setTimeout(fetchProducts, 350);
     return () => clearTimeout(id);
   }, [me, params]);
+
+  // fetch conteggio applications per ciascun prodotto caricato
+  useEffect(() => {
+    if (!Array.isArray(products) || products.length === 0) {
+      setAppCounts({});
+      return;
+    }
+    const t = getToken();
+    if (!t) return;
+    const ids = products.map((p) => Number(p.id)).filter((n) => Number.isFinite(n) && n > 0);
+    if (!ids.length) { setAppCounts({}); return; }
+    let cancelled = false;
+    (async () => {
+      try {
+        const grouped = await listProductApplicationsBatchByProducts(t, ids);
+        if (cancelled) return;
+        const counts = {};
+        Object.entries(grouped || {}).forEach(([pid, list]) => {
+          counts[pid] = Array.isArray(list) ? list.length : 0;
+        });
+        setAppCounts(counts);
+      } catch {
+        if (!cancelled) setAppCounts({});
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [products]);
+
+  // riepilogo: totale applications, visibili al user, admin only — sull'elenco filtrato
+  const appTotals = useMemo(() => {
+    let total = 0, publicCount = 0, adminCount = 0;
+    for (const p of sortedProducts) {
+      const c = appCounts[String(p.id)] ?? 0;
+      total += c;
+      if (p?.only_admin === false) publicCount += c;
+      else adminCount += c;
+    }
+    return { total, publicCount, adminCount };
+  }, [sortedProducts, appCounts]);
 
   if (!me) return <PageLoader />;
 
@@ -242,8 +283,25 @@ export default function AdminProducts() {
         </Button>
       </Grid>
 
+      {/* Riepilogo applications: totali, visibili al user, admin only */}
+      {Array.isArray(products) && products.length > 0 && (
+        <HStack spacing={2} mt={4} flexWrap="wrap">
+          <Tag size="md" variant="subtle" colorScheme="blue" borderRadius="full">
+            <TagLabel>Total applications: <b>{appTotals.total}</b></TagLabel>
+          </Tag>
+          <Tag size="md" variant="subtle" colorScheme="green" borderRadius="full">
+            <Icon as={ViewIcon} mr={1.5} />
+            <TagLabel>User-visible: <b>{appTotals.publicCount}</b></TagLabel>
+          </Tag>
+          <Tag size="md" variant="subtle" colorScheme="gray" borderRadius="full">
+            <Icon as={LockIcon} mr={1.5} />
+            <TagLabel>Admin only: <b>{appTotals.adminCount}</b></TagLabel>
+          </Tag>
+        </HStack>
+      )}
+
       {/* Risultati */}
-      <Box mt={8} minH="200px">
+      <Box mt={4} minH="200px">
         {/* Primo caricamento */}
         {products === null ? (
           <Center py={16}>

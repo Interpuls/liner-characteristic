@@ -1,8 +1,27 @@
 import { useEffect, useMemo, useState } from "react";
 import NextLink from "next/link";
 import { useRouter } from "next/router";
-import { Box, Heading, HStack, Spinner, Text, VStack, Badge, Select, Center, Checkbox, Stack } from "@chakra-ui/react";
+import { Box, Heading, HStack, Spinner, Text, VStack, Badge, Select, Center, Checkbox, Stack, Icon, Tooltip } from "@chakra-ui/react";
 import { FiAward, FiBarChart2 } from "react-icons/fi";
+
+const BARREL_SHAPE_ICON = {
+  round: (props) => (
+    <Icon viewBox="0 0 24 24" {...props}>
+      <circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" strokeWidth="2" />
+    </Icon>
+  ),
+  triangular: (props) => (
+    <Icon viewBox="0 0 24 24" {...props}>
+      <polygon points="12 4 20 18 4 18" fill="none" stroke="currentColor" strokeWidth="2" />
+    </Icon>
+  ),
+  squared: (props) => (
+    <Icon viewBox="0 0 24 24" {...props}>
+      <rect x="5" y="5" width="14" height="14" rx="2" fill="none" stroke="currentColor" strokeWidth="2" />
+    </Icon>
+  ),
+};
+const BARREL_SHAPE_LABEL = { round: "Round", triangular: "Triangular", squared: "Squared" };
 import { getOverviewRankings } from "../../lib/api";
 import { formatKpiLabel } from "../../lib/kpi";
 
@@ -29,6 +48,9 @@ function RankBadge({ rank }) {
 function RankingRow({ item, teatSize, fromPath }) {
   const modelLabel = (item?.model || "-").trim();
   const brandLabel = (item?.brand || "-").trim();
+  const shapeKey = (item?.barrel_shape || "").toLowerCase();
+  const ShapeIcon = BARREL_SHAPE_ICON[shapeKey] || null;
+  const shapeLabel = BARREL_SHAPE_LABEL[shapeKey] || null;
   const params = new URLSearchParams({
     brand: item?.brand || "",
     model: item?.model || "",
@@ -56,9 +78,18 @@ function RankingRow({ item, teatSize, fromPath }) {
       <HStack spacing={2} minW={0} w="full" align="center">
         <RankBadge rank={item.rank} />
         <VStack align="start" spacing={0} minW={0} flex="1">
-          <Text fontSize="sm" color="white" fontWeight="semibold" noOfLines={1} w="full" textAlign="left">
-            {modelLabel}
-          </Text>
+          <HStack spacing={1.5} minW={0} w="full" align="center">
+            <Text fontSize="sm" color="white" fontWeight="semibold" noOfLines={1} textAlign="left" minW={0}>
+              {modelLabel}
+            </Text>
+            {ShapeIcon && (
+              <Tooltip label={shapeLabel} hasArrow placement="top" openDelay={300}>
+                <Box as="span" display="inline-flex" alignItems="center" flexShrink={0}>
+                  <ShapeIcon boxSize={3.5} color="whiteAlpha.800" />
+                </Box>
+              </Tooltip>
+            )}
+          </HStack>
           <Text fontSize="xs" color="whiteAlpha.700" noOfLines={1} w="full" textAlign="left">
             {brandLabel}
           </Text>
@@ -257,6 +288,11 @@ export default function RankingsSection({ token }) {
                 </Checkbox>
               ))}
             </HStack>
+            {!isGlobalArea && selectedAreas.length > 0 && (
+              <Text fontSize="xs" color="whiteAlpha.600" mt={2} fontStyle="italic">
+                Global products are always included.
+              </Text>
+            )}
           </Box>
         </Stack>
       )}

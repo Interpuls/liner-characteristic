@@ -290,6 +290,7 @@ export default function ProductsSearchPage() {
                       brand: p.brand,
                       model: p.model,
                       compound: p.compound,
+                      barrel_shape: p.barrel_shape,
                       size_mm: s });
         });
       });
@@ -682,6 +683,7 @@ export default function ProductsSearchPage() {
                         brand={pinnedItem.brand}
                         model={pinnedItem.model}
                         compound={pinnedItem.compound}
+                        barrelShape={pinnedItem.barrel_shape}
                         isAdmin={me?.role === 'admin'}
                         sizeMm={pinnedItem.size_mm}
                         applicationId={appIdByKey[pinnedItem.key]}
@@ -698,6 +700,7 @@ export default function ProductsSearchPage() {
                       brand={a.brand}
                       model={a.model}
                       compound={a.compound}
+                      barrelShape={a.barrel_shape}
                       isAdmin={me?.role === 'admin'}
                       sizeMm={a.size_mm}
                       applicationId={appIdByKey[a.key]}

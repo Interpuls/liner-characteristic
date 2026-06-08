@@ -92,11 +92,11 @@ function SpeedRow({ pa, product, token, onDone }) {
             <Box>
               <Text fontSize="xs" color="gray.500" mb={1}>Measure</Text>
               <InputGroup>
-                <InputLeftAddon>ml</InputLeftAddon>
+                <InputLeftAddon>Kg</InputLeftAddon>
                 <Input
                   value={value}
                   onChange={(e) => setValue(e.target.value)}
-                  placeholder="Enter measured Speed (ml)"
+                  placeholder="Enter measured Speed (Kg)"
                   isDisabled={saving}
                 />
               </InputGroup>

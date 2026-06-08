@@ -5,6 +5,7 @@ import {
   Grid,
   Heading,
   HStack,
+  Icon,
   IconButton,
   Input,
   Stack,
@@ -14,6 +15,38 @@ import {
   useBreakpointValue,
 } from "@chakra-ui/react";
 import { InfoOutlineIcon } from "@chakra-ui/icons";
+
+const BARREL_SHAPE_ICON = {
+  round: (props) => (
+    <Icon viewBox="0 0 24 24" {...props}>
+      <circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" strokeWidth="2" />
+    </Icon>
+  ),
+  triangular: (props) => (
+    <Icon viewBox="0 0 24 24" {...props}>
+      <polygon points="12 4 20 18 4 18" fill="none" stroke="currentColor" strokeWidth="2" />
+    </Icon>
+  ),
+  squared: (props) => (
+    <Icon viewBox="0 0 24 24" {...props}>
+      <rect x="5" y="5" width="14" height="14" rx="2" fill="none" stroke="currentColor" strokeWidth="2" />
+    </Icon>
+  ),
+};
+const BARREL_SHAPE_LABEL = { round: "Round", triangular: "Triangular", squared: "Squared" };
+
+function ShapeBadge({ shape, color = "blue.500" }) {
+  const key = (shape || "").toLowerCase();
+  const ShapeIcon = BARREL_SHAPE_ICON[key];
+  if (!ShapeIcon) return null;
+  return (
+    <Tooltip label={BARREL_SHAPE_LABEL[key]} hasArrow placement="top" openDelay={300}>
+      <Box as="span" display="inline-flex" alignItems="center">
+        <ShapeIcon boxSize={3.5} color={color} />
+      </Box>
+    </Tooltip>
+  );
+}
 
 function NumericInput({ value, onChange, onBlur, field, error, size = "md" }) {
   return (
@@ -114,7 +147,17 @@ export default function InputsComparisonTable({
                 </Text>
               ) : null}
             </HStack>
-            {leftMeta ? <Text fontSize="xs" color="gray.600">{leftMeta}</Text> : null}
+            {(leftMeta || leftProduct?.barrelShape) ? (
+              <HStack spacing={1.5} mt={0.5}>
+                {leftMeta ? <Text fontSize="xs" color="gray.600" lineHeight={1}>{leftMeta}</Text> : null}
+                {leftProduct?.barrelShape ? (
+                  <>
+                    {leftMeta ? <Text fontSize="xs" color="gray.600" lineHeight={1}>•</Text> : null}
+                    <ShapeBadge shape={leftProduct.barrelShape} color="gray.600" />
+                  </>
+                ) : null}
+              </HStack>
+            ) : null}
           </Box>
           <Box flex="1" borderWidth="1px" borderColor="blue.200" borderRadius="md" bg="blue.50" p={2}>
             <HStack justify="space-between" align="center">
@@ -131,7 +174,17 @@ export default function InputsComparisonTable({
               ) : <Box />}
               <Heading size="sm" textAlign="right">{rightTitle}</Heading>
             </HStack>
-            {rightMeta ? <Text fontSize="xs" color="blue.700" textAlign="right">{rightMeta}</Text> : null}
+            {(rightMeta || rightProduct?.barrelShape) ? (
+              <HStack spacing={1.5} mt={0.5} justify="flex-end">
+                {rightMeta ? <Text fontSize="xs" color="blue.700" lineHeight={1}>{rightMeta}</Text> : null}
+                {rightProduct?.barrelShape ? (
+                  <>
+                    {rightMeta ? <Text fontSize="xs" color="blue.700" lineHeight={1}>•</Text> : null}
+                    <ShapeBadge shape={rightProduct.barrelShape} color="blue.700" />
+                  </>
+                ) : null}
+              </HStack>
+            ) : null}
           </Box>
         </HStack>
 
@@ -220,7 +273,17 @@ export default function InputsComparisonTable({
               </Text>
             ) : null}
           </HStack>
-          {leftMeta ? <Text fontSize="xs" color="gray.600">{leftMeta}</Text> : null}
+          {(leftMeta || leftProduct?.barrelShape) ? (
+            <HStack spacing={1.5} mt={0.5}>
+              {leftMeta ? <Text fontSize="xs" color="gray.600" lineHeight={1}>{leftMeta}</Text> : null}
+              {leftProduct?.barrelShape ? (
+                <>
+                  {leftMeta ? <Text fontSize="xs" color="gray.600" lineHeight={1}>•</Text> : null}
+                  <ShapeBadge shape={leftProduct.barrelShape} color="gray.600" />
+                </>
+              ) : null}
+            </HStack>
+          ) : null}
         </Box>
         <Box borderWidth="1px" borderColor="blue.200" borderRadius="md" bg="blue.50" p={2} ml={{ base: 0, md: 2 }}>
           <HStack justify="space-between" align="center">
@@ -237,7 +300,17 @@ export default function InputsComparisonTable({
               </Text>
             ) : null}
           </HStack>
-          {rightMeta ? <Text fontSize="xs" color="blue.700">{rightMeta}</Text> : null}
+          {(rightMeta || rightProduct?.barrelShape) ? (
+            <HStack spacing={1.5} mt={0.5}>
+              {rightMeta ? <Text fontSize="xs" color="blue.700" lineHeight={1}>{rightMeta}</Text> : null}
+              {rightProduct?.barrelShape ? (
+                <>
+                  {rightMeta ? <Text fontSize="xs" color="blue.700" lineHeight={1}>•</Text> : null}
+                  <ShapeBadge shape={rightProduct.barrelShape} color="blue.700" />
+                </>
+              ) : null}
+            </HStack>
+          ) : null}
         </Box>
 
         {fields.map((field, idx) => (
