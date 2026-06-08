@@ -52,13 +52,58 @@ function pickNiceStep(range) {
   return candidates.find((s) => s >= rough) || Math.ceil(rough / 10) * 10;
 }
 
-function renderChartToDataUrl(config, { width, height }) {
+// Plugin generico: disegna i valori sopra/dentro ogni barra. Replica i plugin
+// usati nelle card live (PulsatorPhases, RealMilking, PercentageDifference)
+// così il PDF mostra le stesse etichette.
+function makeBarValueLabelsPlugin({ id, formatter, minBarSize = 24, skipZero = false }) {
+  return {
+    id,
+    afterDatasetsDraw(chart) {
+      const { ctx } = chart;
+      chart.data.datasets.forEach((dataset, datasetIndex) => {
+        const meta = chart.getDatasetMeta(datasetIndex);
+        meta.data.forEach((barElement, index) => {
+          const raw = Array.isArray(dataset.data) ? dataset.data[index] : 0;
+          const value = Number(raw || 0);
+          if (!Number.isFinite(value)) return;
+          if (skipZero && value <= 0) return;
+
+          const isHorizontal = chart.options?.indexAxis === "y";
+          const size = isHorizontal
+            ? Math.abs(barElement.base - barElement.x)
+            : Math.abs(barElement.base - barElement.y);
+          if (size < minBarSize) return;
+
+          ctx.save();
+          ctx.fillStyle = "#ffffff";
+          ctx.font = "700 11px Arial, Helvetica, sans-serif";
+          ctx.textAlign = "center";
+          ctx.textBaseline = "middle";
+          const x = isHorizontal ? (barElement.base + barElement.x) / 2 : barElement.x;
+          const y = isHorizontal ? barElement.y : (barElement.base + barElement.y) / 2;
+          ctx.shadowColor = "rgba(15, 23, 42, 0.55)";
+          ctx.shadowBlur = 2;
+          ctx.fillText(formatter(value), x, y);
+          ctx.restore();
+        });
+      });
+    },
+  };
+}
+
+function formatMsLabel(v) {
+  const n = Number(v || 0);
+  return Number.isFinite(n) ? String(Math.round(n)) : "0";
+}
+
+function renderChartToDataUrl(config, { width, height, plugins }) {
   const canvas = document.createElement("canvas");
   canvas.width = width;
   canvas.height = height;
   const ctx = canvas.getContext("2d");
   if (!ctx) throw new Error("Canvas context unavailable.");
-  const chart = new ChartJS(ctx, config);
+  const fullConfig = plugins && plugins.length ? { ...config, plugins } : config;
+  const chart = new ChartJS(ctx, fullConfig);
   chart.update("none");
   const dataUrl = canvas.toDataURL("image/png", 1.0);
   chart.destroy();
@@ -136,6 +181,14 @@ function buildPulsatorPhasesChart(runData) {
     title: "Pulsator Phases",
     width: 1200,
     height: 360,
+    plugins: [
+      makeBarValueLabelsPlugin({
+        id: "pdfPhaseValueLabels",
+        formatter: formatMsLabel,
+        minBarSize: 28,
+        skipZero: true,
+      }),
+    ],
     config: {
       type: "bar",
       data: {
@@ -191,6 +244,14 @@ function buildRealMilkingChart(runData) {
     title: "Real Milking / Real OFF",
     width: 1200,
     height: 340,
+    plugins: [
+      makeBarValueLabelsPlugin({
+        id: "pdfMilkingValueLabels",
+        formatter: formatMsLabel,
+        minBarSize: 28,
+        skipZero: true,
+      }),
+    ],
     config: {
       type: "bar",
       data: {
@@ -236,6 +297,14 @@ function buildPercentageChart(runData, dataKey, title) {
     title,
     width: 900,
     height: 280,
+    plugins: [
+      makeBarValueLabelsPlugin({
+        id: "pdfPercentageValueLabels",
+        formatter: (v) => `${Number(v).toFixed(1)}%`,
+        minBarSize: 24,
+        skipZero: false,
+      }),
+    ],
     config: {
       type: "bar",
       data: {
@@ -283,6 +352,10 @@ export function createSettingCalculatorExportCharts(runData, unitSystem = "metri
   if (defs.length !== 5) return null;
   return defs.map((def) => ({
     title: def.title,
-    dataUrl: renderChartToDataUrl(def.config, { width: def.width, height: def.height }),
+    dataUrl: renderChartToDataUrl(def.config, {
+      width: def.width,
+      height: def.height,
+      plugins: def.plugins,
+    }),
   }));
 }

@@ -412,7 +412,7 @@ export default function AdminTests() {
           <TabPanel px={0} pt={4}>
             <InfoBox title="Descrizione test - Massage">
               <Text mb={2}>
-                Questa prova ha lo scopo di mappare l'intensità di massaggio della guaina
+                Questa prova ha lo scopo di mappare l&apos;intensità di massaggio della guaina
                 al variare delle condizioni di vuoto.
               </Text>
               <Text mb={1}>
@@ -420,14 +420,14 @@ export default function AdminTests() {
               </Text>
               <UnorderedList spacing={1} pl={4}>
                 <ListItem>
-                  La mappatura dell'intensità di massaggio di ciascuna guaina al variare
+                  La mappatura dell&apos;intensità di massaggio di ciascuna guaina al variare
                   del vuoto di impianto e del vuoto nella guaina stessa.
                 </ListItem>
                 <ListItem>
                   Uno score sulla capacità di accogliere il capezzolo (sotto test) delle varie guaine.
                 </ListItem>
                 <ListItem>
-                  Uno score dell'intensità di massaggio inteso come valore assoluto.
+                  Uno score dell&apos;intensità di massaggio inteso come valore assoluto.
                 </ListItem>
               </UnorderedList>
             </InfoBox>
