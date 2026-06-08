@@ -1,6 +1,6 @@
 import { useMemo } from "react";
 import { useRouter } from "next/router";
-import { Box, HStack, Stack, Text, Tooltip, SimpleGrid, Stat, StatNumber, VStack, Divider, Heading, Tag, TagLabel, IconButton, Icon } from "@chakra-ui/react";
+import { Box, HStack, Stack, Text, Tooltip, SimpleGrid, VStack, Divider, Heading, Tag, TagLabel, IconButton, Icon } from "@chakra-ui/react";
 import { AppSizePill } from "./ui/AppSizePill";
 import { formatTeatSize } from "../lib/teatSizes";
 import { BsPinAngle, BsPinAngleFill } from "react-icons/bs";
@@ -60,21 +60,32 @@ function KpiChip({ code, value }) {
   const score = value?.score ?? null;
   const rawVal = value?.value_num ?? null;
   return (
-    <VStack spacing={1} align="center">
-      <Text fontSize={{ base: "9px", md: "12px" }} color="gray.600" lineHeight="shorter" noOfLines={1}>
-        {KPI_ABBR[code] || code}
-      </Text>
-      <Tooltip
-        label={score != null ? `${code}: score ${score}/4 – value: ${rawVal != null ? rawVal : "n/a"}` : `${code}: n/a`}
-        hasArrow
+    <Tooltip
+      label={score != null ? `${code}: score ${score}/4 – value: ${rawVal != null ? rawVal : "n/a"}` : `${code}: n/a`}
+      hasArrow
+    >
+      <Box
+        textAlign="center"
+        w={{ base: "32px", md: "44px" }}
+        minW={{ base: "32px", md: "44px" }}
+        borderRadius="lg"
+        overflow="hidden"
+        boxShadow="sm"
+        bg={scoreColor(score)}
+        color="white"
       >
-        <Stat p={{ base: 0.5, md: 2 }} borderWidth="1px" borderRadius="md" bg={scoreColor(score)} w={{ base: "28px", md: "40px" }} textAlign="center">
-          <StatNumber fontSize={{ base: "sm", md: "lg" }} color="white" lineHeight="short">
+        <Box px={1} py={1} bg="rgba(255,255,255,0.15)">
+          <Text fontSize={{ base: "8px", md: "10px" }} fontWeight="semibold" lineHeight="short" letterSpacing="wider" textTransform="uppercase">
+            {KPI_ABBR[code] || code}
+          </Text>
+        </Box>
+        <Box py={{ base: 1, md: 2 }}>
+          <Text fontSize={{ base: "sm", md: "xl" }} fontWeight="bold" lineHeight="short" letterSpacing="tight">
             {score != null ? score : "–"}
-          </StatNumber>
-        </Stat>
-      </Tooltip>
-    </VStack>
+          </Text>
+        </Box>
+      </Box>
+    </Tooltip>
   );
 }
 
@@ -107,6 +118,9 @@ export default function ProductApplicationCard({
 
   return (
     <Box
+      w="100%"
+      maxW="100%"
+      minW={0}
       borderWidth="1px"
       borderColor={isPinned ? "blue.500" : "gray.200"}
       rounded="md"
@@ -136,29 +150,75 @@ export default function ProductApplicationCard({
         }}
       />
       <Stack spacing={2}>
-        {/* Header: left details, right KPIs (desktop) */}
-        <Stack direction={{ base: 'column', md: 'row' }} justify="space-between" align={{ base: 'flex-start', md: 'center' }}>
-          <VStack align="start" spacing={0}>
-            <HStack spacing={2} align="center">
-              <Heading size="sm" fontWeight="bold" lineHeight={1}>{model || "-"}</Heading>
-              {ShapeIcon ? (
-                <Tooltip label={shapeLabel} hasArrow placement="top" openDelay={300}>
-                  <Box as="span" display="inline-flex" alignItems="center">
-                    <ShapeIcon boxSize={4} color="blue.500" />
+        {/* Header: left details and KPI row on desktop */}
+        <Stack direction={{ base: 'column', md: 'row' }} justify="space-between" align={{ base: 'flex-start', md: 'flex-start' }}>
+          <VStack align="start" spacing={0} flex="1" minW={0}>
+            <HStack spacing={2} align="center" flexWrap="wrap" w="100%" justify={{ base: "space-between", md: "flex-start" }}>
+              <HStack spacing={2} align="center" flexWrap="wrap" flex="1" minW="0">
+                <Heading size="sm" fontWeight="bold" lineHeight={1}>{model || "-"}</Heading>
+                <Text color="gray.600" fontWeight="normal" fontSize="xs" display={{ base: "inline-flex", md: "none" }}>
+                  {brand || "-"}
+                </Text>
+                {ShapeIcon ? (
+                  <Tooltip label={shapeLabel} hasArrow placement="top" openDelay={300}>
+                    <Box as="span" display="inline-flex" alignItems="center">
+                      <ShapeIcon boxSize={4} color="blue.500" />
+                    </Box>
+                  </Tooltip>
+                ) : null}
+                {sizeLabel ? (
+                  <Box
+                    as="span"
+                    px={2}
+                    py={0.5}
+                    borderWidth="1px"
+                    borderRadius="full"
+                    fontSize="10px"
+                    color="blue.500"
+                    bg="gray.100"
+                    fontWeight="medium"
+                    textTransform="capitalize"
+                    display={{ base: "inline-flex", md: "none" }}
+                  >
+                    {sizeLabel}
                   </Box>
-                </Tooltip>
-              ) : null}
+                ) : null}
+                {isAdmin && compound ? (
+                  <Box
+                    as="span"
+                    px={2}
+                    py={0.5}
+                    borderWidth="1px"
+                    borderRadius="full"
+                    fontSize="10px"
+                    color="blue.500"
+                    bg="gray.100"
+                    fontWeight="medium"
+                    textTransform="capitalize"
+                    display={{ base: "inline-flex", md: "none" }}
+                  >
+                    {compound}
+                  </Box>
+                ) : null}
+              </HStack>
             </HStack>
-            <Text color="gray.600" fontWeight="normal">{brand || "-"}</Text>
-            <Stack direction={{ base: 'row', md: 'column' }} align="start" spacing={{ base: 1, md: 3 }} mt={1} flexWrap="wrap">
-              <AppSizePill color="blue" size="xs">{sizeLabel}</AppSizePill>
-              {isAdmin && compound ? (
-                <AppSizePill color="blue" size="xs" label="Comp.">{compound}</AppSizePill>
-              ) : null}
-            </Stack>
+            <Text color="gray.600" fontWeight="normal" display={{ base: "none", md: "block" }}>{brand || "-"}</Text>
           </VStack>
-          {/* KPIs inline on desktop */}
-          <HStack spacing={{ base: 1, md: 5 }} display={{ base: 'none', md: 'flex' }}>
+
+          <HStack
+            spacing={2}
+            flexWrap="nowrap"
+            align="center"
+            justify="space-between"
+            display={{ base: 'none', md: 'flex' }}
+            flex="1"
+            minW={0}
+            pt={2}
+            pb={1}
+            pl={4}
+            pr={10}
+            overflowX="auto"
+          >
             {KPI_ORDER.map((code) => (
               <KpiChip key={code} code={code} value={kpis?.[code]} />
             ))}
@@ -166,7 +226,6 @@ export default function ProductApplicationCard({
         </Stack>
 
         {/* Divider + grid KPIs for mobile */}
-        <Divider my={1} display={{ base: 'block', md: 'none' }} />
         <SimpleGrid display={{ base: 'grid', md: 'none' }} columns={{ base: 9, md: 9 }} gap={{ base: 1, md: 2 }}>
           {KPI_ORDER.map((code) => (
             <KpiChip key={code} code={code} value={kpis?.[code]} />

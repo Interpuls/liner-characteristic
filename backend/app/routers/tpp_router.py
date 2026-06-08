@@ -13,7 +13,7 @@ from app.model.tpp import TppRun
 from app.schema.kpi import KpiValueOut
 from app.schema.tpp import TppRunIn, TppRunOut
 
-from app.services.kpi_engine import score_from_scales
+from app.services.kpi_engine import score_or_422
 
 router = APIRouter()
 
@@ -82,7 +82,7 @@ def compute_tpp_kpis(
     ))
 
     #calcola KPI "CLOSURE"
-    score = score_from_scales(session, "CLOSURE", run.real_tpp)
+    score = score_or_422(session, "CLOSURE", run.real_tpp)
 
     #rimuovi vecchi valori KPI per questo run
     session.exec(sa.delete(KpiValue).where(

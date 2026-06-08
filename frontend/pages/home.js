@@ -234,7 +234,7 @@ export default function Home() {
 
       <VStack position="relative" zIndex={1} spacing={5}>
         <Image src="/logolinerlens_bianco.png" alt="MI LinerLens" width={heroLogoWidth} height={heroLogoHeight} />
-        <Text color="whiteAlpha.800" textAlign="center" maxW="2xl" mb={0}>Explore liners, compare KPIs and find the best fit.</Text>
+        <Text color="whiteAlpha.800" textAlign="center" maxW="2xl" mb={0}>find liners, compare KPIs and find the best fit.</Text>
         <HStack mt={{ base: 6, md: 8 }}>
           <Button
             as={NextLink}

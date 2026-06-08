@@ -18,7 +18,7 @@ export default function FiltersSummaryCard({ brand, model, teat_size, areas = []
   const shapesList = toList(barrel_shape);
 
   return (
-    <Card mb={4}>
+    <Card mb={{ base: 4, md: 6 }}>
       <CardHeader
         py={3}
         cursor={open ? "default" : "pointer"}

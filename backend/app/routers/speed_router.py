@@ -12,7 +12,7 @@ from app.model.kpi import KpiValue, TestMetric
 from app.model.speed import SpeedRun
 from app.schema.speed import SpeedRunIn, SpeedRunOut
 from app.schema.kpi import KpiValueOut
-from app.services.kpi_engine import score_from_scales
+from app.services.kpi_engine import score_or_422
 
 router = APIRouter()
 
@@ -72,7 +72,7 @@ def compute_speed_kpis(
     ))
 
     #Calcola KPI SPEED
-    score = score_from_scales(session, "SPEED", run.measure_ml)
+    score = score_or_422(session, "SPEED", run.measure_ml)
 
     #Pulisce ed aggiorna KpiValue
     session.exec(sa.delete(KpiValue).where(

@@ -4,7 +4,7 @@ import { KPI_ORDER, formatKpiLabel } from "../../lib/kpi";
 
 export default function ApplicationsHeader({ total = 0, sortKpi, sortDir = 'desc', sortingBusy = false, onSelectSortKpi, onToggleDir }) {
   return (
-    <HStack justify="space-between" align="center">
+    <HStack justify="space-between" align="center" py={{ base: 3, md: 5 }}>
       <Heading size="lg" color="#12305f">Liners</Heading>
       <HStack gap={2}>
         <Menu>

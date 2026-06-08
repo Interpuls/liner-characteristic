@@ -563,7 +563,7 @@ export default function ProductsSearchPage() {
         backHref="/product"
       />
 
-      <Box as="main" flex="1" maxW={{ base: "100%", md: "100%" }} mx="auto" px={{ base: 4, md: 0 }} pt={{ base: 4, md: 6 }}>
+      <Box as="main" flex="1" w="100%" px={{ base: 4, md: 0 }} pt={{ base: 4, md: 6 }}>
         {(() => {
           const areasSel = typeof areas === "string" && areas ? String(areas).split(",") : [];
           const shapesList = (() => {
@@ -644,8 +644,8 @@ export default function ProductsSearchPage() {
         </SimpleGrid>
 
         {/* Risultati */}
-        <Card mx={{ base: -4, md: 0 }}>
-          <CardHeader py={3}>
+        <Card mt={{ base: 4, md: 6 }} mx={{ base: -4, md: 0 }} px={{ base: 4, md: 0 }} rounded={{ base: 'md', md: 'none' }}>
+          <CardHeader py={3} px={{ base: 4, md: 0 }}>
             <ApplicationsHeader
               total={items.length}
               sortKpi={sortKpi}

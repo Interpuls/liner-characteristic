@@ -7,7 +7,7 @@ import {
   Input, IconButton, useToast, Badge, Text, Divider, Tooltip, Spacer,
   VStack, Icon, Show, Hide, Center, AlertDialog, AlertDialogOverlay,
   AlertDialogContent, AlertDialogHeader, AlertDialogBody, AlertDialogFooter,
-  useDisclosure, useMediaQuery
+  useDisclosure, useMediaQuery, UnorderedList, ListItem
 } from "@chakra-ui/react";
 import { ChevronLeftIcon } from "@chakra-ui/icons";
 import { FiPlus, FiTrash2, FiSave, FiRefreshCcw, FiBarChart2 } from "react-icons/fi";
@@ -374,10 +374,16 @@ export default function AdminKpis() {
 
             <Divider my={4} />
 
-            <Box color="gray.600" fontSize="sm">
-              <strong>Rules:</strong> score ∈ {`{1,2,3,4}`}; bands must be ordered (min ≤ max), no overlaps
-              (adjacent allowed: next.min can equal prev.max). Negative values are allowed.
-            </Box>
+            <InfoBox>
+              <Text fontWeight="semibold" mb={2}>Rules</Text>
+              <UnorderedList spacing={2} color="gray.600" fontSize="sm" ml={5}>
+                <ListItem>Score deve essere uno dei valori: 1, 2, 3, 4.</ListItem>
+                <ListItem>Ogni banda deve avere un valore min e max numerico.</ListItem>
+                <ListItem>Ogni banda deve rispettare min ≤ max.</ListItem>
+                <ListItem>Le bande non devono sovrapporsi; adiacenze sono consentite (next.min può essere uguale a prev.max).</ListItem>
+                <ListItem>Sono ammessi valori negativi.</ListItem>
+              </UnorderedList>
+            </InfoBox>
           </CardBody>
         )}
       </Card>
