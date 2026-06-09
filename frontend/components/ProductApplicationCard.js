@@ -1,3 +1,4 @@
+
 import { useMemo } from "react";
 import { useRouter } from "next/router";
 import { Box, HStack, Stack, Text, Tooltip, SimpleGrid, VStack, Divider, Heading, Tag, TagLabel, IconButton, Icon } from "@chakra-ui/react";
@@ -32,6 +33,7 @@ const scoreColor = (s) =>
   s === 1 ? "red.500" : "gray.400";
 
 // Order of the 9 KPIs to render
+
 const KPI_ORDER = [
   "CLOSURE",
   "FITTING",
@@ -66,8 +68,8 @@ function KpiChip({ code, value }) {
     >
       <Box
         textAlign="center"
-        w={{ base: "32px", md: "44px" }}
-        minW={{ base: "32px", md: "44px" }}
+        w={{ base: "432px", md: "44px" }}
+        minW={{ base: "432px", md: "56644px" }}
         borderRadius="lg"
         overflow="hidden"
         boxShadow="sm"
@@ -136,14 +138,17 @@ export default function ProductApplicationCard({
     >
       <IconButton
         aria-label={isPinned ? "Unpin card" : "Pin card"}
-        icon={isPinned ? <BsPinAngleFill /> : <BsPinAngle />}
+        icon={isPinned ? <BsPinAngleFill size="22px" /> : <BsPinAngle size="22px" />}
         size="sm"
+        h="34px"
+        w="34px"
+        minW="34px"
         variant="ghost"
         color={isPinned ? "blue.500" : "gray.500"}
         _hover={{ bg: "blue.50", color: "blue.600" }}
         position="absolute"
-        top={2}
-        right={2}
+        top="24px"
+        right="14px"
         onClick={(e) => {
           e.stopPropagation();
           onTogglePin?.();
@@ -156,16 +161,29 @@ export default function ProductApplicationCard({
             <HStack spacing={2} align="center" flexWrap="wrap" w="100%" justify={{ base: "space-between", md: "flex-start" }}>
               <HStack spacing={2} align="center" flexWrap="wrap" flex="1" minW="0">
                 <Heading size="sm" fontWeight="bold" lineHeight={1}>{model || "-"}</Heading>
+                {ShapeIcon ? (
+                  <Tooltip label={shapeLabel} hasArrow placement="top" openDelay={300}>
+                    <HStack
+                      spacing={2}
+                      align="center"
+                      px={2}
+                      py={1}
+                      borderWidth="1px"
+                      borderRadius="full"
+                      bg="gray.100"
+                      color="blue.500"
+                      minW="auto"
+                    >
+                      <ShapeIcon boxSize={5} color="blue.500" />
+                      <Text fontSize={{ base: "xs", md: "sm" }} fontWeight="semibold" color="blue.500" textTransform="capitalize" whiteSpace="nowrap">
+                        {shapeLabel}
+                      </Text>
+                    </HStack>
+                  </Tooltip>
+                ) : null}
                 <Text color="gray.600" fontWeight="normal" fontSize="xs" display={{ base: "inline-flex", md: "none" }}>
                   {brand || "-"}
                 </Text>
-                {ShapeIcon ? (
-                  <Tooltip label={shapeLabel} hasArrow placement="top" openDelay={300}>
-                    <Box as="span" display="inline-flex" alignItems="center">
-                      <ShapeIcon boxSize={4} color="blue.500" />
-                    </Box>
-                  </Tooltip>
-                ) : null}
                 {sizeLabel ? (
                   <Box
                     as="span"
@@ -207,9 +225,9 @@ export default function ProductApplicationCard({
 
           <HStack
             spacing={2}
-            flexWrap="nowrap"
+            flexWrap="wrap"
             align="center"
-            justify="space-between"
+            justify="flex-start"
             display={{ base: 'none', md: 'flex' }}
             flex="1"
             minW={0}
@@ -217,7 +235,6 @@ export default function ProductApplicationCard({
             pb={1}
             pl={4}
             pr={10}
-            overflowX="auto"
           >
             {KPI_ORDER.map((code) => (
               <KpiChip key={code} code={code} value={kpis?.[code]} />

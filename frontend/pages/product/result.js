@@ -3,26 +3,77 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/router";
 import {
   Box, Heading, Text, HStack, VStack, Stack, Tag, TagLabel, Button,
-  Card, CardHeader, CardBody, SimpleGrid, useToast, Badge, Spinner,
+  Card, CardBody, SimpleGrid, useToast, Spinner,
   useDisclosure, Modal, ModalOverlay, ModalContent, ModalHeader, ModalCloseButton, ModalBody, ModalFooter, Input,
+  Flex, Grid, IconButton, Icon, Menu, MenuButton, MenuList, MenuItem, MenuDivider, Tooltip,
 } from "@chakra-ui/react";
-import { StarIcon } from "@chakra-ui/icons";
+import { ArrowUpDownIcon } from "@chakra-ui/icons";
 import AppHeader from "../../components/AppHeader";
 import AppFooter from "../../components/AppFooter";
-import ProductApplicationCard from "../../components/ProductApplicationCard";
 import FiltersSummaryCard from "../../components/result/FiltersSummaryCard";
-import ApplicationsHeader from "../../components/result/ApplicationsHeader";
-import PaginationBar from "../../components/result/PaginationBar";
 import { getToken } from "../../lib/auth";
 import { getMe, listProducts, saveProductPref, listProductApplications, listProductApplicationsBatchByProducts, getKpiValuesBatch } from "../../lib/api";
 import { latestKpiByCode } from "../../lib/kpi";
 import { RiFlaskLine } from "react-icons/ri";
 import { TbChartRadar, TbArrowsRightLeft } from "react-icons/tb";
+import { BsPinAngle, BsPinAngleFill } from "react-icons/bs";
 import { formatTeatSize } from "../../lib/teatSizes";
 
 // In-memory cache to dedupe repeated /products/{id}/applications calls in this tab/session.
 const productAppsCache = new Map(); // productId -> applications[]
 const productAppsInFlight = new Map(); // productId -> Promise<applications[]>
+
+const RESULT_KPIS = [
+  { code: "CLOSURE", abbr: "CLS" },
+  { code: "FITTING", abbr: "FIT" },
+  { code: "CONGESTION_RISK", abbr: "CGR" },
+  { code: "HYPERKERATOSIS_RISK", abbr: "HKR" },
+  { code: "SPEED", abbr: "SPD" },
+  { code: "RESPRAY", abbr: "RSP" },
+  { code: "FLUYDODINAMIC", abbr: "FLD" },
+  { code: "SLIPPAGE", abbr: "SLP" },
+  { code: "RINGING_RISK", abbr: "RNG" },
+];
+
+const BARREL_SHAPE_ICON = {
+  round: (props) => (
+    <Icon viewBox="0 0 24 24" {...props}>
+      <circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" strokeWidth="2" />
+    </Icon>
+  ),
+  triangular: (props) => (
+    <Icon viewBox="0 0 24 24" {...props}>
+      <polygon points="12 4 20 18 4 18" fill="none" stroke="currentColor" strokeWidth="2" />
+    </Icon>
+  ),
+  squared: (props) => (
+    <Icon viewBox="0 0 24 24" {...props}>
+      <rect x="5" y="5" width="14" height="14" rx="2" fill="none" stroke="currentColor" strokeWidth="2" />
+    </Icon>
+  ),
+};
+
+const BARREL_SHAPE_LABEL = { round: "Round", triangular: "Triangular", squared: "Squared" };
+
+const scoreColor = (score) => {
+  if (score >= 4) return "#2f9d61";
+  if (score === 3) return "#72bf44";
+  if (score === 2) return "#e3a224";
+  if (score === 1) return "#ef4444";
+  return "#cbd5e1";
+};
+
+const formatSortKpiLabel = (code) =>
+  String(code || "")
+    .toLowerCase()
+    .split("_")
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(" ");
+
+const RESULT_GRID_TEMPLATE = {
+  base: "minmax(120px, 1.8fr) repeat(9, minmax(32px, 1fr))",
+  md: "460px repeat(9, minmax(70px, 1fr))",
+};
 
 async function getProductApplicationsCached(token, productId) {
   if (!productId) return [];
@@ -41,6 +92,314 @@ async function getProductApplicationsCached(token, productId) {
   return p;
 }
 
+function ScoreBlock({ value, isFirst, isLast }) {
+  const score = value?.score ?? null;
+  return (
+    <Flex
+      align="center"
+      justify="center"
+      h={{ base: "36px", md: "40px" }}
+      minW={{ base: "36px", md: "76px" }}
+      w="100%"
+      bg={scoreColor(score)}
+      color="white"
+      fontSize={{ base: "xs", md: "sm" }}
+      fontWeight="800"
+      borderLeftWidth="2px"
+      borderLeftColor="white"
+      borderTopLeftRadius={isFirst ? "8px" : 0}
+      borderBottomLeftRadius={isFirst ? "8px" : 0}
+      borderTopRightRadius={isLast ? "8px" : 0}
+      borderBottomRightRadius={isLast ? "8px" : 0}
+    >
+      {score ?? "-"}
+    </Flex>
+  );
+}
+
+function LinerResultsTable({
+  rows,
+  total,
+  sortKpi,
+  sortDir,
+  sortingBusy,
+  kpiScores,
+  appIdByKey,
+  isAdmin,
+  pinnedKeys,
+  onTogglePin,
+  onOpenDetails,
+  onSelectSortKpi,
+  onToggleDir,
+}) {
+  return (
+    <Box
+      borderWidth="1px"
+      borderColor="#e6ebf2"
+      borderRadius="12px"
+      overflow="hidden"
+      bg="white"
+    >
+      <Box overflowX={{ base: "hidden", md: "auto" }}>
+        <Grid
+          templateColumns={RESULT_GRID_TEMPLATE}
+          minW={{ base: "100%", md: "960px" }}
+          bg="#fbfcfe"
+          borderBottomWidth="1px"
+          borderBottomColor="#e6ebf2"
+        >
+          <Box px={{ base: "8px", md: 4 }} py={3}>
+            <HStack align="flex-end" spacing={{ base: 1, md: 3 }} flexWrap="wrap">
+              <Text fontSize={{ base: "14px", md: "35px" }} fontWeight="bold" color="#12305f" lineHeight="1">
+                Liners
+              </Text>
+              <HStack spacing={{ base: 1, md: 2 }} align="center" flexWrap="wrap">
+                <Tag size={{ base: "xs", md: "sm" }} bg="#eef3f8" color="#52677f" borderRadius="10px" px={{ base: 2, md: 3 }} h="24px">
+                  <TagLabel fontSize={{ base: "10px", md: "xs" }} fontWeight="800">{total} results</TagLabel>
+                </Tag>
+                <Menu>
+                  <Tooltip label={sortKpi ? `Sorting by ${formatSortKpiLabel(sortKpi)} (${sortDir})` : "Sort by KPI"} hasArrow>
+                    <MenuButton
+                      as={Button}
+                      size="xs"
+                      leftIcon={<ArrowUpDownIcon />}
+                      aria-label="Sort by KPI"
+                      variant="outline"
+                      isLoading={sortingBusy}
+                      borderRadius="10px"
+                      borderColor={sortKpi ? "blue.500" : "gray.200"}
+                      color={sortKpi ? "blue.600" : "#344054"}
+                      _hover={{ borderColor: sortKpi ? "blue.500" : "gray.300", bg: "gray.50" }}
+                      px={2}
+                      h="28px"
+                    >
+                      <Text fontSize="10px">{sortKpi ? formatSortKpiLabel(sortKpi) : "Sort by KPI"}</Text>
+                    </MenuButton>
+                  </Tooltip>
+                  <MenuList>
+                    <MenuItem onClick={() => onSelectSortKpi?.(null)}>Clear sort</MenuItem>
+                    <MenuItem onClick={() => onToggleDir?.()}>Direction: {sortDir === "asc" ? "Ascending" : "Descending"}</MenuItem>
+                    <MenuDivider />
+                    {RESULT_KPIS.map((kpi) => (
+                      <MenuItem key={kpi.code} onClick={() => onSelectSortKpi?.(kpi.code)}>
+                        {formatSortKpiLabel(kpi.code)}
+                      </MenuItem>
+                    ))}
+                  </MenuList>
+                </Menu>
+              </HStack>
+            </HStack>
+          </Box>
+          {RESULT_KPIS.map((kpi) => (
+            <Flex key={kpi.code} align="center" justify="center" py={3}>
+              <Text fontSize="xs" fontWeight="800" color="#718096">
+                {kpi.abbr}
+              </Text>
+            </Flex>
+          ))}
+        </Grid>
+
+        <Box minW={{ base: "100%", md: "960px" }}>
+          {rows.map((item) => {
+            const isPinned = pinnedKeys.includes(item.key);
+            return (
+              <Grid
+                key={item.key}
+                templateColumns={RESULT_GRID_TEMPLATE}
+                alignItems="center"
+                minH="66px"
+                position="relative"
+                zIndex={isPinned ? 2 : 1}
+                bg={isPinned ? "white" : "transparent"}
+                boxShadow={isPinned ? "0 6px 14px rgba(15, 23, 42, 0.08)" : "none"}
+                borderBottomWidth="1px"
+                borderBottomColor="#edf2f7"
+                cursor="pointer"
+                _hover={{ bg: "#fbfcfe" }}
+                onClick={() => onOpenDetails(item)}
+              >
+                <Box px={{ base: "5px", md: 4 }} py={{ base: 3, md: 0 }} minW={0}>
+                  <HStack align="flex-start" spacing={2} minW={0}>
+                    <IconButton
+                      aria-label={isPinned ? "Unpin liner" : "Pin liner"}
+                      icon={isPinned ? <BsPinAngleFill /> : <BsPinAngle />}
+                      size="xs"
+                      variant="ghost"
+                      color={isPinned ? "#3b82f6" : "#cbd5e1"}
+                      _hover={{ bg: "blue.50", color: "blue.500" }}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onTogglePin(item.key);
+                      }}
+                    />
+                    <Box minW={0}>
+                      <HStack align="center" spacing={2} minW={0}>
+                        <Text fontSize={{ base: "12px", md: "sm" }} fontWeight="800" color="#253044" noOfLines={1}>
+                          {item.model || "-"}
+                        </Text>
+                        {(() => {
+                          const shapeKey = String(item.barrel_shape || "").toLowerCase();
+                          const ShapeIcon = BARREL_SHAPE_ICON[shapeKey];
+                          const shapeLabel = BARREL_SHAPE_LABEL[shapeKey];
+                          return ShapeIcon ? (
+                            <Tooltip label={shapeLabel} hasArrow placement="top" openDelay={300}>
+                              <HStack spacing={1} align="center" px={2} py={1} borderWidth="1px" borderRadius="full" bg="gray.100" color="blue.500">
+                                <ShapeIcon boxSize={4} />
+                                <Text fontSize="xs" fontWeight="semibold" textTransform="capitalize">
+                                  {shapeLabel}
+                                </Text>
+                              </HStack>
+                            </Tooltip>
+                          ) : null;
+                        })()}
+                      </HStack>
+                      <HStack mt={2} spacing={{ base: 1, md: 2 }} flexWrap="wrap" align="center">
+                        <Text fontSize={{ base: "10px", md: "xs" }} fontWeight="700" color="#8a98aa" noOfLines={1}>
+                          {item.brand || "-"}
+                        </Text>
+                        <Tag size={{ base: "xs", md: "sm" }} bg="#eef3f8" color="#2f67bf" borderRadius="7px" px={{ base: 1, md: 2 }}>
+                          <TagLabel fontSize={{ base: "10px", md: "11px" }} fontWeight="800">{formatTeatSize(item.size_mm)}</TagLabel>
+                        </Tag>
+                        {(isAdmin && item.compound) ? (
+                          <Tag size={{ base: "xs", md: "sm" }} bg="#eef3f8" color="#52677f" borderRadius="7px" px={{ base: 1, md: 2 }}>
+                            <TagLabel fontSize={{ base: "10px", md: "11px" }} fontWeight="800">{item.compound}</TagLabel>
+                          </Tag>
+                        ) : null}
+                      </HStack>
+                    </Box>
+                  </HStack>
+                </Box>
+
+                {RESULT_KPIS.map((kpi, index) => (
+                  <Box key={kpi.code} px={{ base: 1, md: 0 }}>
+                    <ScoreBlock
+                      value={kpiScores[item.key]?.[kpi.code]}
+                      isFirst={index === 0}
+                      isLast={index === RESULT_KPIS.length - 1}
+                    />
+                  </Box>
+                ))}
+              </Grid>
+            );
+          })}
+        </Box>
+      </Box>
+    </Box>
+  );
+}
+
+function PinnedLinerOverlay({
+  item,
+  index,
+  kpiScores,
+  appIdByKey,
+  isAdmin,
+  onUnpin,
+  onOpenDetails,
+}) {
+  if (!item) return null;
+
+  return (
+    <Box
+      position="fixed"
+      top={{
+        base: `${10 + index * 76}px`,
+        md: `${12 + index * 78}px`,
+      }}
+      left={0}
+      right={0}
+      transform="none"
+      w="100%"
+      maxW="100%"
+      px={{ base: 0, md: 0 }}
+      zIndex={1400}
+      borderWidth="1px"
+      borderColor="blue.200"
+      borderRadius="16px"
+      bg="white"
+      boxShadow="0 18px 40px rgba(15, 23, 42, 0.18)"
+      overflowX={{ base: "hidden", md: "auto" }}
+      overflowY="hidden"
+      css={{
+        scrollbarWidth: "none",
+        msOverflowStyle: "none",
+        "&::-webkit-scrollbar": { display: "none" },
+      }}
+    >
+      <Grid
+        templateColumns={RESULT_GRID_TEMPLATE}
+        alignItems="center"
+        minH="66px"
+        minW={{ base: "100%", md: "960px" }}
+        cursor="pointer"
+        onClick={() => onOpenDetails(item)}
+      >
+        <HStack px={{ base: "5px", md: 4 }} spacing={2} minW={0}>
+          <IconButton
+            aria-label="Unpin liner"
+            icon={<BsPinAngleFill />}
+            size="xs"
+            variant="ghost"
+            color="#3b82f6"
+            _hover={{ bg: "blue.50", color: "blue.600" }}
+            onClick={(e) => {
+              e.stopPropagation();
+              onUnpin();
+            }}
+          />
+          <Box minW={0}>
+            <HStack align="center" spacing={2} minW={0}>
+              <Text fontSize="sm" fontWeight="800" color="#253044" noOfLines={1}>
+                {item.model || "-"}
+              </Text>
+              {(() => {
+                const shapeKey = String(item.barrel_shape || "").toLowerCase();
+                const ShapeIcon = BARREL_SHAPE_ICON[shapeKey];
+                const shapeLabel = BARREL_SHAPE_LABEL[shapeKey];
+                return ShapeIcon ? (
+                  <Tooltip label={shapeLabel} hasArrow placement="top" openDelay={300}>
+                    <HStack spacing={1} align="center" px={2} py={1} borderWidth="1px" borderRadius="full" bg="gray.100" color="blue.500">
+                      <ShapeIcon boxSize={4} />
+                      <Text fontSize="xs" fontWeight="semibold" textTransform="capitalize">
+                        {shapeLabel}
+                      </Text>
+                    </HStack>
+                  </Tooltip>
+                ) : null;
+              })()}
+            </HStack>
+            <HStack mt={1} spacing={2} minW={0}>
+              <Text fontSize="xs" fontWeight="700" color="#8a98aa" noOfLines={1}>
+                {item.brand || "-"}
+              </Text>
+              <Tag size="sm" bg="#eef3f8" color="#2f67bf" borderRadius="7px">
+                <TagLabel fontSize="11px" fontWeight="800">{formatTeatSize(item.size_mm)}</TagLabel>
+              </Tag>
+              {(isAdmin && item.compound) ? (
+                <Tag size="sm" bg="#eef3f8" color="#52677f" borderRadius="7px">
+                  <TagLabel fontSize="11px" fontWeight="800">{item.compound}</TagLabel>
+                </Tag>
+              ) : null}
+              {!appIdByKey[item.key] ? (
+                <Text fontSize="11px" color="#a0aec0">No application</Text>
+              ) : null}
+            </HStack>
+          </Box>
+        </HStack>
+
+        {RESULT_KPIS.map((kpi, index) => (
+          <ScoreBlock
+            key={kpi.code}
+            value={kpiScores[item.key]?.[kpi.code]}
+            isFirst={index === 0}
+            isLast={index === RESULT_KPIS.length - 1}
+          />
+        ))}
+      </Grid>
+    </Box>
+  );
+}
+
 export default function ProductsSearchPage() {
   const router = useRouter();
   const toast = useToast();
@@ -57,17 +416,13 @@ export default function ProductsSearchPage() {
   const [sortingBusy, setSortingBusy] = useState(false);
   const [sortKpi, setSortKpi] = useState(null); // e.g., 'CLOSURE'
   const [sortDir, setSortDir] = useState('desc'); // 'asc' | 'desc'
-  const [pinnedKey, setPinnedKey] = useState(null);
+  const [pinnedKeys, setPinnedKeys] = useState([]);
+  const [showPinnedOverlay, setShowPinnedOverlay] = useState(false);
+  const resultsTableRef = useRef(null);
   const KPI_ORDER = [
     'CLOSURE','FITTING','CONGESTION_RISK','HYPERKERATOSIS_RISK','SPEED','RESPRAY','FLUYDODINAMIC','SLIPPAGE','RINGING_RISK'
   ];
   // Visible KPI filter removed for performance
-  const PAGE_SIZE = 10;
-  const initialPage = useMemo(() => {
-    const p = Number(router.query.page || 1);
-    return Number.isFinite(p) && p >= 1 ? p : 1;
-  }, [router.query.page]);
-  const [page, setPage] = useState(initialPage);
   const isAdmin = me?.role === "admin";
 
   // Persist sort in sessionStorage (fast, no router churn)
@@ -211,17 +566,26 @@ export default function ProductsSearchPage() {
     try {
       if (typeof window === "undefined") return;
       const saved = window.sessionStorage.getItem(pinnedStorageKey);
-      if (saved) setPinnedKey(saved);
+      if (!saved) {
+        setPinnedKeys([]);
+        return;
+      }
+      try {
+        const parsed = JSON.parse(saved);
+        setPinnedKeys(Array.isArray(parsed) ? parsed.filter(Boolean).map(String) : [String(parsed)]);
+      } catch {
+        setPinnedKeys([saved]);
+      }
     } catch {}
   }, [pinnedStorageKey]);
 
   useEffect(() => {
     try {
       if (typeof window === "undefined") return;
-      if (pinnedKey) window.sessionStorage.setItem(pinnedStorageKey, pinnedKey);
+      if (pinnedKeys.length) window.sessionStorage.setItem(pinnedStorageKey, JSON.stringify(pinnedKeys));
       else window.sessionStorage.removeItem(pinnedStorageKey);
     } catch {}
-  }, [pinnedKey, pinnedStorageKey]);
+  }, [pinnedKeys, pinnedStorageKey]);
 
   useEffect(() => {
     const run = async () => {
@@ -303,12 +667,6 @@ export default function ProductsSearchPage() {
     run();
   }, [router.isReady, filterSig]);
 
-  // keep page in sync with query
-  useEffect(() => { setPage(initialPage); }, [initialPage]);
-
-  const totalPages = useMemo(() => Math.max(1, Math.ceil(items.length / PAGE_SIZE)), [items.length]);
-  const start = (page - 1) * PAGE_SIZE;
-  const end = start + PAGE_SIZE;
   // sort items if a KPI is selected
   const sortedItems = useMemo(() => {
     if (!sortKpi) return items;
@@ -322,29 +680,50 @@ export default function ProductsSearchPage() {
     });
     return copy;
   }, [items, kpiScores, sortKpi, sortDir]);
-  const pagedItems = useMemo(() => sortedItems.slice(start, end), [sortedItems, start, end]);
-  const pinnedItem = useMemo(
-    () => sortedItems.find((it) => it.key === pinnedKey) || null,
-    [sortedItems, pinnedKey]
+  const pinnedItems = useMemo(
+    () => pinnedKeys
+      .map((key) => sortedItems.find((it) => it.key === key))
+      .filter(Boolean),
+    [sortedItems, pinnedKeys]
   );
-  const unpinnedPagedItems = useMemo(
-    () => pagedItems.filter((it) => it.key !== pinnedKey),
-    [pagedItems, pinnedKey]
-  );
+  useEffect(() => {
+    if (!pinnedKeys.length) return;
+    const available = new Set(sortedItems.map((it) => it.key));
+    const next = pinnedKeys.filter((key) => available.has(key));
+    if (next.length !== pinnedKeys.length) {
+      setPinnedKeys(next);
+    }
+  }, [pinnedKeys, sortedItems]);
 
   useEffect(() => {
-    if (pinnedKey && !sortedItems.some((it) => it.key === pinnedKey)) {
-      setPinnedKey(null);
+    if (!pinnedItems.length) {
+      setShowPinnedOverlay(false);
+      return;
     }
-  }, [pinnedKey, sortedItems]);
 
-  const goToPage = (p) => {
-    const next = Math.min(Math.max(1, p), totalPages);
-    setPage(next);
-    const q = new URLSearchParams({ ...router.query, page: String(next) });
-    router.replace(`/product/result?${q.toString()}`, undefined, { shallow: true });
-  };
-  
+    const updatePinnedOverlay = () => {
+      const node = resultsTableRef.current;
+      if (!node) {
+        setShowPinnedOverlay(false);
+        return;
+      }
+
+      const rect = node.getBoundingClientRect();
+      const overlayTop = window.innerWidth < 768 ? 10 : 12;
+      const overlayHeight = 76 * pinnedItems.length;
+      setShowPinnedOverlay(rect.top <= overlayTop && rect.bottom > overlayTop + overlayHeight);
+    };
+
+    updatePinnedOverlay();
+    window.addEventListener("scroll", updatePinnedOverlay, { passive: true });
+    window.addEventListener("resize", updatePinnedOverlay);
+
+    return () => {
+      window.removeEventListener("scroll", updatePinnedOverlay);
+      window.removeEventListener("resize", updatePinnedOverlay);
+    };
+  }, [pinnedItems]);
+
   // Removed URL sync of sort/visibility for performance
 
   // Build product application map (size -> app id) for all products
@@ -433,14 +812,14 @@ export default function ProductsSearchPage() {
     }
   }
 
-  // Load KPI values for visible cards in one batch request.
+  // Load KPI values for all rows in one batch request.
   useEffect(() => {
     let alive = true;
     const run = async () => {
-      if (!pagedItems.length) return;
+      if (!sortedItems.length) return;
       const token = getToken();
       if (!token) return;
-      const keys = pagedItems.map((it) => it.key);
+      const keys = sortedItems.map((it) => it.key);
       const missingKeys = keys.filter((key) => !kpiScores[key]);
       if (!missingKeys.length) return;
       const appIds = missingKeys.map((key) => appIdByKey[key]).filter(Boolean);
@@ -458,7 +837,7 @@ export default function ProductsSearchPage() {
     };
     run();
     return () => { alive = false; };
-  }, [pagedItems, appIdByKey, kpiScores]);
+  }, [sortedItems, appIdByKey, kpiScores]);
 
   const onSelectSortKpi = async (code) => {
     // Default to descending when a KPI is selected
@@ -468,6 +847,21 @@ export default function ProductsSearchPage() {
   };
 
   const toggleSortDir = () => setSortDir(d => (d === 'asc' ? 'desc' : 'asc'));
+
+  const togglePinnedKey = (key) => {
+    setPinnedKeys((prev) => (
+      prev.includes(key)
+        ? prev.filter((itemKey) => itemKey !== key)
+        : [...prev, key]
+    ));
+  };
+
+  const openDetails = (item) => {
+    const q = new URLSearchParams({ brand: String(item?.brand || ""), model: String(item?.model || "") });
+    if (item?.size_mm != null) q.set("teat_size", String(item.size_mm));
+    const from = encodeURIComponent(router.asPath || "/product/result");
+    router.push(`/idcard/idresult?${q.toString()}&from=${from}`);
+  };
 
   // Reusable selection modal state (for action buttons)
   const [selOpen, setSelOpen] = useState(false);
@@ -563,7 +957,22 @@ export default function ProductsSearchPage() {
         backHref="/product"
       />
 
-      <Box as="main" flex="1" w="100%" px={{ base: 4, md: 0 }} pt={{ base: 4, md: 6 }}>
+      <Box as="main" flex="1" w="100%" px={{ base: 0, md: 0 }} pt={{ base: 4, md: 6 }}>
+        {showPinnedOverlay ? (
+          pinnedItems.map((item, index) => (
+            <PinnedLinerOverlay
+              key={item.key}
+              item={item}
+              index={index}
+              kpiScores={kpiScores}
+              appIdByKey={appIdByKey}
+              isAdmin={me?.role === 'admin'}
+              onUnpin={() => togglePinnedKey(item.key)}
+              onOpenDetails={openDetails}
+            />
+          ))
+        ) : null}
+
         {(() => {
           const areasSel = typeof areas === "string" && areas ? String(areas).split(",") : [];
           const shapesList = (() => {
@@ -599,7 +1008,7 @@ export default function ProductsSearchPage() {
         })()}
 
         {/* Action buttons */}
-        <SimpleGrid columns={isAdmin ? { base: 3, md: 3 } : { base: 2, md: 2 }} gap={3} mb={4}>
+        <SimpleGrid columns={isAdmin ? { base: 3, md: 3 } : { base: 2, md: 2 }} gap={3} mb={0}>
           <Button
             variant="outline"
             px={{ base: 2, md: 3 }}
@@ -644,18 +1053,8 @@ export default function ProductsSearchPage() {
         </SimpleGrid>
 
         {/* Risultati */}
-        <Card mt={{ base: 4, md: 6 }} mx={{ base: -4, md: 0 }} px={{ base: 4, md: 0 }} rounded={{ base: 'md', md: 'none' }}>
-          <CardHeader py={3} px={{ base: 4, md: 0 }}>
-            <ApplicationsHeader
-              total={items.length}
-              sortKpi={sortKpi}
-              sortDir={sortDir}
-              sortingBusy={sortingBusy}
-              onSelectSortKpi={onSelectSortKpi}
-              onToggleDir={toggleSortDir}
-            />
-          </CardHeader>
-          <CardBody pt={0}>
+        <Card mt={{ base: 8, md: 10 }} mx={{ base: 0, md: 0 }} px={{ base: 0, md: 0 }} rounded={{ base: 'md', md: 'none' }} boxShadow="none">
+          <CardBody pt={0} px={{ base: 0, md: 0 }}>
             {loading ? (
               <VStack py={10} spacing={3}>
                 <Spinner />
@@ -667,55 +1066,23 @@ export default function ProductsSearchPage() {
               </VStack>
             ) : (
               <>
-                <SimpleGrid columns={{ base: 1, md: 1 }} gap={4}>
-                  {pinnedItem ? (
-                    <Box
-                      position="sticky"
-                      top={{ base: 2, md: 4 }}
-                      zIndex={2}
-                      bg="white"
-                      borderRadius="md"
-                      boxShadow="sm"
-                    >
-                      <ProductApplicationCard
-                        key={pinnedItem.key}
-                        productId={pinnedItem.product_id}
-                        brand={pinnedItem.brand}
-                        model={pinnedItem.model}
-                        compound={pinnedItem.compound}
-                        barrelShape={pinnedItem.barrel_shape}
-                        isAdmin={me?.role === 'admin'}
-                        sizeMm={pinnedItem.size_mm}
-                        applicationId={appIdByKey[pinnedItem.key]}
-                        kpis={kpiScores[pinnedItem.key] || {}}
-                        isPinned
-                        onTogglePin={() => setPinnedKey(null)}
-                      />
-                    </Box>
-                  ) : null}
-                  {unpinnedPagedItems.map((a) => (
-                    <ProductApplicationCard
-                      key={a.key}
-                      productId={a.product_id}
-                      brand={a.brand}
-                      model={a.model}
-                      compound={a.compound}
-                      barrelShape={a.barrel_shape}
-                      isAdmin={me?.role === 'admin'}
-                      sizeMm={a.size_mm}
-                      applicationId={appIdByKey[a.key]}
-                      kpis={kpiScores[a.key] || {}}
-                      isPinned={pinnedKey === a.key}
-                      onTogglePin={() => setPinnedKey((prev) => (prev === a.key ? null : a.key))}
-                    />
-                  ))}
-                </SimpleGrid>
-                <PaginationBar
-                  page={page}
-                  totalPages={totalPages}
-                  onPrev={() => goToPage(page - 1)}
-                  onNext={() => goToPage(page + 1)}
-                />
+                <Box ref={resultsTableRef}>
+                  <LinerResultsTable
+                    rows={sortedItems}
+                    total={items.length}
+                    sortKpi={sortKpi}
+                    sortDir={sortDir}
+                    sortingBusy={sortingBusy}
+                    kpiScores={kpiScores}
+                    appIdByKey={appIdByKey}
+                    isAdmin={me?.role === 'admin'}
+                    pinnedKeys={pinnedKeys}
+                    onTogglePin={togglePinnedKey}
+                    onOpenDetails={openDetails}
+                    onSelectSortKpi={onSelectSortKpi}
+                    onToggleDir={toggleSortDir}
+                  />
+                </Box>
               </>
             )}
           </CardBody>
