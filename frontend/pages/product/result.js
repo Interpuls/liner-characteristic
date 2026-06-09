@@ -219,11 +219,12 @@ function LinerResultsTable({
                 onClick={() => onOpenDetails(item)}
               >
                 <Box px={{ base: "5px", md: 4 }} py={{ base: 3, md: 0 }} minW={0}>
-                  <HStack align="flex-start" spacing={2} minW={0}>
+                  <HStack align="center" spacing={2} minW={0}>
                     <IconButton
                       aria-label={isPinned ? "Unpin liner" : "Pin liner"}
                       icon={isPinned ? <BsPinAngleFill /> : <BsPinAngle />}
-                      size="xs"
+                      size={isPinned ? "m" : "m"}
+                      marginRight={"6px"}
                       variant="ghost"
                       color={isPinned ? "#3b82f6" : "#cbd5e1"}
                       _hover={{ bg: "blue.50", color: "blue.500" }}
@@ -232,27 +233,28 @@ function LinerResultsTable({
                         onTogglePin(item.key);
                       }}
                     />
+                    
                     <Box minW={0}>
-                      <HStack align="center" spacing={2} minW={0}>
-                        <Text fontSize={{ base: "12px", md: "sm" }} fontWeight="800" color="#253044" noOfLines={1}>
-                          {item.model || "-"}
-                        </Text>
+                      <HStack spacing={1} align="center" flexWrap="wrap">
+                      <Text fontSize={{ base: "12px", md: "sm" }} fontWeight="800" color="#253044" noOfLines={1}>
+                        {item.model || "-"}
+                      </Text>
                         {(() => {
-                          const shapeKey = String(item.barrel_shape || "").toLowerCase();
-                          const ShapeIcon = BARREL_SHAPE_ICON[shapeKey];
-                          const shapeLabel = BARREL_SHAPE_LABEL[shapeKey];
-                          return ShapeIcon ? (
-                            <Tooltip label={shapeLabel} hasArrow placement="top" openDelay={300}>
-                              <HStack spacing={1} align="center" px={2} py={1} borderWidth="1px" borderRadius="full" bg="gray.100" color="blue.500">
-                                <ShapeIcon boxSize={4} />
-                                <Text fontSize="xs" fontWeight="semibold" textTransform="capitalize">
-                                  {shapeLabel}
-                                </Text>
-                              </HStack>
-                            </Tooltip>
-                          ) : null;
-                        })()}
-                      </HStack>
+                      const shapeKey = String(item.barrel_shape || "").toLowerCase();
+                      const ShapeIcon = BARREL_SHAPE_ICON[shapeKey];
+                      const shapeLabel = BARREL_SHAPE_LABEL[shapeKey];
+                      return ShapeIcon ? (
+                        <Tooltip label={shapeLabel} hasArrow placement="top" openDelay={300}>
+                          <HStack spacing={1} align="center" px={2} py={1} borderWidth="1px" borderRadius="full" bg="gray.100" color="blue.500">
+                            <ShapeIcon boxSize={4} />
+                            <Text fontSize="xs" fontWeight="semibold" textTransform="capitalize">
+                              {shapeLabel}
+                            </Text>
+                          </HStack>
+                        </Tooltip>
+                      ) : null;
+                    })()}
+                    </HStack>
                       <HStack mt={2} spacing={{ base: 1, md: 2 }} flexWrap="wrap" align="center">
                         <Text fontSize={{ base: "10px", md: "xs" }} fontWeight="700" color="#8a98aa" noOfLines={1}>
                           {item.brand || "-"}
@@ -338,7 +340,7 @@ function PinnedLinerOverlay({
           <IconButton
             aria-label="Unpin liner"
             icon={<BsPinAngleFill />}
-            size="xs"
+            size="m"
             variant="ghost"
             color="#3b82f6"
             _hover={{ bg: "blue.50", color: "blue.600" }}
@@ -348,26 +350,9 @@ function PinnedLinerOverlay({
             }}
           />
           <Box minW={0}>
-            <HStack align="center" spacing={2} minW={0}>
-              <Text fontSize="sm" fontWeight="800" color="#253044" noOfLines={1}>
-                {item.model || "-"}
-              </Text>
-              {(() => {
-                const shapeKey = String(item.barrel_shape || "").toLowerCase();
-                const ShapeIcon = BARREL_SHAPE_ICON[shapeKey];
-                const shapeLabel = BARREL_SHAPE_LABEL[shapeKey];
-                return ShapeIcon ? (
-                  <Tooltip label={shapeLabel} hasArrow placement="top" openDelay={300}>
-                    <HStack spacing={1} align="center" px={2} py={1} borderWidth="1px" borderRadius="full" bg="gray.100" color="blue.500">
-                      <ShapeIcon boxSize={4} />
-                      <Text fontSize="xs" fontWeight="semibold" textTransform="capitalize">
-                        {shapeLabel}
-                      </Text>
-                    </HStack>
-                  </Tooltip>
-                ) : null;
-              })()}
-            </HStack>
+            <Text fontSize="sm" fontWeight="800" color="#253044" noOfLines={1}>
+              {item.model || "-"}
+            </Text>
             <HStack mt={1} spacing={2} minW={0}>
               <Text fontSize="xs" fontWeight="700" color="#8a98aa" noOfLines={1}>
                 {item.brand || "-"}
