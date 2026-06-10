@@ -2,12 +2,12 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/router";
 import {
-  Box, Heading, Text, HStack, VStack, Stack, Tag, TagLabel, Button,
+  Box, Text, HStack, VStack, Stack, Tag, TagLabel, Button,
   Card, CardBody, SimpleGrid, useToast, Spinner,
-  useDisclosure, Modal, ModalOverlay, ModalContent, ModalHeader, ModalCloseButton, ModalBody, ModalFooter, Input,
+  useDisclosure, Modal, ModalOverlay, ModalContent, ModalHeader, ModalCloseButton, ModalBody, ModalFooter, Input, InputGroup, InputLeftElement,
   Flex, Grid, IconButton, Icon, Menu, MenuButton, MenuList, MenuItem, MenuDivider, Tooltip,
 } from "@chakra-ui/react";
-import { ArrowUpDownIcon } from "@chakra-ui/icons";
+import { ArrowUpDownIcon, SearchIcon } from "@chakra-ui/icons";
 import AppHeader from "../../components/AppHeader";
 import AppFooter from "../../components/AppFooter";
 import FiltersSummaryCard from "../../components/result/FiltersSummaryCard";
@@ -71,8 +71,8 @@ const formatSortKpiLabel = (code) =>
     .join(" ");
 
 const RESULT_GRID_TEMPLATE = {
-  base: "minmax(120px, 1.8fr) repeat(9, minmax(32px, 1fr))",
-  md: "460px repeat(9, minmax(70px, 1fr))",
+  base: "minmax(84px, 0.9fr) 18px repeat(9, minmax(26px, 1fr))",
+  md: "460px 0px repeat(9, minmax(70px, 1fr))",
 };
 
 async function getProductApplicationsCached(token, productId) {
@@ -98,12 +98,12 @@ function ScoreBlock({ value, isFirst, isLast }) {
     <Flex
       align="center"
       justify="center"
-      h={{ base: "36px", md: "40px" }}
-      minW={{ base: "36px", md: "76px" }}
+      h={{ base: "34px", md: "40px" }}
+      minW={{ base: "27px", md: "76px" }}
       w="100%"
       bg={scoreColor(score)}
       color="white"
-      fontSize={{ base: "xs", md: "sm" }}
+      fontSize={{ base: "sm", md: "sm" }}
       fontWeight="800"
       borderLeftWidth="2px"
       borderLeftColor="white"
@@ -119,18 +119,11 @@ function ScoreBlock({ value, isFirst, isLast }) {
 
 function LinerResultsTable({
   rows,
-  total,
-  sortKpi,
-  sortDir,
-  sortingBusy,
   kpiScores,
-  appIdByKey,
   isAdmin,
   pinnedKeys,
   onTogglePin,
   onOpenDetails,
-  onSelectSortKpi,
-  onToggleDir,
 }) {
   return (
     <Box
@@ -148,48 +141,15 @@ function LinerResultsTable({
           borderBottomWidth="1px"
           borderBottomColor="#e6ebf2"
         >
-          <Box px={{ base: "8px", md: 4 }} py={3}>
-            <HStack align="flex-end" spacing={{ base: 1, md: 3 }} flexWrap="wrap">
-              <Text fontSize={{ base: "14px", md: "35px" }} fontWeight="bold" color="#12305f" lineHeight="1">
+          <Box px={{ base: "5px", md: 4 }} py={3}>
+            <HStack spacing={2} align="center">
+              <Box w={{ base: 0, md: "21px" }} flexShrink={0} />
+              <Text fontSize={{ base: "sm", md: "sm" }} fontWeight="800" color="#718096">
                 Liners
               </Text>
-              <HStack spacing={{ base: 1, md: 2 }} align="center" flexWrap="wrap">
-                <Tag size={{ base: "xs", md: "sm" }} bg="#eef3f8" color="#52677f" borderRadius="10px" px={{ base: 2, md: 3 }} h="24px">
-                  <TagLabel fontSize={{ base: "10px", md: "xs" }} fontWeight="800">{total} results</TagLabel>
-                </Tag>
-                <Menu>
-                  <Tooltip label={sortKpi ? `Sorting by ${formatSortKpiLabel(sortKpi)} (${sortDir})` : "Sort by KPI"} hasArrow>
-                    <MenuButton
-                      as={Button}
-                      size="xs"
-                      leftIcon={<ArrowUpDownIcon />}
-                      aria-label="Sort by KPI"
-                      variant="outline"
-                      isLoading={sortingBusy}
-                      borderRadius="10px"
-                      borderColor={sortKpi ? "blue.500" : "gray.200"}
-                      color={sortKpi ? "blue.600" : "#344054"}
-                      _hover={{ borderColor: sortKpi ? "blue.500" : "gray.300", bg: "gray.50" }}
-                      px={2}
-                      h="28px"
-                    >
-                      <Text fontSize="10px">{sortKpi ? formatSortKpiLabel(sortKpi) : "Sort by KPI"}</Text>
-                    </MenuButton>
-                  </Tooltip>
-                  <MenuList>
-                    <MenuItem onClick={() => onSelectSortKpi?.(null)}>Clear sort</MenuItem>
-                    <MenuItem onClick={() => onToggleDir?.()}>Direction: {sortDir === "asc" ? "Ascending" : "Descending"}</MenuItem>
-                    <MenuDivider />
-                    {RESULT_KPIS.map((kpi) => (
-                      <MenuItem key={kpi.code} onClick={() => onSelectSortKpi?.(kpi.code)}>
-                        {formatSortKpiLabel(kpi.code)}
-                      </MenuItem>
-                    ))}
-                  </MenuList>
-                </Menu>
-              </HStack>
             </HStack>
           </Box>
+          <Box />
           {RESULT_KPIS.map((kpi) => (
             <Flex key={kpi.code} align="center" justify="center" py={3}>
               <Text fontSize="xs" fontWeight="800" color="#718096">
@@ -219,12 +179,13 @@ function LinerResultsTable({
                 onClick={() => onOpenDetails(item)}
               >
                 <Box px={{ base: "5px", md: 4 }} py={{ base: 3, md: 0 }} minW={0}>
-                  <HStack align="center" spacing={2} minW={0}>
+                  <HStack align="center" spacing={{ base: 0, md: 2 }} minW={0}>
                     <IconButton
                       aria-label={isPinned ? "Unpin liner" : "Pin liner"}
                       icon={isPinned ? <BsPinAngleFill /> : <BsPinAngle />}
                       size={isPinned ? "m" : "m"}
                       marginRight={"6px"}
+                      display={{ base: "none", md: "inline-flex" }}
                       variant="ghost"
                       color={isPinned ? "#3b82f6" : "#cbd5e1"}
                       _hover={{ bg: "blue.50", color: "blue.500" }}
@@ -234,46 +195,125 @@ function LinerResultsTable({
                       }}
                     />
                     
-                    <Box minW={0}>
-                      <HStack spacing={1} align="center" flexWrap="wrap">
-                      <Text fontSize={{ base: "12px", md: "sm" }} fontWeight="800" color="#253044" noOfLines={1}>
-                        {item.model || "-"}
-                      </Text>
+                    <Box minW={0} flex="1">
+                      <HStack spacing={1} align={{ base: "flex-start", md: "center" }} justify="flex-start" minW={0}>
+                        <Text
+                          fontSize={{ base: "12px", md: "sm" }}
+                          fontWeight="800"
+                          color="#253044"
+                          noOfLines={{ base: undefined, md: 1 }}
+                          whiteSpace={{ base: "normal", md: "nowrap" }}
+                          wordBreak="normal"
+                          overflowWrap="normal"
+                          lineHeight={{ base: "1.15", md: "normal" }}
+                          minW={0}
+                        >
+                          {item.model || "-"}
+                        </Text>
+                        <IconButton
+                          aria-label={isPinned ? "Unpin liner" : "Pin liner"}
+                          icon={isPinned ? <BsPinAngleFill /> : <BsPinAngle />}
+                          size="xs"
+                          display="none"
+                          variant="ghost"
+                          color={isPinned ? "#3b82f6" : "#cbd5e1"}
+                          _hover={{ bg: "blue.50", color: "blue.500" }}
+                          flexShrink={0}
+                          alignSelf="flex-start"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            onTogglePin(item.key);
+                          }}
+                        />
                         {(() => {
                       const shapeKey = String(item.barrel_shape || "").toLowerCase();
                       const ShapeIcon = BARREL_SHAPE_ICON[shapeKey];
                       const shapeLabel = BARREL_SHAPE_LABEL[shapeKey];
                       return ShapeIcon ? (
                         <Tooltip label={shapeLabel} hasArrow placement="top" openDelay={300}>
-                          <HStack spacing={1} align="center" px={2} py={1} borderWidth="1px" borderRadius="full" bg="gray.100" color="blue.500">
+                          <HStack display={{ base: "none", md: "flex" }} spacing={1} px={1.5} py={0.5} align="center" justify="center" minW="24px" h="24px" borderWidth="1px" borderRadius="full" bg="gray.100" color="blue.500">
                             <ShapeIcon boxSize={4} />
-                            <Text fontSize="xs" fontWeight="semibold" textTransform="capitalize">
-                              {shapeLabel}
-                            </Text>
+                                <Text fontSize="10px" fontWeight="semibold" textTransform="capitalize">
+                                  {shapeLabel}
+                                </Text>
                           </HStack>
                         </Tooltip>
                       ) : null;
                     })()}
                     </HStack>
-                      <HStack mt={2} spacing={{ base: 1, md: 2 }} flexWrap="wrap" align="center">
-                        <Text fontSize={{ base: "10px", md: "xs" }} fontWeight="700" color="#8a98aa" noOfLines={1}>
+                      <HStack display={{ base: "flex", md: "none" }} mt={0.25} spacing={1} align="center" minW={0}>
+                        <Stack spacing={0.5} align="flex-start" minW={0} flex="1">
+                          <Text fontSize="10px" fontWeight="700" color="#8a98aa" whiteSpace="normal" wordBreak="normal" overflowWrap="normal" lineHeight="1.1">
+                            {item.brand || "-"}
+                          </Text>
+                          <HStack spacing={1} flexWrap="wrap" align="center">
+                            <Tag size="xs" bg="#eef3f8" color="#2f67bf" borderRadius="7px" px={1}>
+                              <TagLabel fontSize="10px" fontWeight="800">{formatTeatSize(item.size_mm)}</TagLabel>
+                            </Tag>
+                            {(isAdmin && item.compound) ? (
+                              <Tag size="xs" bg="#eef3f8" color="#52677f" borderRadius="7px" px={1}>
+                                <TagLabel fontSize="10px" fontWeight="800">{item.compound}</TagLabel>
+                              </Tag>
+                            ) : null}
+                          </HStack>
+                          <HStack spacing={1} align="center">
+                            {(() => {
+                          const shapeKey = String(item.barrel_shape || "").toLowerCase();
+                          const ShapeIcon = BARREL_SHAPE_ICON[shapeKey];
+                          const shapeLabel = BARREL_SHAPE_LABEL[shapeKey];
+                          return ShapeIcon ? (
+                            <Tooltip label={shapeLabel} hasArrow placement="top" openDelay={300}>
+                              <HStack align="center" spacing={1} px={1.5} py={0.5} borderWidth="1px" borderRadius="full" bg="gray.100" color="blue.500">
+                                <ShapeIcon boxSize={3} />
+                                <Text fontSize="10px" fontWeight="semibold" textTransform="capitalize">
+                                  {shapeLabel}
+                                </Text>
+                              </HStack>
+                            </Tooltip>
+                          ) : null;
+                        })()}
+                          </HStack>
+                        </Stack>
+                      </HStack>
+                      <Stack display={{ base: "none", md: "flex" }} direction="row" mt={2} spacing={2} align="center">
+                        <Text fontSize="xs" fontWeight="700" color="#8a98aa" noOfLines={1}>
                           {item.brand || "-"}
                         </Text>
-                        <Tag size={{ base: "xs", md: "sm" }} bg="#eef3f8" color="#2f67bf" borderRadius="7px" px={{ base: 1, md: 2 }}>
-                          <TagLabel fontSize={{ base: "10px", md: "11px" }} fontWeight="800">{formatTeatSize(item.size_mm)}</TagLabel>
-                        </Tag>
-                        {(isAdmin && item.compound) ? (
-                          <Tag size={{ base: "xs", md: "sm" }} bg="#eef3f8" color="#52677f" borderRadius="7px" px={{ base: 1, md: 2 }}>
-                            <TagLabel fontSize={{ base: "10px", md: "11px" }} fontWeight="800">{item.compound}</TagLabel>
+                        <HStack spacing={2} flexWrap="wrap" align="center">
+                          <Tag size="sm" bg="#eef3f8" color="#2f67bf" borderRadius="7px" px={2}>
+                            <TagLabel fontSize="11px" fontWeight="800">{formatTeatSize(item.size_mm)}</TagLabel>
                           </Tag>
-                        ) : null}
-                      </HStack>
+                          {(isAdmin && item.compound) ? (
+                            <Tag size="sm" bg="#eef3f8" color="#52677f" borderRadius="7px" px={2}>
+                              <TagLabel fontSize="11px" fontWeight="800">{item.compound}</TagLabel>
+                            </Tag>
+                          ) : null}
+                        </HStack>
+                      </Stack>
                     </Box>
                   </HStack>
                 </Box>
 
+                <Flex align="center" justify="center" visibility={{ base: "visible", md: "hidden" }}>
+                  <IconButton
+                    aria-label={isPinned ? "Unpin liner" : "Pin liner"}
+                    icon={isPinned ? <BsPinAngleFill /> : <BsPinAngle />}
+                    size="xs"
+                    minW="18px"
+                    w="18px"
+                    h="18px"
+                    variant="ghost"
+                    color={isPinned ? "#3b82f6" : "#cbd5e1"}
+                    _hover={{ bg: "blue.50", color: "blue.500" }}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onTogglePin(item.key);
+                    }}
+                  />
+                </Flex>
+
                 {RESULT_KPIS.map((kpi, index) => (
-                  <Box key={kpi.code} px={{ base: 1, md: 0 }}>
+                  <Box key={kpi.code} px={{ base: 0.5, md: 0 }}>
                     <ScoreBlock
                       value={kpiScores[item.key]?.[kpi.code]}
                       isFirst={index === 0}
@@ -287,6 +327,105 @@ function LinerResultsTable({
         </Box>
       </Box>
     </Box>
+  );
+}
+
+function ResultsToolbar({
+  total,
+  query,
+  onQueryChange,
+  sortKpi,
+  sortDir,
+  sortingBusy,
+  onSelectSortKpi,
+  onToggleDir,
+}) {
+  return (
+    <Flex
+      align={{ base: "stretch", md: "center" }}
+      justify="space-between"
+      gap={{ base: 3, md: 4 }}
+      direction={{ base: "column", md: "row" }}
+      mb={3}
+      px={{ base: 3, md: 4 }}
+    >
+      <Flex
+        display={{ base: "flex", md: "contents" }}
+        align="center"
+        justify="space-between"
+        gap={3}
+        w="100%"
+      >
+        <Text
+          order={{ base: 1, md: 1 }}
+          fontSize={{ base: "28px", md: "35px" }}
+          fontWeight="bold"
+          color="#12305f"
+          lineHeight="1"
+          flexShrink={0}
+        >
+          Liners
+        </Text>
+
+        <HStack
+          order={{ base: 2, md: 3 }}
+          spacing={{ base: 2, md: 3 }}
+          align="center"
+          justify="flex-end"
+          flexShrink={0}
+        >
+          <Tag size={{ base: "sm", md: "sm" }} bg="#eef3f8" color="#52677f" borderRadius="10px" px={{ base: 2, md: 3 }} h="32px" flexShrink={0}>
+            <TagLabel fontSize={{ base: "11px", md: "xs" }} fontWeight="800">{total} results</TagLabel>
+          </Tag>
+          <Menu>
+            <Tooltip label={sortKpi ? `Sorting by ${formatSortKpiLabel(sortKpi)} (${sortDir})` : "Sort by KPI"} hasArrow>
+              <MenuButton
+                as={Button}
+                size="sm"
+                leftIcon={<ArrowUpDownIcon />}
+                aria-label="Sort by KPI"
+                variant="outline"
+                isLoading={sortingBusy}
+                borderRadius="10px"
+                borderColor={sortKpi ? "blue.500" : "gray.200"}
+                color={sortKpi ? "blue.600" : "#344054"}
+                _hover={{ borderColor: sortKpi ? "blue.500" : "gray.300", bg: "gray.50" }}
+                h="32px"
+                flexShrink={0}
+              >
+                <Text fontSize="12px">{sortKpi ? formatSortKpiLabel(sortKpi) : "Sort by KPI"}</Text>
+              </MenuButton>
+            </Tooltip>
+            <MenuList>
+              <MenuItem onClick={() => onSelectSortKpi?.(null)}>Clear sort</MenuItem>
+              <MenuItem onClick={() => onToggleDir?.()}>Direction: {sortDir === "asc" ? "Ascending" : "Descending"}</MenuItem>
+              <MenuDivider />
+              {RESULT_KPIS.map((kpi) => (
+                <MenuItem key={kpi.code} onClick={() => onSelectSortKpi?.(kpi.code)}>
+                  {formatSortKpiLabel(kpi.code)}
+                </MenuItem>
+              ))}
+            </MenuList>
+          </Menu>
+        </HStack>
+      </Flex>
+
+      <InputGroup order={{ base: 2, md: 2 }} flex="1" minW={{ base: 0, md: "360px" }}>
+        <InputLeftElement pointerEvents="none">
+          <SearchIcon color="gray.400" />
+        </InputLeftElement>
+        <Input
+          value={query}
+          onChange={(e) => onQueryChange(e.target.value)}
+          placeholder="Search products"
+          bg="white"
+          borderColor="gray.200"
+          borderRadius="10px"
+          _hover={{ borderColor: "gray.300" }}
+          _focusVisible={{ borderColor: "blue.500", boxShadow: "0 0 0 1px #3182ce" }}
+        />
+      </InputGroup>
+    </Flex>
   );
 }
 
@@ -305,7 +444,7 @@ function PinnedLinerOverlay({
     <Box
       position="fixed"
       top={{
-        base: `${10 + index * 76}px`,
+        base: `${10 + index * 96}px`,
         md: `${12 + index * 78}px`,
       }}
       left={0}
@@ -331,16 +470,17 @@ function PinnedLinerOverlay({
       <Grid
         templateColumns={RESULT_GRID_TEMPLATE}
         alignItems="center"
-        minH="66px"
+        minH={{ base: "86px", md: "66px" }}
         minW={{ base: "100%", md: "960px" }}
         cursor="pointer"
         onClick={() => onOpenDetails(item)}
       >
-        <HStack px={{ base: "5px", md: 4 }} spacing={2} minW={0}>
+        <HStack px={{ base: "5px", md: 4 }} spacing={{ base: 0, md: 2 }} minW={0}>
           <IconButton
             aria-label="Unpin liner"
             icon={<BsPinAngleFill />}
             size="m"
+            display={{ base: "none", md: "inline-flex" }}
             variant="ghost"
             color="#3b82f6"
             _hover={{ bg: "blue.50", color: "blue.600" }}
@@ -349,28 +489,89 @@ function PinnedLinerOverlay({
               onUnpin();
             }}
           />
-          <Box minW={0}>
-            <Text fontSize="sm" fontWeight="800" color="#253044" noOfLines={1}>
-              {item.model || "-"}
-            </Text>
-            <HStack mt={1} spacing={2} minW={0}>
-              <Text fontSize="xs" fontWeight="700" color="#8a98aa" noOfLines={1}>
-                {item.brand || "-"}
+          <Box minW={0} flex="1">
+            <HStack spacing={1} align={{ base: "flex-start", md: "center" }} minW={0}>
+            
+              <Text
+                fontSize={{ base: "11px", md: "sm" }}
+                fontWeight="800"
+                color="#253044"
+                noOfLines={{ base: undefined, md: 1 }}
+                whiteSpace={{ base: "normal", md: "nowrap" }}
+                wordBreak="normal"
+                overflowWrap="normal"
+                lineHeight={{ base: "1.12", md: "normal" }}
+                minW={0}
+              >
+                {item.model || "-"}
               </Text>
-              <Tag size="sm" bg="#eef3f8" color="#2f67bf" borderRadius="7px">
-                <TagLabel fontSize="11px" fontWeight="800">{formatTeatSize(item.size_mm)}</TagLabel>
-              </Tag>
-              {(isAdmin && item.compound) ? (
-                <Tag size="sm" bg="#eef3f8" color="#52677f" borderRadius="7px">
-                  <TagLabel fontSize="11px" fontWeight="800">{item.compound}</TagLabel>
-                </Tag>
-              ) : null}
-              {!appIdByKey[item.key] ? (
-                <Text fontSize="11px" color="#a0aec0">No application</Text>
-              ) : null}
+                {(() => {
+                      const shapeKey = String(item.barrel_shape || "").toLowerCase();
+                      const ShapeIcon = BARREL_SHAPE_ICON[shapeKey];
+                      const shapeLabel = BARREL_SHAPE_LABEL[shapeKey];
+                      return ShapeIcon ? (
+                        <Tooltip label={shapeLabel} hasArrow placement="top" openDelay={300}>
+                          <HStack display={{ base: "none", md: "flex" }} align="center" spacing={1} px={1.5} py={0.5} borderWidth="1px" borderRadius="full" bg="gray.100" color="blue.500">
+                                <ShapeIcon boxSize={3} />
+                                <Text fontSize="10px" fontWeight="semibold" textTransform="capitalize">
+                                  {shapeLabel}
+                                </Text>
+                              </HStack>
+                        </Tooltip>
+                      ) : null;
+                    })()}
             </HStack>
+            <Stack mt={{ base: 0, md: 1 }} spacing={{ base: 0, md: 0.5 }} align="flex-start" minW={0}>
+                <Text fontSize={{ base: "10px", md: "xs" }} fontWeight="700" color="#8a98aa" whiteSpace="normal" wordBreak="normal" overflowWrap="normal" lineHeight="1.1">
+                  {item.brand || "-"}
+                </Text>
+                <HStack spacing={{ base: 1, md: 2 }} flexWrap="wrap" align="center">
+                  <Tag size={{ base: "xs", md: "sm" }} bg="#eef3f8" color="#2f67bf" borderRadius="7px" px={{ base: 1.5, md: 2 }} py={{ base: 0.5, md: 0 }}>
+                    <TagLabel fontSize={{ base: "10px", md: "11px" }} fontWeight="800">{formatTeatSize(item.size_mm)}</TagLabel>
+                  </Tag>
+                  {(isAdmin && item.compound) ? (
+                    <Tag size={{ base: "xs", md: "sm" }} bg="#eef3f8" color="#52677f" borderRadius="7px" px={{ base: 1.5, md: 2 }} py={{ base: 0.5, md: 0 }}>
+                      <TagLabel fontSize={{ base: "10px", md: "11px" }} fontWeight="800">{item.compound}</TagLabel>
+                    </Tag>
+                  ) : null}
+                  {!appIdByKey[item.key] ? (
+                    <Text fontSize={{ base: "10px", md: "11px" }} color="#a0aec0">No application</Text>
+                  ) : null}
+                </HStack>
+            </Stack>
           </Box>
         </HStack>
+
+        <VStack spacing={1} align="center" justify="center">
+          <IconButton
+            aria-label="Unpin liner"
+            icon={<BsPinAngleFill />}
+            size="xs"
+            minW="18px"
+            w="18px"
+            h="18px"
+            display={{ base: "inline-flex", md: "none" }}
+            variant="ghost"
+            color="#3b82f6"
+            _hover={{ bg: "blue.50", color: "blue.600" }}
+            onClick={(e) => {
+              e.stopPropagation();
+              onUnpin();
+            }}
+          />
+          {(() => {
+            const shapeKey = String(item.barrel_shape || "").toLowerCase();
+            const ShapeIcon = BARREL_SHAPE_ICON[shapeKey];
+            const shapeLabel = BARREL_SHAPE_LABEL[shapeKey];
+            return ShapeIcon ? (
+              <Tooltip label={shapeLabel} hasArrow placement="top" openDelay={300}>
+                <HStack display={{ base: "flex", md: "none" }} align="center" justify="center" minW="17px" h="17px" borderWidth="1px" borderRadius="full" bg="gray.100" color="blue.500">
+                  <ShapeIcon boxSize={2.5} />
+                </HStack>
+              </Tooltip>
+            ) : null;
+          })()}
+        </VStack>
 
         {RESULT_KPIS.map((kpi, index) => (
           <ScoreBlock
@@ -403,6 +604,7 @@ export default function ProductsSearchPage() {
   const [sortDir, setSortDir] = useState('desc'); // 'asc' | 'desc'
   const [pinnedKeys, setPinnedKeys] = useState([]);
   const [showPinnedOverlay, setShowPinnedOverlay] = useState(false);
+  const [resultsSearch, setResultsSearch] = useState("");
   const resultsTableRef = useRef(null);
   const KPI_ORDER = [
     'CLOSURE','FITTING','CONGESTION_RISK','HYPERKERATOSIS_RISK','SPEED','RESPRAY','FLUYDODINAMIC','SLIPPAGE','RINGING_RISK'
@@ -665,20 +867,35 @@ export default function ProductsSearchPage() {
     });
     return copy;
   }, [items, kpiScores, sortKpi, sortDir]);
+  const visibleItems = useMemo(() => {
+    const q = resultsSearch.trim().toLowerCase();
+    if (!q) return sortedItems;
+    return sortedItems.filter((item) => {
+      const haystack = [
+        item.brand,
+        item.model,
+        item.compound,
+        item.barrel_shape,
+        formatTeatSize(item.size_mm),
+        item.size_mm,
+      ].filter(Boolean).join(" ").toLowerCase();
+      return haystack.includes(q);
+    });
+  }, [sortedItems, resultsSearch]);
   const pinnedItems = useMemo(
     () => pinnedKeys
-      .map((key) => sortedItems.find((it) => it.key === key))
+      .map((key) => visibleItems.find((it) => it.key === key))
       .filter(Boolean),
-    [sortedItems, pinnedKeys]
+    [visibleItems, pinnedKeys]
   );
   useEffect(() => {
     if (!pinnedKeys.length) return;
-    const available = new Set(sortedItems.map((it) => it.key));
+    const available = new Set(visibleItems.map((it) => it.key));
     const next = pinnedKeys.filter((key) => available.has(key));
     if (next.length !== pinnedKeys.length) {
       setPinnedKeys(next);
     }
-  }, [pinnedKeys, sortedItems]);
+  }, [pinnedKeys, visibleItems]);
 
   useEffect(() => {
     if (!pinnedItems.length) {
@@ -801,10 +1018,10 @@ export default function ProductsSearchPage() {
   useEffect(() => {
     let alive = true;
     const run = async () => {
-      if (!sortedItems.length) return;
+      if (!visibleItems.length) return;
       const token = getToken();
       if (!token) return;
-      const keys = sortedItems.map((it) => it.key);
+      const keys = visibleItems.map((it) => it.key);
       const missingKeys = keys.filter((key) => !kpiScores[key]);
       if (!missingKeys.length) return;
       const appIds = missingKeys.map((key) => appIdByKey[key]).filter(Boolean);
@@ -822,7 +1039,7 @@ export default function ProductsSearchPage() {
     };
     run();
     return () => { alive = false; };
-  }, [sortedItems, appIdByKey, kpiScores]);
+  }, [visibleItems, appIdByKey, kpiScores]);
 
   const onSelectSortKpi = async (code) => {
     // Default to descending when a KPI is selected
@@ -997,42 +1214,54 @@ export default function ProductsSearchPage() {
           <Button
             variant="outline"
             px={{ base: 2, md: 3 }}
-            pt={{ base: 4, md: 2 }}
-            pb={{ base: 4, md: 2 }}
-            minH={{ base: 14, md: 'auto' }}
+            pt={{ base: 5, md: 2 }}
+            pb={{ base: 5, md: 2 }}
+            minH={{ base: 20, md: 'auto' }}
+            whiteSpace="normal"
+            alignItems={{ base: "stretch", md: "center" }}
             onClick={() => openAction({ title: "Radar Map", min: 1, max: 5, route: "/tools/radar-map" })}
           >
-            <Stack direction={{ base: 'column', md: 'row' }} align="center" spacing={{ base: 1, md: 2 }}>
-              <Box as={TbChartRadar} boxSize={{ base: 6, md: 5 }} color="blue.500" />
-              <Text fontSize={{ base: 'xs', md: 'sm' }} color="gray.600">Radar Map</Text>
+            <Stack direction={{ base: 'column', md: 'row' }} align="center" justify={{ base: "flex-start", md: "center" }} spacing={{ base: 1, md: 2 }} minW={0} h="full">
+              <Box as={TbChartRadar} boxSize={{ base: 6, md: 5 }} color="blue.500" flexShrink={0} />
+              <Text fontSize={{ base: 'xs', md: 'sm' }} color="gray.600" textAlign="center" lineHeight="1.15" whiteSpace="normal" minH={{ base: "28px", md: "auto" }} display={{ base: "flex", md: "block" }} alignItems="flex-start" justifyContent="center">
+                Radar Map
+              </Text>
             </Stack>
           </Button>
           {isAdmin ? (
             <Button
               variant="outline"
               px={{ base: 2, md: 3 }}
-              pt={{ base: 4, md: 2 }}
-              pb={{ base: 4, md: 2 }}
-              minH={{ base: 14, md: 'auto' }}
+              pt={{ base: 5, md: 2 }}
+              pb={{ base: 5, md: 2 }}
+              minH={{ base: 20, md: 'auto' }}
+              whiteSpace="normal"
+              alignItems={{ base: "stretch", md: "center" }}
               onClick={() => openAction({ title: "Tests Detail", min: 1, max: 8, route: "/tools/tests-detail" })}
             >
-              <Stack direction={{ base: 'column', md: 'row' }} align="center" spacing={{ base: 1, md: 2 }}>
-                <Box as={RiFlaskLine} boxSize={{ base: 6, md: 5 }} color="blue.500" />
-                <Text fontSize={{ base: 'xs', md: 'sm' }} color="gray.600">Tests Detail</Text>
+              <Stack direction={{ base: 'column', md: 'row' }} align="center" justify={{ base: "flex-start", md: "center" }} spacing={{ base: 1, md: 2 }} minW={0} h="full">
+                <Box as={RiFlaskLine} boxSize={{ base: 6, md: 5 }} color="blue.500" flexShrink={0} />
+                <Text fontSize={{ base: 'xs', md: 'sm' }} color="gray.600" textAlign="center" lineHeight="1.15" whiteSpace="normal" minH={{ base: "28px", md: "auto" }} display={{ base: "flex", md: "block" }} alignItems="flex-start" justifyContent="center">
+                  Tests Detail
+                </Text>
               </Stack>
             </Button>
           ) : null}
           <Button
             variant="outline"
             px={{ base: 2, md: 3 }}
-            pt={{ base: 4, md: 2 }}
-            pb={{ base: 4, md: 2 }}
-            minH={{ base: 14, md: 'auto' }}
+            pt={{ base: 5, md: 2 }}
+            pb={{ base: 5, md: 2 }}
+            minH={{ base: 20, md: 'auto' }}
+            whiteSpace="normal"
+            alignItems={{ base: "stretch", md: "center" }}
             onClick={() => openAction({ title: "Select 1 or 2 products", min: 1, max: 2, route: "/tools/setting-calculator" })}
           >
-            <Stack direction={{ base: 'column', md: 'row' }} align="center" spacing={{ base: 1, md: 2 }}>
-              <Box as={TbArrowsRightLeft} boxSize={{ base: 6, md: 5 }} color="blue.500" />
-              <Text fontSize={{ base: 'xs', md: 'sm' }} color="gray.600">Setting Calculator</Text>
+            <Stack direction={{ base: 'column', md: 'row' }} align="center" justify={{ base: "flex-start", md: "center" }} spacing={{ base: 1, md: 2 }} minW={0} h="full">
+              <Box as={TbArrowsRightLeft} boxSize={{ base: 6, md: 5 }} color="blue.500" flexShrink={0} />
+              <Text fontSize={{ base: 'xs', md: 'sm' }} color="gray.600" textAlign="center" lineHeight="1.15" whiteSpace="normal" minH={{ base: "28px", md: "auto" }} display={{ base: "flex", md: "block" }} alignItems="flex-start" justifyContent="center">
+                Setting Calculator
+              </Text>
             </Stack>
           </Button>
         </SimpleGrid>
@@ -1051,22 +1280,31 @@ export default function ProductsSearchPage() {
               </VStack>
             ) : (
               <>
+                <ResultsToolbar
+                  total={visibleItems.length}
+                  query={resultsSearch}
+                  onQueryChange={setResultsSearch}
+                  sortKpi={sortKpi}
+                  sortDir={sortDir}
+                  sortingBusy={sortingBusy}
+                  onSelectSortKpi={onSelectSortKpi}
+                  onToggleDir={toggleSortDir}
+                />
                 <Box ref={resultsTableRef}>
-                  <LinerResultsTable
-                    rows={sortedItems}
-                    total={items.length}
-                    sortKpi={sortKpi}
-                    sortDir={sortDir}
-                    sortingBusy={sortingBusy}
-                    kpiScores={kpiScores}
-                    appIdByKey={appIdByKey}
-                    isAdmin={me?.role === 'admin'}
-                    pinnedKeys={pinnedKeys}
-                    onTogglePin={togglePinnedKey}
-                    onOpenDetails={openDetails}
-                    onSelectSortKpi={onSelectSortKpi}
-                    onToggleDir={toggleSortDir}
-                  />
+                  {visibleItems.length === 0 ? (
+                    <VStack py={8} spacing={2} borderWidth="1px" borderColor="#e6ebf2" borderRadius="12px" bg="white">
+                      <Text color="gray.600">No results match your search.</Text>
+                    </VStack>
+                  ) : (
+                    <LinerResultsTable
+                      rows={visibleItems}
+                      kpiScores={kpiScores}
+                      isAdmin={me?.role === 'admin'}
+                      pinnedKeys={pinnedKeys}
+                      onTogglePin={togglePinnedKey}
+                      onOpenDetails={openDetails}
+                    />
+                  )}
                 </Box>
               </>
             )}
