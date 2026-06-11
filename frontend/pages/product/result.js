@@ -71,8 +71,13 @@ const formatSortKpiLabel = (code) =>
     .join(" ");
 
 const RESULT_GRID_TEMPLATE = {
-  base: "minmax(84px, 0.9fr) 18px repeat(9, minmax(26px, 1fr))",
+  base: "minmax(84px, 0.9fr) 30px repeat(9, minmax(26px, 1fr))",
   md: "460px 0px repeat(9, minmax(70px, 1fr))",
+};
+
+const RESULT_TABLE_GRID_TEMPLATE = {
+  base: "minmax(84px, 0.9fr) 30px repeat(9, minmax(26px, 1fr))",
+  md: RESULT_GRID_TEMPLATE.md,
 };
 
 async function getProductApplicationsCached(token, productId) {
@@ -135,7 +140,7 @@ function LinerResultsTable({
     >
       <Box overflowX={{ base: "hidden", md: "auto" }}>
         <Grid
-          templateColumns={RESULT_GRID_TEMPLATE}
+          templateColumns={RESULT_TABLE_GRID_TEMPLATE}
           minW={{ base: "100%", md: "960px" }}
           bg="#fbfcfe"
           borderBottomWidth="1px"
@@ -165,7 +170,7 @@ function LinerResultsTable({
             return (
               <Grid
                 key={item.key}
-                templateColumns={RESULT_GRID_TEMPLATE}
+                templateColumns={RESULT_TABLE_GRID_TEMPLATE}
                 alignItems="center"
                 minH="66px"
                 position="relative"
@@ -246,7 +251,7 @@ function LinerResultsTable({
                           <Text fontSize="10px" fontWeight="700" color="#8a98aa" whiteSpace="normal" wordBreak="normal" overflowWrap="normal" lineHeight="1.1">
                             {item.brand || "-"}
                           </Text>
-                          <HStack spacing={1} flexWrap="wrap" align="center">
+                          <HStack spacing={1} flexWrap="nowrap" align="center">
                             <Tag size="xs" bg="#eef3f8" color="#2f67bf" borderRadius="7px" px={1}>
                               <TagLabel fontSize="10px" fontWeight="800">{formatTeatSize(item.size_mm)}</TagLabel>
                             </Tag>
@@ -297,11 +302,11 @@ function LinerResultsTable({
                 <Flex align="center" justify="center" visibility={{ base: "visible", md: "hidden" }}>
                   <IconButton
                     aria-label={isPinned ? "Unpin liner" : "Pin liner"}
-                    icon={isPinned ? <BsPinAngleFill /> : <BsPinAngle />}
+                    icon={isPinned ? <BsPinAngleFill size="18px" /> : <BsPinAngle size="18px" />}
                     size="xs"
-                    minW="18px"
-                    w="18px"
-                    h="18px"
+                    minW="30px"
+                    w="30px"
+                    h="30px"
                     variant="ghost"
                     color={isPinned ? "#3b82f6" : "#cbd5e1"}
                     _hover={{ bg: "blue.50", color: "blue.500" }}
@@ -444,7 +449,7 @@ function PinnedLinerOverlay({
     <Box
       position="fixed"
       top={{
-        base: `${10 + index * 96}px`,
+        base: `${10 + index * 116}px`,
         md: `${12 + index * 78}px`,
       }}
       left={0}
@@ -470,7 +475,7 @@ function PinnedLinerOverlay({
       <Grid
         templateColumns={RESULT_GRID_TEMPLATE}
         alignItems="center"
-        minH={{ base: "86px", md: "66px" }}
+        minH={{ base: "106px", md: "66px" }}
         minW={{ base: "100%", md: "960px" }}
         cursor="pointer"
         onClick={() => onOpenDetails(item)}
@@ -489,11 +494,11 @@ function PinnedLinerOverlay({
               onUnpin();
             }}
           />
-          <Box minW={0} flex="1">
+          <Box minW={0} flex="1" pt={{ base: 3, md: 0 }}>
             <HStack spacing={1} align={{ base: "flex-start", md: "center" }} minW={0}>
             
               <Text
-                fontSize={{ base: "11px", md: "sm" }}
+                fontSize={{ base: "15px", md: "sm" }}
                 fontWeight="800"
                 color="#253044"
                 noOfLines={{ base: undefined, md: 1 }}
@@ -521,11 +526,11 @@ function PinnedLinerOverlay({
                       ) : null;
                     })()}
             </HStack>
-            <Stack mt={{ base: 0, md: 1 }} spacing={{ base: 0, md: 0.5 }} align="flex-start" minW={0}>
-                <Text fontSize={{ base: "10px", md: "xs" }} fontWeight="700" color="#8a98aa" whiteSpace="normal" wordBreak="normal" overflowWrap="normal" lineHeight="1.1">
+            <Stack mt={{ base: 2, md: 3 }} spacing={{ base: 1, md: 2 }} align="flex-start" minW={0}>
+                <Text fontSize={{ base: "14px", md: "xs" }} fontWeight="700" color="#8a98aa" whiteSpace="normal" wordBreak="normal" overflowWrap="normal" lineHeight="1.1">
                   {item.brand || "-"}
                 </Text>
-                <HStack spacing={{ base: 1, md: 2 }} flexWrap="wrap" align="center">
+                <HStack spacing={{ base: 1, md: 2 }} flexWrap="nowrap" align="center" mt={{ base: 1, md: 2 }}>
                   <Tag size={{ base: "xs", md: "sm" }} bg="#eef3f8" color="#2f67bf" borderRadius="7px" px={{ base: 1.5, md: 2 }} py={{ base: 0.5, md: 0 }}>
                     <TagLabel fontSize={{ base: "10px", md: "11px" }} fontWeight="800">{formatTeatSize(item.size_mm)}</TagLabel>
                   </Tag>
@@ -534,6 +539,18 @@ function PinnedLinerOverlay({
                       <TagLabel fontSize={{ base: "10px", md: "11px" }} fontWeight="800">{item.compound}</TagLabel>
                     </Tag>
                   ) : null}
+                  {(() => {
+                    const shapeKey = String(item.barrel_shape || "").toLowerCase();
+                    const ShapeIcon = BARREL_SHAPE_ICON[shapeKey];
+                    const shapeLabel = BARREL_SHAPE_LABEL[shapeKey];
+                    return ShapeIcon ? (
+                      <Tooltip label={shapeLabel} hasArrow placement="top" openDelay={300}>
+                        <HStack display={{ base: "flex", md: "none" }} align="center" justify="center" minW="22px" h="22px" borderWidth="1px" borderRadius="full" bg="gray.100" color="blue.500">
+                          <ShapeIcon boxSize={3.5} />
+                        </HStack>
+                      </Tooltip>
+                    ) : null;
+                  })()}
                   {!appIdByKey[item.key] ? (
                     <Text fontSize={{ base: "10px", md: "11px" }} color="#a0aec0">No application</Text>
                   ) : null}
@@ -542,14 +559,14 @@ function PinnedLinerOverlay({
           </Box>
         </HStack>
 
-        <VStack spacing={1} align="center" justify="center">
+        <Flex align="center" justify="center">
           <IconButton
             aria-label="Unpin liner"
-            icon={<BsPinAngleFill />}
+            icon={<BsPinAngleFill size="18px" />}
             size="xs"
-            minW="18px"
-            w="18px"
-            h="18px"
+            minW="30px"
+            w="30px"
+            h="30px"
             display={{ base: "inline-flex", md: "none" }}
             variant="ghost"
             color="#3b82f6"
@@ -559,19 +576,7 @@ function PinnedLinerOverlay({
               onUnpin();
             }}
           />
-          {(() => {
-            const shapeKey = String(item.barrel_shape || "").toLowerCase();
-            const ShapeIcon = BARREL_SHAPE_ICON[shapeKey];
-            const shapeLabel = BARREL_SHAPE_LABEL[shapeKey];
-            return ShapeIcon ? (
-              <Tooltip label={shapeLabel} hasArrow placement="top" openDelay={300}>
-                <HStack display={{ base: "flex", md: "none" }} align="center" justify="center" minW="17px" h="17px" borderWidth="1px" borderRadius="full" bg="gray.100" color="blue.500">
-                  <ShapeIcon boxSize={2.5} />
-                </HStack>
-              </Tooltip>
-            ) : null;
-          })()}
-        </VStack>
+        </Flex>
 
         {RESULT_KPIS.map((kpi, index) => (
           <ScoreBlock
@@ -912,7 +917,7 @@ export default function ProductsSearchPage() {
 
       const rect = node.getBoundingClientRect();
       const overlayTop = window.innerWidth < 768 ? 10 : 12;
-      const overlayHeight = 76 * pinnedItems.length;
+      const overlayHeight = (window.innerWidth < 768 ? 106 : 76) * pinnedItems.length;
       setShowPinnedOverlay(rect.top <= overlayTop && rect.bottom > overlayTop + overlayHeight);
     };
 
