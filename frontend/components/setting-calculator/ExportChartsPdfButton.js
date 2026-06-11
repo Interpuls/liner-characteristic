@@ -16,7 +16,7 @@ import {
   useDisclosure,
   useToast,
 } from "@chakra-ui/react";
-import { getSettingInputFields } from "../../lib/settingCalculator";
+import { getSettingInputFields, convertInputValueForDisplay } from "../../lib/settingCalculator";
 import { createSettingCalculatorExportCharts } from "../../lib/settingCalculatorPdfCharts";
 
 function formatCellValue(v) {
@@ -82,8 +82,8 @@ export default function ExportChartsPdfButton({
     const inputRows = fields.map((f) => ({
       key: f.key,
       label: `${f.label}${f.unit ? ` (${f.unit})` : ""}`,
-      left: formatCellValue(left?.[f.key]),
-      right: formatCellValue(right?.[f.key]),
+      left: formatCellValue(convertInputValueForDisplay(left?.[f.key], f.key, unitSystem)),
+      right: formatCellValue(convertInputValueForDisplay(right?.[f.key], f.key, unitSystem)),
     }));
     return {
       reportTitle,
