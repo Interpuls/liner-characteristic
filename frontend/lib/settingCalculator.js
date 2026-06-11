@@ -11,12 +11,26 @@ export const SETTING_INPUT_FIELDS = [
 
 const PRESSURE_KEYS = new Set(["milkingVacuumMaxKpa", "pfVacuumKpa", "omVacuumKpa"]);
 
+export const KPA_PER_INHG = 3.386389;
+
 export function getSettingInputFields(unitSystem = "metric") {
   const isImperial = unitSystem === "imperial";
   return SETTING_INPUT_FIELDS.map((f) => ({
     ...f,
     unit: PRESSURE_KEYS.has(f.key) && isImperial ? "inHg" : f.unit,
   }));
+}
+
+// I valori sono sempre persistiti in metrico (kPa). A display, se l'utente
+// è imperial, riconvertiamo solo i campi di pressione in inHg.
+// Storage e payload restano invariati.
+export function convertInputValueForDisplay(value, fieldKey, unitSystem = "metric") {
+  if (value == null || value === "") return value;
+  if (unitSystem !== "imperial") return value;
+  if (!PRESSURE_KEYS.has(fieldKey)) return value;
+  const n = Number(value);
+  if (!Number.isFinite(n)) return value;
+  return n / KPA_PER_INHG;
 }
 
 export function createDefaultInputs() {

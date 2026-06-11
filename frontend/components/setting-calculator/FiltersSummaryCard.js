@@ -19,7 +19,7 @@ import {
   VStack,
 } from "@chakra-ui/react";
 import { ChevronDownIcon, SettingsIcon } from "@chakra-ui/icons";
-import { getSettingInputFields } from "../../lib/settingCalculator";
+import { getSettingInputFields, convertInputValueForDisplay } from "../../lib/settingCalculator";
 
 function formatValue(v) {
   if (v == null || v === "") return "-";
@@ -43,8 +43,8 @@ export default function FiltersSummaryCard({
   const rows = useMemo(() => {
     const fields = getSettingInputFields(unitSystem);
     return fields.map((field) => {
-      const leftVal = leftInputs?.[field.key];
-      const rightVal = rightInputs?.[field.key];
+      const leftVal = convertInputValueForDisplay(leftInputs?.[field.key], field.key, unitSystem);
+      const rightVal = convertInputValueForDisplay(rightInputs?.[field.key], field.key, unitSystem);
       return {
         key: field.key,
         label: field.label,
